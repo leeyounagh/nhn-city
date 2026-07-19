@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0c0a09; /* stone-950 — 게임이 항상 다크 테마라 기본 배경도 다크로 고정 */
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,15 +12,47 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ── 인트로 컷신 애니메이션 ─────────────────────────── */
+@keyframes lc-fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes lc-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes lc-ash {
+  0% { transform: translateY(-8vh) translateX(0); opacity: 0; }
+  12% { opacity: 0.55; }
+  100% { transform: translateY(108vh) translateX(48px); opacity: 0; }
+}
+@keyframes lc-title {
+  0% { opacity: 0; letter-spacing: 0.55em; transform: scale(0.92); }
+  100% { opacity: 1; letter-spacing: 0.18em; transform: scale(1); }
+}
+
+.lc-fade-up { animation: lc-fade-up 0.9s ease-out both; }
+.lc-fade-in { animation: lc-fade-in 1.2s ease-out both; }
+.lc-title { animation: lc-title 1.6s ease-out both; }
+.lc-ash {
+  position: absolute;
+  top: 0;
+  border-radius: 9999px;
+  background: rgba(214, 211, 209, 0.7);
+  animation-name: lc-ash;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-fade-up, .lc-fade-in, .lc-title, .lc-ash {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
