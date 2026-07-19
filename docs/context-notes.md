@@ -243,3 +243,37 @@
 - **창고 UI 통일**(사용자 결정): 드래그 소스는 맵 상단 `InventoryStrip`(라벨 "🎒 창고 — 자재를 건물로 끌어다 채운다") 하나로 명확화. 헤더의 창고 모달 버튼은 **고향에선 숨김**(`state.location !== "home"`), 마을에서 확인용으로만 유지. 이유 = 모달이 맵을 덮어 뒤 건물로 드롭 불가 → 드래그 소스와 뷰어를 분리.
 - **eslint 함정**: React19 `react-hooks/refs` 규칙이 "ref를 만지는 함수를 JSX 인라인 핸들러로 전달"을 render 중 ref 접근으로 오인 → 에러. 팔레트처럼 **자식 컴포넌트에 핸들러를 prop으로 넘기면** 회피됨(인벤토리 칩을 `InventoryStrip` 자식으로 추출).
 - 검증: tsc 그린, eslint 그린(신규 파일 경고 0, 기존 HaggleDialog img 경고 1개만), 홈 200. ⚠️ 탭·드래그 배치·투입 시각검증은 브라우저 e2e 불가로 미검 — 사용자 수동 플레이 필요.
+- **(2026-07-20 후속)** playwright로 P2-6 시각검증 **완료** — 7×7 배치·건물 렌더(0% 오버레이) 확인. Playwright bbox-center 클릭은 다이아몬드 오버랩으로 타임아웃(자동화 아티팩트, 실제 클릭/드래그·DOM 클릭은 정상). 향후 e2e는 iso 역변환 좌표로 클릭할 것.
+
+### 월드맵 모달화 + 고향맵 auto-fit (2026-07-20, 사용자 승인 후 구현)
+- **사용자 결정**: (1) 상단 인라인 월드맵 → **모달**로 전환, 노드 클릭 시 이동+모달 닫힘. (2) 마을·고향 어디서든 같은 모달로 **통일**(헤더 `🗺️ 이동` 버튼). (3) 고향 아이소맵을 **auto-fit**으로 화면 최대 비율. 근거 = 인라인 월드맵이 세로 공간을 크게 먹어 아이소맵이 눌렸음.
+- **Game.tsx**: `showWorldMap` 상태 + 헤더 amber `🗺️ 이동` 버튼(항상 노출). `main`에서 인라인 `<WorldMap>` 제거. 고향이면 `main`을 전체폭(`w-full`, max-w 해제), 마을이면 기존 `max-w-5xl` 유지로 분기. 모달 래퍼 `WorldMapModal`(신규, 파일 내 로컬 컴포넌트) = 오버레이(`fixed inset-0 z-40` backdrop-blur) 안에 **기존 `WorldMap` 그대로 재사용**(WorldMap.tsx 무수정). onTravel = `setShowWorldMap(false)` 후 `travelTo(dest)`.
+- **IsoCityMap.tsx auto-fit**: `scale` 단일 상태 → `fitScale`(자동)×`zoom`(사용자 ±배율, 0.6~1.6) 분리, `scale = fitScale*zoom`. 보드 영역(`boardAreaRef`)에 `ResizeObserver` 달아 `fitScale = min((clientW-32)/BOARD_W, (clientH-32)/(BOARD_H+TH))` 실측 산출(리사이즈 추종). 보드 영역 높이 `72vh` + `flex items-center justify-center`로 다이아몬드 중앙 배치. **스프라이트 상단 오버플로 TH**는 fit 높이에 `+TH` 포함 + 내부 boardRef `top: TH*scale`로 헤드룸 확보(잘림 방지). toTile 역변환은 boardRef rect를 `/scale`하므로 top 오프셋에 영향 없음(그대로 정상).
+- 검증(brower): tsc/eslint 그린. 이동 버튼→모달(5노드·현재위치 강조)→삼목골 클릭→일차 1→2·소문2·단서노트2·모달닫힘 확인. 고향맵 전체폭+7×7 auto-fit 확인. 콘솔 에러 0. ⚠️ 트레이드오프 = 튜토리얼 닫아도 페이지 총높이 915>뷰포트720이라 팔레트 보려면 ~195px 스크롤(다이아 크게 유지 우선, 사용자 "최대 비율" 의도 반영). UI 전면 개편 시 flex-fill로 무스크롤화 여지.
+
+### 도움말 모달화 + 아이소맵 크기제한 해제 + 드래그 팬 (2026-07-20, 사용자 지시)
+- **사용자 지시 3건**: (1) 도움말(튜토리얼)도 모달로, (2) 아이소맵 크기 제한(높이 맞춤 축소) 두지 말고, (3) 마우스로 보드를 끌면 그 방향으로 팬.
+- **도움말 모달화**(Game.tsx `Tutorial`): 인라인 배너(`mx-auto mt-3 max-w-6xl`) → `fixed inset-0 z-40` 오버레이(backdrop-blur, 배경/닫기 클릭으로 닫힘, `max-w-2xl` 중앙). `showTutorial` 기본 true 유지 → 인트로 종료 후 자동 1회 노출(온보딩). 내용은 무변경.
+- **크기제한 해제**(IsoCityMap): P2-7의 auto-fit이 `min(폭,높이)`로 **높이에 맞춰 축소**하던 걸, **폭만 맞춤**(`fitScale = (clientW-32)/BOARD_W`)으로 변경. 세로는 제한 없이 넘치면 팬. 결과 배율 ~1.9→~2.7로 커짐(타일 확대). `flex items-center justify-center` 제거하고 내부 박스 `mx-auto`(블록 margin-auto는 오버플로 시 0마진이라 스크롤 안전, flex 센터링 버그 회피). 줌 상한 1.6→3.
+- **드래그 팬**(IsoCityMap): 보드영역 `onPointerDown`(마우스 한정, `pointerType!=='mouse'`면 네이티브 스크롤에 위임)에서 시작점·scrollLeft/Top 기록 → window pointermove로 `el.scrollLeft/Top = 시작scroll - 이동량` 갱신(그 방향으로 팬). 6px 임계(DRAG_THRESHOLD 재사용) 넘으면 `didPanRef=true`로 뒤따르는 타일/스프라이트 click(배치·선택) 억제. 다음 pointerdown에서 `didPanRef=false` 리셋 → 깨끗한 탭은 정상 배치. 팔레트 카드·인벤토리 칩은 보드영역 밖이라 팬과 무충돌(기존 배치 드래그 그대로).
+- 검증(browser): tsc/eslint 그린. 도움말 모달 자동노출·닫힘 확인. 맵 폭꽉참+세로오버플로(scrollH706>clientH516) 확인. 합성 마우스 드래그 팬 scrollTop 0→150 확인. **팬 후 탭 배치 정상**(sprites=1·occupied=1). 콘솔·서버 에러 0. ※ playwright bbox클릭은 여전히 다이아 오버랩으로 타임아웃 → DOM/합성 pointer로 검증(자동화 아티팩트, 실사용 무관).
+
+### 무한 타일 평면 + 카메라 팬 (2026-07-20, 사용자 지시 — P2-7/P2-8의 고정격자·auto-fit 대체)
+- **사용자 의도 정정**: 고정 7×7이 아니라 **경계 없는 무한 타일 평면**을 드래그로 카메라 옮겨가며(타일이 드래그 방향으로 밀림) 어디든 건설. 무한 캔버스형 도시빌더. → **진짜 무한(가시영역 가상화)** 채택(사용자 선택).
+- **IsoCityMap 렌더 구조 교체**(P2-7/P2-8의 auto-fit·fit-width·스크롤 팬 폐기):
+  - 좌표계: `GRID/OFFSET/BOARD_W/H/tilePos` 제거 → `worldPos(x,y)={(x-y)*32,(x+y)*16}`(경계보정 없음). 화면좌표 = `worldPos*scale + pan`. `pan{x,y}`=카메라 오프셋(화면px).
+  - 팬: 보드영역 `overflow-hidden`, 배경 마우스 드래그(pointerdown→window pointermove)로 `setPan(startPan + 이동량)`. 음수 좌표 포함 사방 무한. 6px 임계·`didPanRef`로 뒤따르는 타일 click 억제(탭 배치 무영향). 터치/펜은 미처리(데스크톱 데모).
+  - 가상화: 뷰포트(ResizeObserver로 실측) 네 모서리를 역변환해 타일좌표 범위(txMin~txMax,tyMin~tyMax) 산출 → 그 범위만 순회하며 화면 밖 타일 컬링. 렌더 타일 ~600개. 타일·스프라이트를 좌표 순회 중 함께 push(스프라이트는 점유타일에만). zIndex=1000+tx+ty(타일)/100000+tx+ty(스프라이트).
+  - 카메라 초기화: 최초 측정 시 원점(0,0)을 뷰포트 중앙에 오도록 `pan={w/2,h/2}`(panInitRef 1회).
+  - 줌: `scale` 상태(기본 1.2, 0.5~3). `zoomTo(nz)`=뷰포트 중앙 월드점 고정하며 확대(pan 재계산). 건물 이모지 `fontSize:30*scale`로 줌 따라 커짐(타일 크기도 `TW*scale` 직접 반영, 부모 transform 제거).
+  - toTile(드롭 배치): boardArea rect + `(cx-rect.left-pan.x)/scale` 역변환, 경계검사 없음. deps에 pan 추가.
+- **불변**: BuildingPalette/InventoryStrip/PlacementPanel/ZoomBtn/BUILDING_ICON, Game.tsx, 배치·투입·흥정·이동 로직, 데이터 모델(Placement{x,y}는 무한 좌표 허용).
+- 검증(browser): tsc/eslint 그린. 무한 격자 렌더(가시 605타일, 좌표 −16~16 **음수 포함**). 오두막 (0,0) 탭 배치 확인. **드래그 팬 → 건물이 드래그 방향으로 이동**(중앙→우하단) + 팬 후 좌표범위 −16~16 → **−23~9로 이동(새 타일 계속 생성)** 확인. 콘솔 에러 0.
+- ⚠️ 성능: 팬 1픽셀마다 ~600 타일 버튼 리렌더. 데모 규모는 OK지만 저사양·과확대 시 버벅일 수 있음 → 필요 시 컬링 타이트닝/버튼 경량화 여지. 빈 타일 대비 여전히 낮음(격자 옅게 보임) — UI 개편 시 조정.
+
+### [버그픽스] 모달이 타일에 가려짐 — 보드 stacking context 격리 (2026-07-20)
+- **증상**(사용자 신고): 단서 노트 모달 X/본문이 안 눌림. → 재현: 홈에서 노트 열고 모달 본문(640,300) elementFromPoint = **타일 버튼(z:990)**, 모달(z-40) 아님. 타일이 모달을 덮어 클릭 가로챔.
+- **근본원인**: P2-9에서 보드 `transform: scale()` 래퍼(스태킹 컨텍스트 생성원)를 제거 → 타일/스프라이트 z-index(981~100000)가 **루트 스태킹 컨텍스트로 새어나가** 모든 모달(z-40)을 이김. 모달 본문(보드영역과 겹치는 y)이 타일에 가려짐. 페이지 스크롤 시 X까지 보드 위로 올라와 가려질 수 있음. **홈 위 모든 모달(튜토리얼·월드맵·창고·흥정·노트) 공통 영향**.
+- **수정**: 보드영역 div에 `isolate`(CSS `isolation: isolate`) 1개 추가 → 새 스태킹 컨텍스트 형성, 타일 z-index를 보드 내부로 가둠. 보드 자체는 in-flow(z-auto)라 fixed z-40 모달들 아래로. 1줄 최소 수정.
+- **기각 가설**: (a)핸들러 파손 → DOM `.click()`으로 튜토리얼/노트 모두 닫힘, 정상. (b)playwright 클릭 실패 = 앱 버그 → 보드 잦은 리렌더로 snapshot ref가 stale(e1352 not found)일 뿐, 자동화 아티팩트. (c)인트로 오버레이(z-60) → 테스트 셋업에서 START GAME 미클릭 잔재였고 실사용 무관.
+- 검증: tsc/eslint 그린. 수정 후 모달 본문 위 elementFromPoint = 모달 오버레이(z-40), X clickable=true, 스샷 깨끗. 팬/배치(sprites=1) 여전히 정상. 콘솔·서버 에러 0.

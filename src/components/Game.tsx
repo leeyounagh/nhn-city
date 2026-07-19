@@ -29,6 +29,7 @@ export function Game() {
   const [showTutorial, setShowTutorial] = useState(true);
   const [showNotebook, setShowNotebook] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
+  const [showWorldMap, setShowWorldMap] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
 
   // 세션에 한 번만 자동 재생 (새로고침 반복 방지). sessionStorage는 SSR에 없어 마운트 후 읽는다.
@@ -309,6 +310,12 @@ export function Game() {
             )}
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setShowWorldMap(true)}
+              className="rounded border border-amber-700/60 bg-amber-950/30 px-3 py-1.5 text-sm text-amber-200 transition hover:bg-amber-900/40"
+            >
+              🗺️ 이동
+            </button>
             {state.location !== "home" && (
               <button
                 onClick={() => setShowInventory(true)}
@@ -339,16 +346,17 @@ export function Game() {
 
       <p className="mx-auto max-w-6xl px-4 pt-3 text-sm italic text-stone-400">{notice}</p>
 
-      <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
-        <WorldMap location={state.location} busy={busy} onTravel={travelTo} />
-        {state.location === "home" ? (
+      {state.location === "home" ? (
+        <main className="w-full px-4 py-4">
           <IsoCityMap
             state={state}
             onPlace={placeBuilding}
             onDeposit={deposit}
             onReclaim={reclaim}
           />
-        ) : (
+        </main>
+      ) : (
+        <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
           <TownView
             townName={locationName(state.location)}
             industryName={TOWN_BY_ID[state.location as TownId].industryName}
@@ -359,8 +367,8 @@ export function Game() {
             onHaggle={startHaggle}
             onBarter={startBarter}
           />
-        )}
-      </main>
+        </main>
+      )}
 
       {state.haggle && state.merchant && (
         <HaggleDialog
@@ -371,6 +379,18 @@ export function Game() {
           onSend={sendUtterance}
           onBuy={buy}
           onClose={closeHaggle}
+        />
+      )}
+
+      {showWorldMap && (
+        <WorldMapModal
+          location={state.location}
+          busy={busy}
+          onTravel={(dest) => {
+            setShowWorldMap(false);
+            travelTo(dest);
+          }}
+          onClose={() => setShowWorldMap(false)}
         />
       )}
 
@@ -387,10 +407,48 @@ export function Game() {
   );
 }
 
+// 월드맵을 오버레이 모달로 감싼다. 노드 클릭 시 이동 후 모달이 닫힌다. WorldMap 자체는 그대로 재사용.
+function WorldMapModal({
+  location,
+  busy,
+  onTravel,
+  onClose,
+}: {
+  location: LocationId;
+  busy: boolean;
+  onTravel: (dest: LocationId) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="mt-16 w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-2 flex justify-end">
+          <button
+            onClick={onClose}
+            className="rounded border border-stone-600 bg-stone-900/80 px-3 py-1 text-sm text-stone-300 transition hover:bg-stone-800"
+          >
+            닫기 ✕
+          </button>
+        </div>
+        <WorldMap location={location} busy={busy} onTravel={onTravel} />
+      </div>
+    </div>
+  );
+}
+
 function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onReplayStory: () => void }) {
   return (
-    <div className="mx-auto mt-3 max-w-6xl px-4">
-      <div className="relative rounded-lg border border-sky-800/50 bg-sky-950/30 p-4 pr-10 text-sm text-stone-300">
+    <div
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative mt-16 w-full max-w-2xl rounded-lg border border-sky-800/60 bg-sky-950/95 p-4 pr-10 text-sm text-stone-300 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           onClick={onClose}
           aria-label="튜토리얼 닫기"

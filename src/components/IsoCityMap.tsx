@@ -28,16 +28,13 @@ export const BUILDING_ICON: Record<string, string> = {
   cathedral: "⛪",
 };
 
-const GRID = 7;
-const TW = 64; // 타일 폭
+const TW = 64; // 타일 폭 (기준 배율 1)
 const TH = 32; // 타일 높이
-const OFFSET_X = (GRID - 1) * (TW / 2); // 좌측 여백 (x-y 최소값 보정)
-const BOARD_W = GRID * TW;
-const BOARD_H = (GRID - 1) * TH + TH;
 const DRAG_THRESHOLD = 6; // px, 이 이상 움직여야 드래그로 간주 (탭과 구분)
 
-function tilePos(x: number, y: number): { left: number; top: number } {
-  return { left: (x - y) * (TW / 2) + OFFSET_X, top: (x + y) * (TH / 2) };
+// 타일(x,y) → 월드 픽셀 (배율·카메라 적용 전). 무한 평면이라 경계 보정(OFFSET) 없음.
+function worldPos(x: number, y: number): { wx: number; wy: number } {
+  return { wx: (x - y) * (TW / 2), wy: (x + y) * (TH / 2) };
 }
 
 type DragState = { kind: "building" | "material"; id: string; cx: number; cy: number };
@@ -56,12 +53,72 @@ export function IsoCityMap({
 }) {
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
   const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null);
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(1.2); // 타일 배율 (줌)
+  const [pan, setPan] = useState({ x: 0, y: 0 }); // 카메라 오프셋(화면 px). 드래그로 이동, 사방 무한
+  const [viewport, setViewport] = useState({ w: 0, h: 0 });
   const [drag, setDrag] = useState<DragState | null>(null);
 
   const dragRef = useRef<DragRef | null>(null);
   const didDragRef = useRef(false);
-  const boardRef = useRef<HTMLDivElement>(null);
+  const boardAreaRef = useRef<HTMLDivElement>(null);
+  const panRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
+  const panMovedRef = useRef(false);
+  const didPanRef = useRef(false); // 팬 뒤 따라오는 타일 click(배치/선택) 억제용
+  const panInitRef = useRef(false);
+
+  // 보드 뷰포트 실측. 가시 타일 계산·카메라 중앙정렬에 쓴다.
+  useEffect(() => {
+    const el = boardAreaRef.current;
+    if (!el) return;
+    const measure = () => setViewport({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // 최초 측정 시 원점 타일(0,0)을 뷰포트 중앙에 오도록 카메라를 놓는다 (1회).
+  useEffect(() => {
+    if (!panInitRef.current && viewport.w > 0 && viewport.h > 0) {
+      panInitRef.current = true;
+      setPan({ x: viewport.w / 2, y: viewport.h / 2 });
+    }
+  }, [viewport]);
+
+  // 마우스로 보드 배경을 끌면 카메라(pan)를 그 방향으로 옮긴다 → 타일 평면이 드래그 방향으로 밀린다.
+  // 터치/펜은 처리하지 않는다(이 데모는 데스크톱 기준).
+  useEffect(() => {
+    function onMove(e: PointerEvent) {
+      const p = panRef.current;
+      if (!p) return;
+      const dx = e.clientX - p.startX;
+      const dy = e.clientY - p.startY;
+      if (!panMovedRef.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      panMovedRef.current = true;
+      didPanRef.current = true;
+      setPan({ x: p.panX + dx, y: p.panY + dy });
+    }
+    function onUp() {
+      panRef.current = null;
+      panMovedRef.current = false;
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, []);
+
+  // 줌: 뷰포트 중앙을 기준으로 확대/축소 (중앙 월드점 고정).
+  const zoomTo = (nz: number) => {
+    const cx = viewport.w / 2;
+    const cy = viewport.h / 2;
+    const wxc = (cx - pan.x) / scale;
+    const wyc = (cy - pan.y) / scale;
+    setPan({ x: cx - wxc * nz, y: cy - wyc * nz });
+    setScale(nz);
+  };
 
   const occupancy = useMemo(() => {
     const map = new Map<string, Placement>();
@@ -69,23 +126,18 @@ export function IsoCityMap({
     return map;
   }, [state.placements]);
 
-  // 화면 좌표 → 그리드 타일 (아이소 역변환, 줌 스케일 보정). 스프라이트 가림 없이 계산으로 판정.
-  // 드래그 판정·드롭에서 최신 scale/placements가 필요하므로 effect 안에 재구성한다.
+  // 화면 좌표 → 타일 (아이소 역변환, 카메라·배율 보정). 무한 평면이라 경계 검사 없음.
+  // 드래그 드롭에서 최신 pan/scale/placements가 필요하므로 effect 안에 재구성한다.
   useEffect(() => {
     function toTile(cx: number, cy: number): { x: number; y: number } | null {
-      const el = boardRef.current;
+      const el = boardAreaRef.current;
       if (!el) return null;
       const rect = el.getBoundingClientRect();
-      const px = (cx - rect.left) / scale;
-      const py = (cy - rect.top) / scale;
-      const sx = px - OFFSET_X - TW / 2;
-      const sy = py - TH / 2;
-      const a = sx / (TW / 2); // x - y
-      const b = sy / (TH / 2); // x + y
-      const x = Math.round((a + b) / 2);
-      const y = Math.round((b - a) / 2);
-      if (x < 0 || y < 0 || x >= GRID || y >= GRID) return null;
-      return { x, y };
+      const wx = (cx - rect.left - pan.x) / scale;
+      const wy = (cy - rect.top - pan.y) / scale;
+      const a = wx / (TW / 2); // x - y
+      const b = wy / (TH / 2); // x + y
+      return { x: Math.round((a + b) / 2), y: Math.round((b - a) / 2) };
     }
     function onMove(e: PointerEvent) {
       const d = dragRef.current;
@@ -119,7 +171,7 @@ export function IsoCityMap({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [onPlace, onDeposit, scale, state.placements]);
+  }, [onPlace, onDeposit, scale, pan, state.placements]);
 
   const selectedPlacement = state.placements.find((p) => p.id === selectedPlacementId) ?? null;
   const inv = Object.entries(state.inventory).filter(([, n]) => n > 0);
@@ -143,75 +195,118 @@ export function IsoCityMap({
     dragRef.current = { kind: "material", id: materialId, startX: e.clientX, startY: e.clientY, moved: false };
   };
 
-  const tiles = [];
-  for (let y = 0; y < GRID; y++) {
-    for (let x = 0; x < GRID; x++) {
-      const key = `${x},${y}`;
-      const p = occupancy.get(key);
-      const { left, top } = tilePos(x, y);
-      tiles.push(
-        <button
-          key={key}
-          type="button"
-          onClick={() => {
-            if (p) {
-              setSelectedPlacementId(p.id);
-              setSelectedBuilding(null);
-            } else if (selectedBuilding) {
-              onPlace(selectedBuilding, x, y);
-              setSelectedBuilding(null);
-            }
-          }}
-          className="absolute"
-          style={{ left, top, width: TW, height: TH, zIndex: y * GRID + x }}
-          aria-label={p ? `${BUILDINGS.find((b) => b.id === p.buildingId)?.name} 터` : `빈 터 ${x},${y}`}
-        >
-          <span
-            className={`block h-full w-full transition ${
-              p
-                ? ""
-                : placingBuilding
-                  ? "bg-amber-500/25 hover:bg-amber-400/40"
-                  : "bg-stone-700/30 hover:bg-stone-600/40"
-            }`}
-            style={{ clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)" }}
-          />
-        </button>,
-      );
+  // ── 가시영역 가상화: 뷰포트에 들어오는 타일/스프라이트만 렌더 (무한 평면) ──
+  const tiles: React.ReactNode[] = [];
+  const sprites: React.ReactNode[] = [];
+  const tileW = TW * scale;
+  const tileH = TH * scale;
+  if (viewport.w > 0 && viewport.h > 0) {
+    // 화면 px → 타일 좌표 (역변환). 뷰포트 네 모서리로 렌더 범위를 잡는다.
+    const tileAtPx = (sx: number, sy: number) => {
+      const wx = (sx - pan.x) / scale;
+      const wy = (sy - pan.y) / scale;
+      const a = wx / (TW / 2);
+      const b = wy / (TH / 2);
+      return { tx: (a + b) / 2, ty: (b - a) / 2 };
+    };
+    const corners = [
+      tileAtPx(0, 0),
+      tileAtPx(viewport.w, 0),
+      tileAtPx(0, viewport.h),
+      tileAtPx(viewport.w, viewport.h),
+    ];
+    const txs = corners.map((c) => c.tx);
+    const tys = corners.map((c) => c.ty);
+    const txMin = Math.floor(Math.min(...txs)) - 1;
+    const txMax = Math.ceil(Math.max(...txs)) + 1;
+    const tyMin = Math.floor(Math.min(...tys)) - 1;
+    const tyMax = Math.ceil(Math.max(...tys)) + 1;
+
+    for (let ty = tyMin; ty <= tyMax; ty++) {
+      for (let tx = txMin; tx <= txMax; tx++) {
+        const { wx, wy } = worldPos(tx, ty);
+        const left = wx * scale + pan.x;
+        const top = wy * scale + pan.y;
+        // 화면 밖 타일은 컬링 (스프라이트는 위로 tileH 솟으니 상단 여유를 더 준다)
+        if (left < -tileW || left > viewport.w + tileW || top < -tileH * 3 || top > viewport.h + tileH) {
+          continue;
+        }
+        const key = `${tx},${ty}`;
+        const p = occupancy.get(key);
+        tiles.push(
+          <button
+            key={`t${key}`}
+            type="button"
+            onClick={() => {
+              if (didPanRef.current) {
+                didPanRef.current = false;
+                return; // 팬 뒤 따라오는 click은 무시
+              }
+              if (p) {
+                setSelectedPlacementId(p.id);
+                setSelectedBuilding(null);
+              } else if (selectedBuilding) {
+                onPlace(selectedBuilding, tx, ty);
+                setSelectedBuilding(null);
+              }
+            }}
+            className="absolute"
+            style={{ left, top, width: tileW, height: tileH, zIndex: 1000 + tx + ty }}
+            aria-label={p ? `${BUILDINGS.find((b) => b.id === p.buildingId)?.name} 터` : `빈 터 ${tx},${ty}`}
+          >
+            <span
+              className={`block h-full w-full transition ${
+                p
+                  ? ""
+                  : placingBuilding
+                    ? "bg-amber-500/25 hover:bg-amber-400/40"
+                    : "bg-stone-700/30 hover:bg-stone-600/40"
+              }`}
+              style={{ clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)" }}
+            />
+          </button>,
+        );
+
+        if (p) {
+          const b = BUILDINGS.find((x) => x.id === p.buildingId);
+          const chk = checkPlacement(p);
+          const totalNeed = chk.slots.reduce((a, s) => a + s.need, 0);
+          const have = chk.slots.reduce((a, s) => a + Math.min(s.have, s.need), 0);
+          const pct = totalNeed > 0 ? Math.round((have / totalNeed) * 100) : 0;
+          const materialTarget = drag?.kind === "material" && !p.built;
+          sprites.push(
+            <button
+              key={`s${p.id}`}
+              type="button"
+              onClick={() => {
+                if (didPanRef.current) {
+                  didPanRef.current = false;
+                  return;
+                }
+                setSelectedPlacementId(p.id);
+                setSelectedBuilding(null);
+              }}
+              className={`absolute flex flex-col items-center rounded ${materialTarget ? "ring-2 ring-emerald-400/70" : ""}`}
+              style={{ left, top: top - tileH, width: tileW, height: tileH * 2, zIndex: 100000 + tx + ty }}
+              title={b?.name}
+            >
+              <span
+                className={`leading-none drop-shadow ${p.built ? "" : "opacity-60 grayscale"}`}
+                style={{ fontSize: 30 * scale }}
+              >
+                {BUILDING_ICON[p.buildingId] ?? "🏠"}
+              </span>
+              {!p.built && (
+                <span className="mt-0.5 rounded bg-stone-950/80 px-1 text-[9px] font-semibold text-amber-300">
+                  {pct}%
+                </span>
+              )}
+            </button>,
+          );
+        }
+      }
     }
   }
-
-  const sprites = state.placements.map((p) => {
-    const { left, top } = tilePos(p.x, p.y);
-    const b = BUILDINGS.find((x) => x.id === p.buildingId);
-    const chk = checkPlacement(p);
-    const total = chk.slots.reduce((a, s) => a + s.need, 0);
-    const have = chk.slots.reduce((a, s) => a + Math.min(s.have, s.need), 0);
-    const pct = total > 0 ? Math.round((have / total) * 100) : 0;
-    const materialTarget = drag?.kind === "material" && !p.built; // 드래그 중 채울 수 있는 대상 강조
-    return (
-      <button
-        key={p.id}
-        type="button"
-        onClick={() => {
-          setSelectedPlacementId(p.id);
-          setSelectedBuilding(null);
-        }}
-        className={`absolute flex flex-col items-center rounded ${materialTarget ? "ring-2 ring-emerald-400/70" : ""}`}
-        style={{ left, top: top - TH, width: TW, height: TH * 2, zIndex: 1000 + p.y * GRID + p.x }}
-        title={b?.name}
-      >
-        <span className={`text-3xl leading-none drop-shadow ${p.built ? "" : "opacity-60 grayscale"}`}>
-          {BUILDING_ICON[p.buildingId] ?? "🏠"}
-        </span>
-        {!p.built && (
-          <span className="mt-0.5 rounded bg-stone-950/80 px-1 text-[9px] font-semibold text-amber-300">
-            {pct}%
-          </span>
-        )}
-      </button>
-    );
-  });
 
   return (
     <section className="rounded-lg border border-emerald-800/50 bg-emerald-950/20 p-4">
@@ -219,30 +314,29 @@ export function IsoCityMap({
         <h2 className="text-base font-bold text-stone-100">🏰 폐허가 된 고향</h2>
         <span className="text-xs text-stone-400">건물을 끌어다(또는 골라 탭) 빈 터에 놓고, 자재를 끌어다(또는 터를 눌러) 채운다</span>
         <div className="ml-auto flex items-center gap-1">
-          <ZoomBtn label="－" onClick={() => setScale((s) => Math.max(0.6, +(s - 0.2).toFixed(2)))} />
+          <ZoomBtn label="－" onClick={() => zoomTo(Math.max(0.5, +(scale - 0.2).toFixed(2)))} />
           <span className="w-10 text-center text-xs text-stone-400">{Math.round(scale * 100)}%</span>
-          <ZoomBtn label="＋" onClick={() => setScale((s) => Math.min(1.6, +(s + 0.2).toFixed(2)))} />
+          <ZoomBtn label="＋" onClick={() => zoomTo(Math.min(3, +(scale + 0.2).toFixed(2)))} />
         </div>
       </div>
 
       {/* 인벤토리 — 자재 칩을 건물로 드래그해 채운다 */}
       <InventoryStrip inv={inv} onChipPointerDown={startMaterialDrag} />
 
-      {/* 아이소 보드 (줌 시 스크롤로 팬) */}
-      <div className="mb-3 overflow-auto rounded border border-stone-700/50 bg-stone-950/40 p-4">
-        <div
-          className="relative mx-auto"
-          style={{ width: BOARD_W * scale, height: BOARD_H * scale }}
-        >
-          <div
-            ref={boardRef}
-            className="absolute left-0 top-0 origin-top-left"
-            style={{ width: BOARD_W, height: BOARD_H, transform: `scale(${scale})` }}
-          >
-            {tiles}
-            {sprites}
-          </div>
-        </div>
+      {/* 아이소 보드 — 무한 평면. 배경을 마우스로 끌면 카메라가 그 방향으로 이동(타일이 밀림) */}
+      <div
+        ref={boardAreaRef}
+        onPointerDown={(e) => {
+          if (e.pointerType !== "mouse") return;
+          didPanRef.current = false;
+          panMovedRef.current = false;
+          panRef.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
+        }}
+        className="relative isolate mb-3 cursor-grab touch-none overflow-hidden rounded border border-stone-700/50 bg-stone-950/40 active:cursor-grabbing"
+        style={{ height: "72vh" }}
+      >
+        {tiles}
+        {sprites}
       </div>
 
       {/* 건물 팔레트 */}
