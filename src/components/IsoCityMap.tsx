@@ -2,13 +2,14 @@
 // 폐허 고향의 아이소메트릭 건설 맵. 팔레트에서 건물을 골라(탭 또는 드래그) 빈 타일에 놓고, 자재를 드래그하거나 타일을 눌러 채워 완공한다.
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MaterialId } from "@/types/game";
-import { BUILDINGS, MATERIAL_NAME } from "@/lib/game-data";
+import { BUILDINGS, MATERIAL_NAME, BUILDING_RENDER_SCALE } from "@/lib/game-data";
 import {
   type GameState,
   type Placement,
   checkPlace,
   checkPlacement,
   canDeposit,
+  hasBlueprint,
 } from "@/lib/game-state";
 
 export const BUILDING_ICON: Record<string, string> = {
@@ -307,12 +308,37 @@ export function IsoCityMap({
 
         if (p) {
           const b = BUILDINGS.find((x) => x.id === p.buildingId);
+          if (b?.flat) {
+            // 바닥 장식: 타일 지면으로 렌더(위로 솟지 않음). 선택 클릭은 아래 타일 버튼이 처리.
+            sprites.push(
+              <img
+                key={`f${p.id}`}
+                src={buildingSprite(p.buildingId)}
+                alt=""
+                draggable={false}
+                style={{
+                  position: "absolute",
+                  left,
+                  top,
+                  width: tileW,
+                  height: tileH,
+                  objectFit: "cover",
+                  clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
+                  transform: p.flipped ? "scaleX(-1)" : undefined,
+                  opacity: p.id === movingId ? 0.4 : 1,
+                  zIndex: 1500 + tx + ty,
+                  pointerEvents: "none",
+                }}
+              />,
+            );
+            continue;
+          }
           const chk = checkPlacement(p);
           const totalNeed = chk.slots.reduce((a, s) => a + s.need, 0);
           const have = chk.slots.reduce((a, s) => a + Math.min(s.have, s.need), 0);
           const pct = totalNeed > 0 ? Math.round((have / totalNeed) * 100) : 0;
           const materialTarget = drag?.kind === "material" && !p.built;
-          const spriteW = tileW * BUILDING_SPRITE_SCALE;
+          const spriteW = tileW * BUILDING_SPRITE_SCALE * (BUILDING_RENDER_SCALE[p.buildingId] ?? 1);
           sprites.push(
             <button
               key={`s${p.id}`}
@@ -501,51 +527,83 @@ function BuildingPalette({
   onCardPointerDown: (e: React.PointerEvent, buildingId: string) => void;
   onCardClick: (buildingId: string) => void;
 }) {
+  const normal = BUILDINGS.filter((b) => !b.deco);
+  const deco = BUILDINGS.filter((b) => b.deco);
+  const unlocked = hasBlueprint(state.inventory);
+  const cards = (list: typeof BUILDINGS) =>
+    list.map((b) => (
+      <PaletteCard
+        key={b.id}
+        b={b}
+        state={state}
+        selected={selectedBuilding === b.id}
+        onCardPointerDown={onCardPointerDown}
+        onCardClick={onCardClick}
+      />
+    ));
   return (
-    <div>
-      <p className="mb-1.5 text-xs font-semibold text-stone-300">🧱 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭</p>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {BUILDINGS.map((b) => {
-          const c = checkPlace(b.id, state);
-          const active = selectedBuilding === b.id;
-          return (
-            <button
-              key={b.id}
-              type="button"
-              disabled={!c.canPlace}
-              onPointerDown={(e) => onCardPointerDown(e, b.id)}
-              onClick={() => onCardClick(b.id)}
-              className={`flex min-w-[92px] shrink-0 touch-none select-none flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition ${
-                active
-                  ? "border-amber-500 bg-amber-500/15"
-                  : "border-stone-700/60 bg-stone-900/40 enabled:cursor-grab enabled:hover:border-amber-600/60 enabled:active:cursor-grabbing"
-              } disabled:cursor-not-allowed disabled:opacity-40`}
-              title={
-                !c.prereqMet
-                  ? `선행 필요: ${c.missingPrereq.map((p) => BUILDINGS.find((x) => x.id === p)?.name).join(", ")}`
-                  : !c.bookMet
-                    ? `마법의 책 Lv.${b.minBook} 필요`
-                    : b.name
-              }
-            >
-              <img src={buildingSprite(b.id)} alt="" draggable={false} className="pointer-events-none h-12 w-12 select-none object-contain" />
-              <span className="text-xs font-semibold text-stone-100">{b.name}</span>
-              {b.income > 0 && <span className="text-[10px] text-emerald-300">+{b.income}/day</span>}
-              {b.produces && (
-                <span className="text-[10px] text-sky-300">
-                  🏭 {(Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => `${MATERIAL_NAME[id]}+${n}`).join(" ")}
-                </span>
-              )}
-              {!c.canPlace && (
-                <span className="text-[10px] text-rose-400">
-                  {!c.prereqMet ? "선행 필요" : `책 Lv.${b.minBook}`}
-                </span>
-              )}
-            </button>
-          );
-        })}
+    <div className="space-y-2">
+      <div>
+        <p className="mb-1.5 text-xs font-semibold text-stone-300">🧱 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭</p>
+        <div className="flex gap-2 overflow-x-auto pb-1">{cards(normal)}</div>
       </div>
+      {unlocked && (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold text-amber-300">
+            🎨 장식 <span className="font-normal text-stone-400">— 「대건축가의 설계도」로 해금. 바닥·성벽을 자유롭게</span>
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1">{cards(deco)}</div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function PaletteCard({
+  b,
+  state,
+  selected,
+  onCardPointerDown,
+  onCardClick,
+}: {
+  b: (typeof BUILDINGS)[number];
+  state: GameState;
+  selected: boolean;
+  onCardPointerDown: (e: React.PointerEvent, buildingId: string) => void;
+  onCardClick: (buildingId: string) => void;
+}) {
+  const c = checkPlace(b.id, state);
+  return (
+    <button
+      type="button"
+      disabled={!c.canPlace}
+      onPointerDown={(e) => onCardPointerDown(e, b.id)}
+      onClick={() => onCardClick(b.id)}
+      className={`flex min-w-[92px] shrink-0 touch-none select-none flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition ${
+        selected
+          ? "border-amber-500 bg-amber-500/15"
+          : "border-stone-700/60 bg-stone-900/40 enabled:cursor-grab enabled:hover:border-amber-600/60 enabled:active:cursor-grabbing"
+      } disabled:cursor-not-allowed disabled:opacity-40`}
+      title={
+        !c.prereqMet
+          ? `선행 필요: ${c.missingPrereq.map((p) => BUILDINGS.find((x) => x.id === p)?.name).join(", ")}`
+          : !c.bookMet
+            ? `마법의 책 Lv.${b.minBook} 필요`
+            : b.name
+      }
+    >
+      <img src={buildingSprite(b.id)} alt="" draggable={false} className="pointer-events-none h-12 w-12 select-none object-contain" />
+      <span className="text-xs font-semibold text-stone-100">{b.name}</span>
+      {b.income > 0 && <span className="text-[10px] text-emerald-300">+{b.income}/day</span>}
+      {b.produces && (
+        <span className="text-[10px] text-sky-300">
+          🏭 {(Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => `${MATERIAL_NAME[id]}+${n}`).join(" ")}
+        </span>
+      )}
+      {!b.deco && !c.canPlace && (
+        <span className="text-[10px] text-rose-400">{!c.prereqMet ? "선행 필요" : `책 Lv.${b.minBook}`}</span>
+      )}
+    </button>
   );
 }
 
@@ -595,7 +653,9 @@ function PlacementPanel({
           </button>
         </div>
 
-        {placement.built ? (
+        {b.deco ? (
+          <p className="text-sm text-stone-300">장식물 — 아래 버튼으로 이동·회전·삭제할 수 있다.</p>
+        ) : placement.built ? (
           <p className="text-sm font-medium text-emerald-400">
             완성됨 — 매일 골드 수입
             {b.produces

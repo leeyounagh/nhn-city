@@ -16,7 +16,8 @@ export type MaterialId =
   | "bronze"
   | "stainedglass"
   | "relic"
-  | "token"; // 상인의 신표 — 살 수 없고 흥정 고호감도로만 획득, 최상위 건물 요구
+  | "token" // 상인의 신표 — 살 수 없고 흥정 고호감도로만 획득, 최상위 건물 요구
+  | "blueprint"; // 대건축가의 설계도 — 최고 희귀. 상인이 극히 드물게 최고가 판매. 보유 시 바닥·성벽 장식 배치 영구 해금
 
 export interface MaterialMeta {
   id: MaterialId;
@@ -49,6 +50,8 @@ export interface BuildingDef {
   prereq: string[]; // 선행 건물 id
   minBook?: number; // 요구 마법의 책 레벨
   produces?: Partial<Record<MaterialId, number>>; // 완성 시 매일 생산하는 자재(고정 산출). 상위 건물일수록 상위 티어.
+  deco?: boolean; // 장식물 — 「대건축가의 설계도」 보유 시 해금. 자재 불필요·즉시완공·수입0.
+  flat?: boolean; // 바닥 장식 — 타일 지면으로 렌더(위로 솟지 않음).
 }
 
 export type BookLevel = 1 | 2 | 3;

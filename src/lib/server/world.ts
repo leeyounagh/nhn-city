@@ -33,7 +33,7 @@ function merchantSeed(day: number, i: number): number {
 
 // 상인이 팔지 않는 물품 1~2종을 "원하는 물품"으로 고른다. 상위 티어를 살짝 선호.
 function pickWants(rng: () => number, sells: MaterialId[]): MaterialId[] {
-  const pool = ALL_MATERIALS.filter((m) => m !== "token" && !sells.includes(m));
+  const pool = ALL_MATERIALS.filter((m) => m !== "token" && m !== "blueprint" && !sells.includes(m));
   const weighted = pool.filter((m) => {
     const tier = MATERIALS.find((x) => x.id === m)!.tier;
     return tier >= 2 ? true : rng() < 0.5; // tier1은 절반 확률로만 후보

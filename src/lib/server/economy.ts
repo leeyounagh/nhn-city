@@ -91,7 +91,11 @@ const PRICES: Record<MaterialId, { base: number; floor: number; tier: Tier }> = 
   stainedglass: { base: 130, floor: 78, tier: 3 },
   relic: { base: 200, floor: 120, tier: 3 },
   token: { base: 0, floor: 0, tier: 3 }, // 상인의 신표 — 사고팔지 않음(값 미사용). 흥정 고호감도로만 획득.
+  blueprint: { base: 700, floor: 520, tier: 3 }, // 대건축가의 설계도 — 최고가. 하한도 높아 잘 안 깎임(프리미엄).
 };
+
+// 상인이 하루에 '대건축가의 설계도'를 재고에 낼 확률 (극히 드물게). 책 Lv3에서만 잠금 해제.
+const BLUEPRINT_CHANCE = 0.06;
 
 // 이 호감도 이상이면 상인이 감복해 '상인의 신표'를 1개 선물한다 (흥정 1회당 1개).
 export const TOKEN_DISPOSITION = 90;
@@ -271,6 +275,11 @@ export function deriveMerchant(
     const floor = Math.min(offer0, Math.round(p.floor * spec.markup * mult)); // 하한 클램프
     return { id, tier: p.tier, offer0, floor, stock: stockFor(p.tier, rng) };
   });
+  // 극히 드물게 '대건축가의 설계도'를 추가로 내놓는다 (rng 스트림 맨 끝 → 스펙 자재 결정론 불변). 책 게이팅은 공개뷰에서.
+  if (rng() < BLUEPRINT_CHANCE) {
+    const bp = PRICES.blueprint;
+    materials.push({ id: "blueprint", tier: 3, offer0: bp.base, floor: bp.floor, stock: 1 });
+  }
   return { seed, spec, profile, materials };
 }
 
@@ -298,7 +307,7 @@ export function sellPrice(day: number | undefined, townId: TownId | undefined, i
 export function allSellPrices(day: number, townId: TownId): Partial<Record<MaterialId, number>> {
   const out: Partial<Record<MaterialId, number>> = {};
   for (const id of Object.keys(PRICES) as MaterialId[]) {
-    if (id === "token") continue;
+    if (id === "token" || id === "blueprint") continue; // 신표·설계도는 되팔 수 없음
     out[id] = sellPrice(day, townId, id);
   }
   return out;
@@ -345,7 +354,7 @@ export function buildPublicMerchant(
   wants: MaterialId[] = [],
 ): PublicMerchant {
   const materials: MerchantMaterialView[] = m.materials.map((mat) => {
-    const locked = mat.id === "relic" && !relicUnlocked(bookLevel);
+    const locked = (mat.id === "relic" || mat.id === "blueprint") && !relicUnlocked(bookLevel);
     const view: MerchantMaterialView = {
       id: mat.id,
       name: MATERIAL_NAME[mat.id],

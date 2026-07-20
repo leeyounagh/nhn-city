@@ -20,11 +20,42 @@ export const MATERIALS: MaterialMeta[] = [
   { id: "stainedglass", name: "스테인드글라스", tier: 3 },
   { id: "relic", name: "옛 문명의 부품", tier: 3 },
   { id: "token", name: "상인의 신표", tier: 3 }, // 흥정 고호감도로만 획득 (구매 불가)
+  { id: "blueprint", name: "대건축가의 설계도", tier: 3 }, // 최고 희귀. 극히 드물게 최고가 판매. 보유 시 장식 배치 해금
 ];
 
 export const MATERIAL_NAME: Record<string, string> = Object.fromEntries(
   MATERIALS.map((m) => [m.id, m.name]),
 );
+
+// 스프라이트 렌더 크기 배수 (기본 1). 과도하게 큰 스프라이트 축소용 (홈맵·마을 미리보기 공통).
+export const BUILDING_RENDER_SCALE: Record<string, number> = {
+  warehouse: 0.6,
+  tent: 0.25,
+  tent2: 0.25,
+  well: 0.3,
+  tree: 0.2,
+  tree2: 0.2,
+  platform: 1.8,
+  statue: 0.5,
+  // 시골 마을(무쇠고개) 스프라이트
+  church: 1.15,
+  house: 0.75,
+  house2: 0.75,
+  barn: 0.9,
+  graveyard: 0.8,
+  orchard: 1.7,
+  lamp: 0.45,
+  tree3: 0.6,
+  fence: 0.5, // 긴 레일이라 타일 밖으로 삐져나오지 않게 축소
+  // 베틀마을(직물) 시장 스프라이트
+  stall: 0.55,
+  tavern: 1.1,
+  shop: 0.85,
+  marketplaza: 1.5, // 멀티타일 시장광장
+  marketbuilding: 0.95,
+  storeshed: 0.7,
+  guardtower2: 0.7,
+};
 
 // 4마을 월드맵. 각 마을은 대표 업종 하나를 지녀 그 업종 물품이 싸고 풍부하다(P3 시세 반영).
 // 이동일수 인접표는 양방향 대칭으로 정의한다.
@@ -104,6 +135,14 @@ export const BUILDINGS: BuildingDef[] = [
   // T4 대업 (대성당은 목표가 아니라 최고난도 건물)
   { id: "manor", name: "영주관", requires: { marble: 6, brick: 10, stainedglass: 2, bronze: 3, token: 1 }, income: 40, xp: 30, prereq: ["guildhall"], minBook: 3 },
   { id: "cathedral", name: "대성당", requires: { marble: 8, stainedglass: 4, bronze: 3, relic: 2, token: 1 }, income: 25, xp: 35, prereq: ["chapel", "manor"], minBook: 3 },
+  // 장식 (「대건축가의 설계도」 보유 시 해금 — 자재 불필요·즉시완공·수입0). 바닥(flat)은 지면으로 렌더.
+  { id: "floor_grass", name: "잔디 바닥", requires: {}, income: 0, xp: 0, prereq: [], deco: true, flat: true },
+  { id: "floor_stone", name: "돌 바닥", requires: {}, income: 0, xp: 0, prereq: [], deco: true, flat: true },
+  { id: "floor_dirt", name: "흙 바닥", requires: {}, income: 0, xp: 0, prereq: [], deco: true, flat: true },
+  { id: "floor_path", name: "자갈길", requires: {}, income: 0, xp: 0, prereq: [], deco: true, flat: true },
+  { id: "wallpiece", name: "성벽 조각", requires: {}, income: 0, xp: 0, prereq: [], deco: true },
+  { id: "gate", name: "성문", requires: {}, income: 0, xp: 0, prereq: [], deco: true },
+  { id: "fence", name: "울타리", requires: {}, income: 0, xp: 0, prereq: [], deco: true },
 ];
 
 // 경험치 누적으로 마법의 책이 오르는 임계치

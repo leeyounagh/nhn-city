@@ -116,6 +116,11 @@ export function groupCluesByTown(clues: Rumor[]): { townId: TownId; townName: st
   return [...groups.values()];
 }
 
+// 대건축가의 설계도 보유 여부 → 바닥·성벽 장식 배치 해금.
+export function hasBlueprint(inventory: Record<string, number>): boolean {
+  return (inventory.blueprint ?? 0) > 0;
+}
+
 export function bookLevelFromXp(xp: number): BookLevel {
   let level = 1;
   for (let i = 0; i < BOOK_XP_THRESHOLDS.length; i++) {
@@ -169,6 +174,11 @@ export interface PlaceCheck {
 // 건물 종류를 새로 배치할 수 있는지 (선행·책 게이팅). 복수 배치 허용 → alreadyBuilt 제한 없음.
 export function checkPlace(buildingId: string, state: GameState): PlaceCheck {
   const b = BUILDINGS.find((x) => x.id === buildingId)!;
+  // 장식물은 선행·책 대신 「대건축가의 설계도」 보유로 게이팅.
+  if (b.deco) {
+    const unlocked = hasBlueprint(state.inventory);
+    return { prereqMet: unlocked, bookMet: unlocked, canPlace: unlocked, missingPrereq: [] };
+  }
   const types = builtTypes(state.placements);
   const missingPrereq = b.prereq.filter((p) => !types.has(p));
   const prereqMet = missingPrereq.length === 0;

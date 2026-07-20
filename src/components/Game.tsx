@@ -308,10 +308,11 @@ export function Game() {
       if (!checkPlace(buildingId, s).canPlace) return s;
       const b = BUILDINGS.find((x2) => x2.id === buildingId);
       if (!b) return s;
-      msg = `${b.name} 터를 놓았다. 자재를 채워 완공하라.`;
+      // 장식물은 자재 불필요 → 즉시 완공 상태로 배치.
+      msg = b.deco ? `${b.name}을(를) 놓았다.` : `${b.name} 터를 놓았다. 자재를 채워 완공하라.`;
       return {
         ...s,
-        placements: [...s.placements, { id, buildingId, x, y, progress: {}, built: false }],
+        placements: [...s.placements, { id, buildingId, x, y, progress: {}, built: !!b.deco }],
       };
     });
     if (msg) setNotice(msg);
@@ -449,6 +450,7 @@ export function Game() {
       ) : (
         <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
           <TownView
+            townId={state.location as TownId}
             townName={locationName(state.location)}
             industryName={TOWN_BY_ID[state.location as TownId].industryName}
             merchants={state.townMerchants}
