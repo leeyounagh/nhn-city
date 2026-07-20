@@ -366,3 +366,26 @@
 - **원인**: 타일 `<button>`이 사각형 bounding box(TW×TH)라 이웃과 겹치는데, clip-path가 시각용 `<span>`에만 있어 클릭은 사각형 전체에서 잡힘 → 겹친 영역을 z-index 높은(tx+ty 큰=더 앞) 타일이 가로챔. drag 배치는 toTile 수학 역변환이라 무관했고, **자동 테스트가 DOM 직접 click이라 이 좌표 문제를 못 잡았음**(실사용=좌표 클릭만 발생).
 - **수정**: clip-path를 **버튼 자체 style**에도 적용 → 클릭 히트영역이 다이아몬드로 제한, 다이아는 완전 테셀레이트되므로 각 점이 정확히 한 타일에 귀속. tap 배치·이동 모두 정확해짐.
 - 검증: 수정 후 다이아 중앙 클릭이 정확히 그 타일(0,0·2,2·-1,1·3,-2 전부 일치), 실제 이동 "빈 터 4,4" 시각중앙 클릭→4,4 착지. 콘솔 0에러.
+
+### 「대건축가의 설계도」 + 바닥·성벽 장식 (2026-07-20, 사용자 지시)
+- **사용자 결정**: 최고 희귀 아이템(이름 = 내가 지음, 「대건축가의 설계도」), 획득 = 상인이 극히 드물게 최고가 판매, 효과 = 영구 해금(바닥·성벽 장식 배치).
+- **B1 아이템**: MaterialId `blueprint`(tier3, base 700/floor 520=프리미엄). economy `BLUEPRINT_CHANCE=0.06` → deriveMerchant rng 스트림 맨 끝에 조건부 append(스펙 자재 결정론 불변). 책 Lv3 잠금(relic과 동일 relicUnlocked). allSellPrices·pickWants 제외(되팔기·물물교환 불가). 검증: 40일×4마을 중 book3서 14회 등장(드물게)·전부 unlocked, book1 전부 잠금.
+- **B2 장식 = deco 건물 통합**(최대 재사용): BuildingDef `deco?`(설계도 게이팅·즉시완공·수입0·자재불필요)+`flat?`(바닥=지면 렌더). BUILDINGS에 7종(잔디/돌/흙/자갈길 바닥 + 성벽조각/성문/울타리). checkPlace가 deco면 hasBlueprint로 게이팅. placeBuilding deco→built:true. IsoCityMap: flat이면 타일 지면으로 img 렌더(clip 다이아, pointerEvents none, 클릭은 타일 버튼)+`continue`, 아니면 기존 앵커 건물. 팔레트 일반/🎨장식 2섹션(hasBlueprint 시만), PaletteCard 추출.
+- **재사용**: 배치/이동/회전/삭제/모달 그대로 동작(장식도 편집 가능). 
+- **검증**(브라우저, 임시 initialState blueprint:1 지급 후 되돌림): 장식 섹션 해금, 잔디바닥=평평 지면·성벽=앵커 구조물 렌더, 되돌리면 장식 숨김. tsc/eslint 그린(img 경고), 콘솔 0에러. 스프라이트 7종 public/buildings 추가(총 21파일 3.9MB).
+- **기획서 6.8 갱신** + 에셋 크레딧(Kenney→JP Cummins 팩).
+- **다음**: 마을 7×7 아이소 미리보기(팬줌·업종테마바닥·상단배너, 결정 잠금됨).
+
+### 마을 7×7 아이소 미리보기 (2026-07-20)
+- **결정**(사용자): 팬/줌 허용·아무 장식 자유·업종별 테마 바닥·상단 배너·스타터 후 조정.
+- **새 컴포넌트** `TownIsoPreview`(IsoCityMap 재사용 안 함 — 무한/편집 없이 가벼운 읽기전용). 자체 iso 수학(TW72/TH36). ResizeObserver auto-fit(7×7 전체 보이게)+중앙정렬, 마우스 드래그 팬 + ±줌(0.4~2.5). 클릭·편집 없음.
+- **데이터** `town-scenes.ts`: `TOWN_FLOOR`(nw 잔디/ne 돌/sw 잔디/se 흙) + `TOWN_SCENES`(마을별 ScenePlacement[]={sprite,x,y,flipped}). 스타터 4마을(임업=방앗간·나무·통나무 / 광업=대장간·망루·성벽 / 직물=여관·시장·건초 / 유리=예배당·영주관·우물).
+- **렌더**: 49 바닥타일(테마 floor img를 다이아 clip)+씬 스프라이트(바닥중앙 앵커, flipped). 스프라이트는 public/buildings/{sprite}.png 재사용, 분위기용 tree/tree2/haybales/logs/barrel/silo/winepress 7종 추가 복사(총 28파일 4.4MB).
+- **통합**: TownView 상단에 배너(제목 "🏘️ {마을} {업종} · 드래그로 둘러보기" + 미리보기). 기존 상인목록 헤더는 "{마을} 상인"으로. townId prop 추가(Game에서 전달).
+- **검증**: 삼목골(잔디·임업 풍경 8스프라이트)·무쇠고개(돌바닥·요새 광산 5스프라이트) 브라우저 확인, 49타일 각각 테마 바닥, 콘솔 0에러. tsc/eslint 그린(img 경고). ⚠️ 레이아웃은 스타터 — 스크린샷 보며 계속 다듬기(사용자와).
+- **남은 마을 2개**(베틀마을·유리섬) 동일 코드로 자동 렌더(레이아웃 데이터만 있음).
+
+### [수정] warehouse 축소 + barrel 제거 + 마을 미리보기 모달 z-index (2026-07-20, 사용자)
+- **warehouse 축소**: game-data `BUILDING_RENDER_SCALE`(warehouse 0.6) 신설, IsoCityMap·TownIsoPreview 스프라이트 폭에 곱(홈·마을 공통).
+- **barrel 제거**: TOWN_SCENES에서 barrel 삭제(logs 대체), public/buildings/barrel.png 삭제.
+- **모달 덮임 버그**: TownIsoPreview 컨테이너에 `isolate` 없어 씬 스프라이트(z 10000)가 마을 모달(z-40)을 덮음. `isolate` 추가로 격리(홈 보드는 이미 isolate라 정상이었음). 검증: 노트 모달 위 스프라이트 0.
