@@ -40,8 +40,11 @@ export interface DailyEvent {
 }
 const EVENT_CHANCE = 0.45;
 const EVENT_CRASH = 0.5;
+const EVENT_DURATION = 4; // 대풍작은 4일 지속. 뉴스 듣고 마을간 거리(최대 3일) 이동해도 이벤트가 살아 있게.
 export function dailyEvent(day: number): DailyEvent | null {
-  const rng = mulberry32((Math.imul(day, 0x9e3779b1) ^ 0x632be5ab) >>> 0);
+  // 4일 윈도우 단위로 이벤트를 정한다. 같은 윈도우의 날들은 동일 이벤트(하루짜리라 이동 중 소멸하던 문제 해결).
+  const window = Math.floor((day - 1) / EVENT_DURATION);
+  const rng = mulberry32((Math.imul(window + 1, 0x9e3779b1) ^ 0x632be5ab) >>> 0);
   if (rng() >= EVENT_CHANCE) return null;
   const townId = TOWN_IDS[Math.floor(rng() * TOWN_IDS.length)];
   return { townId, multiplier: EVENT_CRASH };
