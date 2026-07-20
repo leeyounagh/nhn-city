@@ -34,7 +34,7 @@ export const TOWNS: TownMeta[] = [
     industry: "forestry",
     industryName: "임업",
     specialMaterials: ["wood", "planks"],
-    neighbors: { ne: 1, sw: 1, se: 2 },
+    neighbors: { sw: 1, ne: 2, se: 3 },
   },
   {
     id: "ne",
@@ -42,7 +42,7 @@ export const TOWNS: TownMeta[] = [
     industry: "mining",
     industryName: "광업",
     specialMaterials: ["stone", "steel", "bronze", "marble", "scrap"],
-    neighbors: { nw: 1, se: 1, sw: 2 },
+    neighbors: { nw: 2, se: 2, sw: 3 },
   },
   {
     id: "sw",
@@ -50,7 +50,7 @@ export const TOWNS: TownMeta[] = [
     industry: "textile",
     industryName: "직물",
     specialMaterials: ["cloth", "clay", "brick"],
-    neighbors: { nw: 1, se: 1, ne: 2 },
+    neighbors: { nw: 1, se: 2, ne: 3 },
   },
   {
     id: "se",
@@ -58,7 +58,7 @@ export const TOWNS: TownMeta[] = [
     industry: "glasswork",
     industryName: "유리세공",
     specialMaterials: ["glass", "stainedglass"],
-    neighbors: { ne: 1, sw: 1, nw: 2 },
+    neighbors: { ne: 2, sw: 2, nw: 3 },
   },
 ];
 
@@ -68,7 +68,7 @@ export const TOWN_BY_ID: Record<TownId, TownMeta> = Object.fromEntries(
 
 // 재건 대상인 폐허 고향. 상인·업종은 없고 건설만 한다. 4마을과는 각각 1일 거리(허브).
 export const HOME_NAME = "폐허가 된 고향";
-const HOME_NEIGHBORS: Record<TownId, number> = { nw: 1, ne: 1, sw: 1, se: 1 };
+const HOME_NEIGHBORS: Record<TownId, number> = { nw: 1, ne: 2, sw: 2, se: 3 };
 
 // 위치 표시명 (월드맵·이동 안내용).
 export function locationName(id: LocationId): string {
