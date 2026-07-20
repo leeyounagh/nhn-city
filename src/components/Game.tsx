@@ -83,6 +83,7 @@ export function Game() {
           haggle: null,
           clues: [],
           recentBuys: decayedBuys,
+          sellPrices: {},
         };
       });
       // 날이 바뀌면 아침 시황 뉴스를 하루 1회 띄운다 (목적지 무관, 논블로킹).
@@ -113,8 +114,17 @@ export function Game() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ day: newDay, town: dest, bookLevel, recentBuys: decayedBuys }),
         });
-        const data: { merchants?: PublicMerchant[]; rumors?: Rumor[] } = await res.json();
-        setState((s) => ({ ...s, townMerchants: data.merchants ?? [], clues: data.rumors ?? [] }));
+        const data: {
+          merchants?: PublicMerchant[];
+          rumors?: Rumor[];
+          sellPrices?: Partial<Record<MaterialId, number>>;
+        } = await res.json();
+        setState((s) => ({
+          ...s,
+          townMerchants: data.merchants ?? [],
+          clues: data.rumors ?? [],
+          sellPrices: data.sellPrices ?? {},
+        }));
       } catch {
         setNotice("마을 정보를 불러오지 못했다.");
       } finally {
@@ -260,6 +270,21 @@ export function Game() {
     if (msg) setNotice(msg);
   }, []);
 
+  // 잉여 자재를 현재 마을 시세(sellPrices)로 팔아 골드화. 판매가는 마을 진입 시 서버가 채운다.
+  const sell = useCallback((materialId: MaterialId, qty: number) => {
+    let msg = "";
+    setState((s) => {
+      const have = s.inventory[materialId] ?? 0;
+      const n = Math.min(qty, have);
+      const price = s.sellPrices[materialId] ?? 0;
+      if (n <= 0 || price <= 0) return s;
+      const inventory = { ...s.inventory, [materialId]: have - n };
+      msg = `${MATERIAL_NAME[materialId]} ${n}개를 팔아 ${price * n}골드를 얻었다.`;
+      return { ...s, gold: s.gold + price * n, inventory };
+    });
+    if (msg) setNotice(msg);
+  }, []);
+
   const closeHaggle = useCallback(() => setState((s) => ({ ...s, haggle: null })), []);
 
   // 빈 타일에 건물 터를 놓는다 (선행·책 게이팅 통과 시). 같은 종류 복수 배치 허용.
@@ -400,8 +425,11 @@ export function Game() {
             rumors={state.clues}
             bookLevel={bookLevel}
             busy={busy}
+            inventory={state.inventory}
+            sellPrices={state.sellPrices}
             onHaggle={startHaggle}
             onBarter={startBarter}
+            onSell={sell}
           />
         </main>
       )}

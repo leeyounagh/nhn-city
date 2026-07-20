@@ -6,6 +6,7 @@ import type { BookLevel, PublicMerchant, TownId } from "@/types/game";
 import { deriveWorld, merchantsInTown } from "@/lib/server/world";
 import { generatePublicMerchant } from "@/lib/server/merchant";
 import { generateRumors } from "@/lib/server/rumor";
+import { allSellPrices } from "@/lib/server/economy";
 
 const Body = z.object({
   day: z.number().int().min(1),
@@ -32,5 +33,5 @@ export async function POST(request: Request) {
     generateRumors(day, town, bookLevel),
   ]);
 
-  return NextResponse.json({ merchants, rumors });
+  return NextResponse.json({ merchants, rumors, sellPrices: allSellPrices(day, town) });
 }

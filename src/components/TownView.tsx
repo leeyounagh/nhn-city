@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { BookLevel, ClueKind, MaterialId, PublicMerchant, Rumor } from "@/types/game";
 import { MerchantPanel, PORTRAIT_EMOJI } from "@/components/MerchantPanel";
+import { MATERIAL_NAME } from "@/lib/game-data";
 
 const KIND_LABEL: Record<ClueKind, string> = {
   location: "위치",
@@ -23,8 +24,11 @@ export function TownView({
   rumors,
   bookLevel,
   busy,
+  inventory,
+  sellPrices,
   onHaggle,
   onBarter,
+  onSell,
 }: {
   townName: string;
   industryName: string;
@@ -32,10 +36,14 @@ export function TownView({
   rumors: Rumor[];
   bookLevel: BookLevel;
   busy: boolean;
+  inventory: Record<string, number>;
+  sellPrices: Partial<Record<MaterialId, number>>;
   onHaggle: (merchant: PublicMerchant, materialId: MaterialId) => void;
   onBarter: (merchant: PublicMerchant, rareId: MaterialId, payId: MaterialId) => void;
+  onSell: (materialId: MaterialId, qty: number) => void;
 }) {
   const [selected, setSelected] = useState<PublicMerchant | null>(null);
+  const sellRows = (Object.entries(inventory) as [MaterialId, number][]).filter(([, n]) => n > 0);
 
   return (
     <div className="grid gap-4 md:grid-cols-[1fr_320px]">
@@ -71,6 +79,7 @@ export function TownView({
         )}
       </section>
 
+      <div className="flex flex-col gap-4">
       <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
         <h3 className="mb-2 text-sm font-semibold text-stone-300">🗣️ 이 마을에 도는 소문</h3>
         {busy ? (
@@ -101,6 +110,42 @@ export function TownView({
         )}
         <p className="mt-2 text-[11px] text-stone-500">소문은 📓 단서 노트에도 자동 기록된다.</p>
       </section>
+
+      <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
+        <h3 className="mb-2 text-sm font-semibold text-stone-300">🪙 잉여 자재 팔기</h3>
+        {sellRows.length === 0 ? (
+          <p className="py-3 text-center text-xs text-stone-500">팔 자재가 없다.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {sellRows.map(([id, have]) => {
+              const price = sellPrices[id] ?? 0;
+              return (
+                <li key={id} className="flex items-center gap-2 rounded bg-stone-800/40 px-2 py-1.5 text-xs">
+                  <span className="text-stone-200">{MATERIAL_NAME[id]}</span>
+                  <span className="text-stone-500">보유 {have}</span>
+                  <span className="ml-auto text-amber-300">개당 {price}</span>
+                  <button
+                    onClick={() => onSell(id, 1)}
+                    disabled={price <= 0}
+                    className="rounded bg-amber-700 px-1.5 py-0.5 text-[11px] font-semibold text-stone-950 transition enabled:hover:bg-amber-600 disabled:opacity-40"
+                  >
+                    1개
+                  </button>
+                  <button
+                    onClick={() => onSell(id, have)}
+                    disabled={price <= 0}
+                    className="rounded border border-stone-600 px-1.5 py-0.5 text-[11px] text-stone-300 transition enabled:hover:bg-stone-700 disabled:opacity-40"
+                  >
+                    전부
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="mt-2 text-[11px] text-stone-500">시세는 마을마다 다르다 — 싼 데서 사서 비싼 데서 팔면 차익.</p>
+      </section>
+      </div>
 
       {selected && (
         <Modal onClose={() => setSelected(null)}>

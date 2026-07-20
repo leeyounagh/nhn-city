@@ -90,3 +90,9 @@
 ## refactor(game): 대풍작 이벤트 슬라이딩 윈도우
 
 - 고정 4일 격자의 경계 아티팩트 제거 → eventStartingOn(s)+dailyEvent가 최근 4일 내 시작 중 최신 채택. 아무 날에나 시작·4일 지속·겹치면 최신 승. 검증: news↔price 231건 0실패, 콜드스타트마다 연속≥4일(도달성 위반 0), 격자 비정렬 확인.
+
+## feat(game): P4-2 잉여 자재 판매 (아무 상인, 골드화)
+
+- **시각(KST)**: 12:20 / **브랜치**: master
+- sellPrice=base×townMult×eventMult×0.5 (<구매하한 → 무한차익 차단, 마을별 시세차로 차익). /api/town에 sellPrices, GameState.sellPrices, TownView 판매 패널, sell() 핸들러.
+- 검증: 서버 판매가 416건 0실패·차익차단 136건 0위반, 브라우저 사서(400→391)→팔기(→395) 루프. tsc/eslint 그린.

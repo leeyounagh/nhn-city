@@ -62,6 +62,7 @@ export interface GameState {
   haggle: HaggleState | null;
   clues: Rumor[]; // 오늘 수집한 소문 (날이 바뀌면 비움)
   recentBuys: Partial<Record<MaterialId, number>>; // 자재별 최근 구매량 (품귀 배수 산정, 이동으로 감쇠)
+  sellPrices: Partial<Record<MaterialId, number>>; // 현재 마을의 자재별 판매가 (마을 진입 시 서버가 채움, home이면 빈값)
 }
 
 export function initialState(): GameState {
@@ -77,6 +78,7 @@ export function initialState(): GameState {
     haggle: null,
     clues: [],
     recentBuys: {},
+    sellPrices: {},
   };
 }
 

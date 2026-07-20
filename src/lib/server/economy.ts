@@ -281,6 +281,22 @@ export function materialBase(id: MaterialId): number {
   return PRICES[id].base;
 }
 
+// 잉여 자재를 아무 상인에게 팔 때 개당 골드. 시세(마을배수·이벤트배수) 반영, 품귀·markup 제외.
+// SELL_RATE(0.5) < 구매 하한 비율(floor≈0.6)이라 같은 마을 즉시 되팔기는 손해 = 무한차익 차단.
+// 대신 대풍작 마을에서 싸게 사서 다른 마을에 팔면 차익(시세가 마을마다 다르므로).
+const SELL_RATE = 0.5;
+export function sellPrice(day: number | undefined, townId: TownId | undefined, id: MaterialId): number {
+  const mult = townMultiplier(townId, id) * eventMultiplier(day, townId, id);
+  return Math.max(1, Math.round(PRICES[id].base * mult * SELL_RATE));
+}
+
+// 그 마을·날의 전체 자재 판매가 표 (클라 표시용).
+export function allSellPrices(day: number, townId: TownId): Partial<Record<MaterialId, number>> {
+  const out: Partial<Record<MaterialId, number>> = {};
+  for (const id of Object.keys(PRICES) as MaterialId[]) out[id] = sellPrice(day, townId, id);
+  return out;
+}
+
 // 물물교환 교환비: 희귀템 1개당 지불 물품 개수의 시작값·하한값.
 // 시작N = 희귀템 제시가 / 지불물품 기준가, 하한N = 희귀템 하한가 / 지불물품 기준가 (최소 1).
 export function barterRatio(rareOffer0: number, rareFloor: number, payId: MaterialId): { baseN: number; floorN: number } {
