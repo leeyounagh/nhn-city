@@ -103,3 +103,12 @@
 - 새 MaterialId token(상인의 신표) — 흥정 호감도 ≥90 시 상인이 선물(1회), 구매·판매·물물교환 불가. 영주관·대성당 requires token:1. TOKEN_DISPOSITION=90, /api/haggle gotToken, HaggleState.tokenAwarded, Game.sendUtterance가 inventory.token+=1.
 - 검증: 서버 gotToken(≥90·중복방지·저호감도·판매제외), 건물 요구 데이터, 브라우저 흥정 회귀없음. tsc/eslint 그린.
 - **P4 완료** (건설·생산·잉여판매·특수아이템).
+
+---
+
+## feat(ui): 아이소맵 건물 스프라이트 반영 + 배치 편집(이동·회전·삭제)
+
+- **시각(KST)**: 14:10 / **브랜치**: master
+- **스프라이트**: itch *Isometric Realm — Medieval*(JP Cummins) 14건물 매핑 → public/buildings(3.4MB, max512 다운스케일) + 바닥타일. IsoCityMap 이모지→`<img>` 스프라이트(바닥중앙 앵커), 흙색 체커보드 격자(인라인 rgba), 팔레트·드래그고스트·투입패널 썸네일. README 크레딧.
+- **편집**: 건물 클릭→모달(이동/회전/삭제). Placement.flipped(좌우반전), moveBuilding·rotateBuilding, reclaim 완공제한 제거(삭제=자재 전량 반환). 이동 모드 타일색(빈터 초록·다른건물 빨강·제자리 하늘색).
+- 검증: 브라우저 4기능(모달·회전 flip·이동 빨강/초록·삭제 2→1) + 콘솔 0에러. tsc 그린, lint img 경고 4(의도적 <img>).

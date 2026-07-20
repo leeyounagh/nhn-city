@@ -349,12 +349,12 @@ export function Game() {
     }
   }, []);
 
-  // 미완성 건물 터를 헐고 투입한 자재를 전부 인벤토리로 회수 (소프트락 방지 + 타일 반납).
+  // 건물을 헐고(완공 여부 무관) 투입·소모한 자재를 전부 인벤토리로 반환 + 타일 반납.
   const reclaim = useCallback((placementId: string) => {
     let name = "";
     setState((s) => {
       const pl = s.placements.find((p) => p.id === placementId);
-      if (!pl || pl.built) return s;
+      if (!pl) return s;
       const inventory = { ...s.inventory };
       for (const [id, n] of Object.entries(pl.progress)) {
         inventory[id] = (inventory[id] ?? 0) + n;
@@ -362,7 +362,23 @@ export function Game() {
       name = BUILDINGS.find((x) => x.id === pl.buildingId)?.name ?? "";
       return { ...s, inventory, placements: s.placements.filter((p) => p.id !== placementId) };
     });
-    if (name) setNotice(`${name} 터를 헐고 자재를 회수했다.`);
+    if (name) setNotice(`${name}을(를) 헐고 자재를 반환했다.`);
+  }, []);
+
+  // 건물을 빈 타일로 옮긴다 (점유 타일이면 무시).
+  const moveBuilding = useCallback((placementId: string, x: number, y: number) => {
+    setState((s) => {
+      if (s.placements.some((p) => p.x === x && p.y === y)) return s; // 점유된 타일엔 못 옮김
+      return { ...s, placements: s.placements.map((p) => (p.id === placementId ? { ...p, x, y } : p)) };
+    });
+  }, []);
+
+  // 건물 좌우 반전(회전).
+  const rotateBuilding = useCallback((placementId: string) => {
+    setState((s) => ({
+      ...s,
+      placements: s.placements.map((p) => (p.id === placementId ? { ...p, flipped: !p.flipped } : p)),
+    }));
   }, []);
 
   const next = xpToNext(state.xp);
@@ -426,6 +442,8 @@ export function Game() {
             onPlace={placeBuilding}
             onDeposit={deposit}
             onReclaim={reclaim}
+            onMove={moveBuilding}
+            onRotate={rotateBuilding}
           />
         </main>
       ) : (

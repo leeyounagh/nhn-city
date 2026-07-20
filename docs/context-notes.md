@@ -343,3 +343,20 @@
   - TownView 판매 패널은 sellPrice 있는 자재만(신표는 sellPrices에 없어 자동 제외).
 - **검증**: 서버 — 판매가에 token 없음, disp100·미수령→gotToken=true, 이미수령→false, disp50→false. 건물 requires에 token:1(영주관·대성당) 확인. 브라우저 — 흥정 정상(대량구매 판정·값↓·호감도 25→37%), 신표 필드 통합 후 콘솔 0에러, 저호감도라 미지급(정상). tsc/eslint 그린. ※ 호감도 90 도달→인벤토리 신표 풀 e2e는 90 도달이 의도적으로 어려워 자동화 미강제(서버 gotToken + 클라 += 각각 검증).
 - **P4 완료**: 건설(P2)·생산(P4-1)·잉여판매(P4-2)·특수아이템(P4-3). 다음 = P5(배포·시연영상·소개서, 마감 2026-08-10) 또는 밸런스/폴리시.
+
+### UI 반영 시작 — 아이소맵 건물 스프라이트 (2026-07-20)
+- **방향**: 다음은 배포 아님, **UI 전면 반영**(아트→슬롯). 아이소맵부터.
+- **에셋**: 사용자가 itch에서 *Isometric Realm — Medieval* (JP Cummins) 구매 → `Downloads/Isometric_Realm_Medieval.zip`. 의미별 폴더가 14건물과 1:1(Huts Tents·Mills(windmill)·Blacksmiths·Shops Markets·Churches(cathedral/chapel)·Towers(guardtower)·Walls·Castles(castlekeep)·Halls Manors(hall)·Houses·Misc(well)). 하이레졸(287~1510px), 그림자 baked(noshadow는 1개뿐이라 shadow 통일). **라이선스=크레딧 표기**(README 추가함).
+- **반영**: 선택 14개+바닥타일을 max512로 다운스케일해 `public/buildings/{id}.png`·`public/tiles/ground.png`(3.3MB). IsoCityMap: 이모지 `BUILDING_ICON`→`<img>` 스프라이트 4곳(맵·팔레트·드래그고스트·투입패널). 맵 스프라이트는 **바닥중앙 앵커**(left+tileW/2, top+tileH/2 지점에 translate(-50%,-100%)) → 타일 위로 솟음. `BUILDING_SPRITE_SCALE=2.3`, TW/TH 64/32→72/36. 미완공=grayscale+0%뱃지.
+- **바닥 격자**: CSS clip-path 다이아몬드 유지(ground.png 테셀레이션 리스크 회피). **인라인 backgroundColor 체커보드**(흙색 rgba, even/odd) + `hover:brightness-150`. ※ Tailwind 임의 hex+투명도(`bg-[#hex]/35`)는 컴파일 안 됨(computed 투명) → 인라인 style로 해결.
+- 검증: tsc 그린, lint img 경고 4(기존 관행). 브라우저 — 팔레트 14썸네일 로드, 오두막 배치 시 실제 아이소 건물이 흙색 격자 위 렌더, 콘솔 0에러. img 경고는 <img> 사용(next/image 대신, 게임 스프라이트 다수라 의도적).
+- **백로그 아이디어(사용자)**: 특수 타일(잔디 등) 파는 전용 마을 추가 — 지금 말고 나중.
+- **남은 UI**: 월드맵 모달·마을(상인목록/초상화)·흥정창·모달들 톤 통일. 바닥 실타일(ground.png)·건물 앵커 미세조정은 폴리시 단계.
+
+### 배치 건물 편집 — 이동·회전·삭제 (2026-07-20, 사용자 지시)
+- **사용자 결정**: 건물패널→모달, 회전=좌우반전, 삭제=자재반환.
+- **데이터**: `Placement.flipped?` 추가(좌우반전). Game 핸들러 — `moveBuilding(id,x,y)`(빈 타일만), `rotateBuilding(id)`(flipped 토글), `reclaim` 완공 제한 제거해 삭제=완공 무관 자재 전량 반환.
+- **PlacementPanel→모달**(fixed z-40): 헤더 스프라이트 프리뷰(flipped 반영), 미완공 자재 슬롯, 하단 이동/회전/삭제 버튼 + "삭제 시 자재 전량 반환" 안내.
+- **이동 모드**(`movingId` 상태): 이동 클릭→모달 닫고 모드 진입. 타일색 = 빈 터 초록(rgba(34,197,94,.45))·다른 건물 빨강(rgba(220,38,38,.6))·옮기는 자기 타일 하늘색. 옮기는 건물 스프라이트 opacity-40. 빈 타일 탭→이동+종료, 제자리 탭→취소, 빨강 무시. 상단 안내 배너+취소.
+- **회전**: 맵 스프라이트·모달 프리뷰 img에 `transform: scaleX(-1)`.
+- 검증(브라우저): 모달 3버튼, 회전 시 해당 건물만 matrix(-1,0,0,1,0,0), 이동 모드 초록498/하늘1(1채)→2채 시 빨강1, 이동 완료(모드종료), 삭제 2→1채. 콘솔 0에러, tsc/eslint 그린(img 경고).

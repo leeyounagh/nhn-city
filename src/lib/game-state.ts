@@ -49,6 +49,7 @@ export interface Placement {
   y: number; // 그리드 행
   progress: Record<string, number>; // 자재 id → 투입된 수량
   built: boolean; // 완공 여부
+  flipped?: boolean; // 좌우 반전(회전) 여부
 }
 
 export interface GameState {
