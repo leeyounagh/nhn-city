@@ -44,3 +44,6 @@ dev.err.log
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 미사용 걸어다니는-맵(MapView) 잔재 에셋 — 리포에서 제외
+/public/sprites/
