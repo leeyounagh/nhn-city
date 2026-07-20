@@ -1,8 +1,9 @@
 "use client";
 // 마을 진입 화면. 오늘 이 마을의 상인 목록과 여기서 들은 소문을 보여준다. 상인을 고르면 흥정 패널이 열린다.
 import { useState } from "react";
-import type { BookLevel, ClueKind, MaterialId, PublicMerchant, Rumor } from "@/types/game";
+import type { BookLevel, ClueKind, MaterialId, PublicMerchant, Rumor, TownId } from "@/types/game";
 import { MerchantPanel, PORTRAIT_EMOJI } from "@/components/MerchantPanel";
+import { TownIsoPreview } from "@/components/TownIsoPreview";
 import { MATERIAL_NAME } from "@/lib/game-data";
 
 const KIND_LABEL: Record<ClueKind, string> = {
@@ -18,6 +19,7 @@ const KIND_STYLE: Record<ClueKind, string> = {
 };
 
 export function TownView({
+  townId,
   townName,
   industryName,
   merchants,
@@ -30,6 +32,7 @@ export function TownView({
   onBarter,
   onSell,
 }: {
+  townId: TownId;
   townName: string;
   industryName: string;
   merchants: PublicMerchant[];
@@ -49,10 +52,20 @@ export function TownView({
   );
 
   return (
-    <div className="grid gap-4 md:grid-cols-[1fr_320px]">
+    <div className="space-y-4">
+      {/* 마을 아이소 미리보기 배너 (읽기전용, 팬/줌) */}
+      <div>
+        <div className="mb-1.5 flex items-baseline gap-2">
+          <h2 className="text-base font-bold text-stone-100">🏘️ {townName}</h2>
+          <span className="text-xs text-stone-400">{industryName} · 드래그로 둘러보기</span>
+        </div>
+        <TownIsoPreview townId={townId} />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-[1fr_320px]">
       <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
         <div className="mb-3 flex items-baseline gap-2">
-          <h2 className="text-base font-bold text-stone-100">🏘️ {townName}</h2>
+          <h2 className="text-base font-bold text-stone-100">🏘️ {townName} 상인</h2>
           <span className="text-xs text-stone-400">{industryName}</span>
         </div>
 
@@ -169,6 +182,7 @@ export function TownView({
           />
         </Modal>
       )}
+      </div>
     </div>
   );
 }
