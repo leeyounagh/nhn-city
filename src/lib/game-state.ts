@@ -164,6 +164,23 @@ export function builtTypes(placements: Placement[]): Set<string> {
   return new Set(placements.filter((p) => p.built).map((p) => p.buildingId));
 }
 
+// 고향 대표 아이콘 (완성도에 따라 진화). 완공 건물이 없으면 기본 폐허 타일,
+// 있으면 그중 가장 난이도 높은(경험치 최대) 건물의 스프라이트를 쓴다. 장식은 제외.
+export function homeIcon(placements: Placement[]): string {
+  let best: string | null = null;
+  let bestXp = -1;
+  for (const p of placements) {
+    if (!p.built) continue;
+    const b = BUILDINGS.find((x) => x.id === p.buildingId);
+    if (!b || b.deco) continue;
+    if (b.xp > bestXp) {
+      bestXp = b.xp;
+      best = p.buildingId;
+    }
+  }
+  return best ?? "floor_dirt";
+}
+
 export interface PlaceCheck {
   prereqMet: boolean;
   bookMet: boolean;

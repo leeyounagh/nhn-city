@@ -55,6 +55,27 @@ export const BUILDING_RENDER_SCALE: Record<string, number> = {
   marketbuilding: 0.95,
   storeshed: 0.7,
   guardtower2: 0.7,
+  shop2: 0.85,
+  pavilion: 0.8,
+  // 타워 (Towers 팩)
+  tower: 0.75,
+  bastion: 0.72,
+  keeptower: 1.0,
+  belltower: 0.85,
+  // 시장 확장 (Shops Markets 팩)
+  markethouse: 0.9,
+  markethall: 0.85,
+  produce: 0.6,
+  grandmarket: 1.5,
+  bazaar: 1.6,
+};
+
+// 마을 대표 썸네일 (이름 앞 아이콘 = 이모지 대신 대표 건물 스프라이트).
+export const TOWN_ICON: Record<TownId, string> = {
+  nw: "mill", // 삼목골 · 임업 (제재소)
+  ne: "church", // 무쇠고개 · 석조 교회 마을
+  sw: "stall", // 베틀마을 · 직물 장터
+  se: "castle", // 유리섬 · 성벽 요새
 };
 
 // 4마을 월드맵. 각 마을은 대표 업종 하나를 지녀 그 업종 물품이 싸고 풍부하다(P3 시세 반영).
@@ -135,6 +156,25 @@ export const BUILDINGS: BuildingDef[] = [
   // T4 대업 (대성당은 목표가 아니라 최고난도 건물)
   { id: "manor", name: "영주관", requires: { marble: 6, brick: 10, stainedglass: 2, bronze: 3, token: 1 }, income: 40, xp: 30, prereq: ["guildhall"], minBook: 3 },
   { id: "cathedral", name: "대성당", requires: { marble: 8, stainedglass: 4, bronze: 3, relic: 2, token: 1 }, income: 25, xp: 35, prereq: ["chapel", "manor"], minBook: 3 },
+  // 상업 (Shops Markets 팩) — 완공 시 골드 수입을 주는 상점·시장 건물
+  { id: "storeshed", name: "곳간", requires: { wood: 4, planks: 2 }, income: 5, xp: 10, prereq: ["warehouse"] },
+  { id: "stall", name: "노점", requires: { planks: 2, cloth: 2 }, income: 10, xp: 12, prereq: ["hut"] },
+  { id: "pavilion", name: "장옥", requires: { planks: 4, brick: 2, cloth: 3 }, income: 16, xp: 16, prereq: ["market"], minBook: 2 },
+  { id: "shop", name: "상점", requires: { planks: 4, brick: 3, glass: 2 }, income: 18, xp: 18, prereq: ["market"], minBook: 2 },
+  { id: "shop2", name: "잡화점", requires: { planks: 3, brick: 4, cloth: 3 }, income: 17, xp: 18, prereq: ["market"], minBook: 2 },
+  { id: "tavern", name: "선술집", requires: { planks: 6, brick: 5, cloth: 4 }, income: 26, xp: 22, prereq: ["inn"], minBook: 2 },
+  { id: "marketbuilding", name: "교역소", requires: { planks: 8, glass: 5, marble: 2, bronze: 1 }, income: 34, xp: 26, prereq: ["market", "shop"], minBook: 3 },
+  { id: "produce", name: "청과 가판", requires: { planks: 2, cloth: 1 }, income: 9, xp: 11, prereq: ["hut"] },
+  { id: "markethall", name: "장터 회랑", requires: { planks: 5, brick: 3, cloth: 3 }, income: 19, xp: 18, prereq: ["market"], minBook: 2 },
+  { id: "markethouse", name: "시장 상가", requires: { planks: 6, brick: 5, glass: 3 }, income: 24, xp: 22, prereq: ["market", "shop"], minBook: 2 },
+  { id: "marketplaza", name: "시장 광장", requires: { planks: 8, brick: 6, glass: 4, marble: 2 }, income: 30, xp: 26, prereq: ["market"], minBook: 3 },
+  { id: "grandmarket", name: "대시장", requires: { planks: 10, glass: 6, marble: 3, bronze: 2 }, income: 36, xp: 28, prereq: ["market", "shop"], minBook: 3 },
+  { id: "bazaar", name: "대장터", requires: { planks: 12, glass: 8, marble: 4, bronze: 3 }, income: 40, xp: 30, prereq: ["market", "shop"], minBook: 3 },
+  // 방어·상징 타워 (Towers 팩)
+  { id: "tower", name: "석조 망루", requires: { stone: 8, brick: 5, steel: 3 }, income: 10, xp: 24, prereq: ["wall"], minBook: 2 },
+  { id: "belltower", name: "종탑", requires: { brick: 6, marble: 3, bronze: 3 }, income: 14, xp: 24, prereq: ["chapel"], minBook: 3 },
+  { id: "bastion", name: "원형 보루", requires: { stone: 10, brick: 6, steel: 4, bronze: 2 }, income: 12, xp: 26, prereq: ["watchtower"], minBook: 3 },
+  { id: "keeptower", name: "성탑", requires: { stone: 12, marble: 5, steel: 6, bronze: 3 }, income: 20, xp: 30, prereq: ["watchtower"], minBook: 3 },
   // 장식 (「대건축가의 설계도」 보유 시 해금 — 자재 불필요·즉시완공·수입0). 바닥(flat)은 지면으로 렌더.
   { id: "floor_grass", name: "잔디 바닥", requires: {}, income: 0, xp: 0, prereq: [], deco: true, flat: true },
   { id: "floor_stone", name: "돌 바닥", requires: {}, income: 0, xp: 0, prereq: [], deco: true, flat: true },

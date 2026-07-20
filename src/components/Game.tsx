@@ -13,6 +13,7 @@ import {
   xpToNext,
   checkPlace,
   decayRecentBuys,
+  homeIcon,
 } from "@/lib/game-state";
 import { WorldMap } from "@/components/WorldMap";
 import { TownView } from "@/components/TownView";
@@ -133,6 +134,48 @@ export function Game() {
     },
     [state.location, state.day, state.placements, state.recentBuys, lastNewsDay, busy, bookLevel],
   );
+
+  // 고향에서 하루를 넘긴다 — 이동 없이도 완성 건물의 수입·생산이 하루치 정산된다.
+  const passDay = useCallback(() => {
+    if (busy) return;
+    const newDay = state.day + 1;
+    const gain = dailyIncome(state.placements);
+    const produced = dailyProduction(state.placements);
+    const prodEntries = Object.entries(produced) as [MaterialId, number][];
+    const prodMsg =
+      prodEntries.length > 0
+        ? ` 생산: ${prodEntries.map(([id, n]) => `${MATERIAL_NAME[id]} ${n}`).join(", ")}.`
+        : "";
+    setState((s) => {
+      const inventory = { ...s.inventory };
+      for (const [id, n] of Object.entries(dailyProduction(s.placements)) as [MaterialId, number][]) {
+        inventory[id] = (inventory[id] ?? 0) + n;
+      }
+      return {
+        ...s,
+        day: newDay,
+        gold: s.gold + dailyIncome(s.placements),
+        inventory,
+        recentBuys: decayRecentBuys(s.recentBuys, 1),
+      };
+    });
+    setNotice(
+      (gain > 0 ? `하루가 흘렀다. 완성 건물이 ${gain}골드를 벌었다.` : "하루가 흘렀다. 고요한 하루였다.") +
+        prodMsg,
+    );
+    // 날이 바뀌면 아침 시황 뉴스를 하루 1회 띄운다.
+    if (newDay > lastNewsDay) {
+      setLastNewsDay(newDay);
+      fetch("/api/news", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ day: newDay }),
+      })
+        .then((r) => r.json())
+        .then((n: DailyNews) => setNews(n))
+        .catch(() => {});
+    }
+  }, [state.day, state.placements, busy, lastNewsDay]);
 
   const startHaggle = useCallback((merchant: PublicMerchant, materialId: MaterialId) => {
     const mat = merchant.materials.find((x) => x.id === materialId);
@@ -394,7 +437,7 @@ export function Game() {
           <Stat label="일차" value={`${state.day}일`} />
           <Stat label="수입/day" value={`+${income}`} accent="text-emerald-300" />
           <div className="flex items-center gap-2">
-            <Stat label="마법의 책" value={`Lv.${bookLevel}${bookLevel >= MAX_BOOK_LEVEL ? " (최대)" : ""}`} accent="text-sky-300" />
+            <Stat label="마법의 책" value={`Lv.${bookLevel}${bookLevel >= MAX_BOOK_LEVEL ? " (최대)" : ""}`} accent="text-sky-300" icon="/ui/magicbook.png" />
             {next && (
               <span className="text-xs text-stone-400">다음 Lv까지 경험치 {next.need}</span>
             )}
@@ -404,21 +447,30 @@ export function Game() {
               onClick={() => setShowWorldMap(true)}
               className="rounded border border-amber-700/60 bg-amber-950/30 px-3 py-1.5 text-sm text-amber-200 transition hover:bg-amber-900/40"
             >
-              🗺️ 이동
+              <img src="/ui/travel.png" alt="" draggable={false} className="mr-1 inline-block h-5 w-5 align-text-bottom object-contain" /> 이동
             </button>
+            {state.location === "home" && (
+              <button
+                onClick={passDay}
+                disabled={busy}
+                className="rounded border border-indigo-700/60 bg-indigo-950/30 px-3 py-1.5 text-sm text-indigo-200 transition hover:bg-indigo-900/40 disabled:opacity-50"
+              >
+                <img src="/ui/passday.png" alt="" draggable={false} className="mr-1 inline-block h-5 w-5 align-text-bottom object-contain" /> 하루 넘기기
+              </button>
+            )}
             {state.location !== "home" && (
               <button
                 onClick={() => setShowInventory(true)}
                 className="rounded border border-stone-600 px-3 py-1.5 text-sm text-stone-300 transition hover:bg-stone-800"
               >
-                🎒 창고{invCount > 0 ? ` (${invCount})` : ""}
+                <img src="/buildings/warehouse.png" alt="" draggable={false} className="mr-1 inline-block h-4 w-4 align-text-bottom object-contain" /> 창고{invCount > 0 ? ` (${invCount})` : ""}
               </button>
             )}
             <button
               onClick={() => setShowNotebook(true)}
               className="rounded border border-stone-600 px-3 py-1.5 text-sm text-stone-300 transition hover:bg-stone-800"
             >
-              📓 단서 노트{state.clues.length > 0 ? ` (${state.clues.length})` : ""}
+              <img src="/ui/magicbook.png" alt="" draggable={false} className="mr-1 inline-block h-4 w-4 align-text-bottom object-contain" /> 단서 노트{state.clues.length > 0 ? ` (${state.clues.length})` : ""}
             </button>
             <button
               onClick={() => setShowTutorial((v) => !v)}
@@ -481,6 +533,7 @@ export function Game() {
       {showWorldMap && (
         <WorldMapModal
           location={state.location}
+          homeIconId={homeIcon(state.placements)}
           busy={busy}
           onTravel={(dest) => {
             setShowWorldMap(false);
@@ -545,11 +598,13 @@ function NewsModal({ news, onClose }: { news: DailyNews; onClose: () => void }) 
 // 월드맵을 오버레이 모달로 감싼다. 노드 클릭 시 이동 후 모달이 닫힌다. WorldMap 자체는 그대로 재사용.
 function WorldMapModal({
   location,
+  homeIconId,
   busy,
   onTravel,
   onClose,
 }: {
   location: LocationId;
+  homeIconId: string;
   busy: boolean;
   onTravel: (dest: LocationId) => void;
   onClose: () => void;
@@ -568,7 +623,7 @@ function WorldMapModal({
             닫기 ✕
           </button>
         </div>
-        <WorldMap location={location} busy={busy} onTravel={onTravel} />
+        <WorldMap location={location} homeIcon={homeIconId} busy={busy} onTravel={onTravel} />
       </div>
     </div>
   );
@@ -599,7 +654,7 @@ function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onReplaySto
           <li><b>월드맵의 마을 노드</b>를 눌러 이동한다 — 이동일수만큼 하루가 흐르고 완성 건물이 골드 수입을 준다.</li>
           <li>마을의 <b>소문</b>을 읽어 어느 상인이 무엇을 가졌는지 추리하고, <b>상인을 골라</b> 흥정을 시작한다.</li>
           <li>자연어로 상인을 구워삶는다 — 아부·논리·대량구매·딱한사정·잡담·자재흠집으로 <b className="text-rose-300">호감도</b>를 올리면 값이 내려간다. <b>협박</b>은 대개 역효과.</li>
-          <li>중앙의 <b className="text-emerald-300">폐허 고향</b>으로 돌아가 사 온 자재를 건물에 투입하면 자동으로 완성되고 경험치가 쌓여 <b className="text-sky-300">마법의 책</b> 레벨이 오른다.</li>
+          <li>중앙의 <b className="text-emerald-300">폐허 고향</b>으로 돌아가 사 온 자재를 건물에 투입하면 자동으로 완성되고 경험치가 쌓여 <b className="text-sky-300">마법의 책</b> 레벨이 오른다. 고향에서 <b className="text-indigo-300">🌙 하루 넘기기</b>로 이동 없이도 수입·생산을 정산할 수 있다.</li>
           <li>책이 강해질수록 상인의 <b className="text-amber-300">약점·하한가</b>가 드러나 흥정이 유리해진다.</li>
         </ol>
         <button
@@ -613,9 +668,10 @@ function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onReplaySto
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function Stat({ label, value, accent, icon }: { label: string; value: string; accent?: string; icon?: string }) {
   return (
-    <div className="flex items-baseline gap-1.5">
+    <div className="flex items-center gap-1.5">
+      {icon && <img src={icon} alt="" draggable={false} className="h-6 w-6 object-contain" />}
       <span className="text-xs text-stone-400">{label}</span>
       <span className={`text-sm font-semibold ${accent ?? "text-stone-100"}`}>{value}</span>
     </div>
