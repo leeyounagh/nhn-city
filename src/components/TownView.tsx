@@ -43,7 +43,10 @@ export function TownView({
   onSell: (materialId: MaterialId, qty: number) => void;
 }) {
   const [selected, setSelected] = useState<PublicMerchant | null>(null);
-  const sellRows = (Object.entries(inventory) as [MaterialId, number][]).filter(([, n]) => n > 0);
+  // 팔 수 있는 자재만 (신표 등 판매가 없는 특수 아이템 제외).
+  const sellRows = (Object.entries(inventory) as [MaterialId, number][]).filter(
+    ([id, n]) => n > 0 && (sellPrices[id] ?? 0) > 0,
+  );
 
   return (
     <div className="grid gap-4 md:grid-cols-[1fr_320px]">

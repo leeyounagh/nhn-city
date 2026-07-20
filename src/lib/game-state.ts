@@ -24,6 +24,7 @@ export interface HaggleState {
   disposition?: number; // 첫 턴 전엔 undefined (서버가 시드)
   turnsLeft: number;
   qualityApplied: boolean;
+  tokenAwarded: boolean; // 이번 흥정에서 상인의 신표를 이미 받았는지 (1회 제한)
   status: HaggleStatus;
   log: HaggleLine[];
   pending: boolean;

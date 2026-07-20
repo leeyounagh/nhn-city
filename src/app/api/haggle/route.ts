@@ -8,6 +8,7 @@ import {
   applyCategory,
   initialDisposition,
   barterRatio,
+  TOKEN_DISPOSITION,
 } from "@/lib/server/economy";
 import { deriveWorld } from "@/lib/server/world";
 import { askText, extractJson } from "@/lib/server/llm";
@@ -31,6 +32,7 @@ const Body = z.object({
   disposition: z.number().min(0).max(100).optional(),
   turnsLeft: z.number().int().min(1),
   qualityApplied: z.boolean().default(false),
+  tokenAwarded: z.boolean().default(false), // 이번 흥정에서 이미 신표를 받았는지 (1회 제한)
   mode: z.enum(["gold", "barter"]).default("gold"),
   payMaterialId: z.string().optional(), // barter: 지불 물품 (상인 wants 중 하나)
   day: z.number().int().min(1).optional(), // barter: wants 진위 검증용
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "잘못된 요청" }, { status: 400 });
   }
-  const { seed, utterance, turnsLeft, qualityApplied, mode, day, recentBuys } = parsed.data;
+  const { seed, utterance, turnsLeft, qualityApplied, tokenAwarded, mode, day, recentBuys } = parsed.data;
   const materialId = parsed.data.materialId as MaterialId;
 
   // 상인이 오늘 있는 마을 → 특산 할인(마을배수) + 품귀배수를 표시(/api/town)와 동일하게 거래가에도 반영.
@@ -97,6 +99,8 @@ export async function POST(request: Request) {
   // 코드가 호감도·가격(골드) 또는 교환비(개수)를 계산한다.
   const newDisposition = applyCategory(disposition, category, derived.profile);
   const nextQualityApplied = qualityApplied || category === "quality";
+  // 호감도가 임계를 넘고 아직 안 받았으면 상인이 '상인의 신표'를 선물 (흥정 1회당 1개).
+  const gotToken = !tokenAwarded && newDisposition >= TOKEN_DISPOSITION;
   // 골드: offer0/floor(골드). 물물교환: 시작N/하한N(개수).
   const base0 = pay ? pay.baseN : mat.offer0;
   const floor0 = pay ? pay.floorN : mat.floor;
@@ -110,7 +114,7 @@ export async function POST(request: Request) {
   if (newDisposition <= 0) status = "closed";
   else if (newTurnsLeft <= 0) status = "timeup";
 
-  const result: HaggleResult & { qualityApplied: boolean } = {
+  const result: HaggleResult & { qualityApplied: boolean; gotToken: boolean } = {
     category,
     line,
     disposition: newDisposition,
@@ -118,6 +122,7 @@ export async function POST(request: Request) {
     turnsLeft: Math.max(0, newTurnsLeft),
     status,
     qualityApplied: nextQualityApplied,
+    gotToken,
   };
   return NextResponse.json(result);
 }

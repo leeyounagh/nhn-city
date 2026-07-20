@@ -15,7 +15,8 @@ export type MaterialId =
   | "marble"
   | "bronze"
   | "stainedglass"
-  | "relic";
+  | "relic"
+  | "token"; // 상인의 신표 — 살 수 없고 흥정 고호감도로만 획득, 최상위 건물 요구
 
 export interface MaterialMeta {
   id: MaterialId;

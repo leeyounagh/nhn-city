@@ -145,6 +145,7 @@ export function Game() {
       disposition: undefined,
       turnsLeft: HAGGLE_TURNS,
       qualityApplied: false,
+      tokenAwarded: false,
       status: "ongoing",
       log: [{ role: "merchant", text: merchant.greeting }],
       pending: false,
@@ -167,6 +168,7 @@ export function Game() {
         disposition: undefined,
         turnsLeft: HAGGLE_TURNS,
         qualityApplied: false,
+        tokenAwarded: false,
         status: "ongoing",
         log: [{ role: "merchant", text: merchant.greeting }],
         pending: false,
@@ -195,6 +197,7 @@ export function Game() {
           disposition: h.disposition,
           turnsLeft: h.turnsLeft,
           qualityApplied: h.qualityApplied,
+          tokenAwarded: h.tokenAwarded,
           mode: h.mode,
           payMaterialId: h.payMaterialId,
           day: state.day,
@@ -215,26 +218,35 @@ export function Game() {
         turnsLeft: number;
         status: HaggleState["status"];
         qualityApplied: boolean;
+        gotToken?: boolean;
       } = await res.json();
       setState((s) => {
         if (!s.haggle) return s;
         const dispositionDelta =
           s.haggle.disposition === undefined ? undefined : d.disposition - s.haggle.disposition;
         const priceDelta = d.currentPrice - s.haggle.currentPrice;
+        const log: HaggleState["log"] = [
+          ...s.haggle.log,
+          { role: "merchant", text: d.line, category: d.category, dispositionDelta, priceDelta },
+        ];
+        // 고호감도 보상: 상인이 「상인의 신표」를 선물 → 인벤토리에 1개 추가 (흥정 1회 1개).
+        const inventory = d.gotToken
+          ? { ...s.inventory, token: (s.inventory.token ?? 0) + 1 }
+          : s.inventory;
+        if (d.gotToken) log.push({ role: "system", text: "상인이 크게 감복해 「상인의 신표」를 건넸다." });
         return {
           ...s,
+          inventory,
           haggle: {
             ...s.haggle,
             disposition: d.disposition,
             currentPrice: d.currentPrice,
             turnsLeft: d.turnsLeft,
             qualityApplied: d.qualityApplied,
+            tokenAwarded: s.haggle.tokenAwarded || !!d.gotToken,
             status: d.status,
             pending: false,
-            log: [
-              ...s.haggle.log,
-              { role: "merchant", text: d.line, category: d.category, dispositionDelta, priceDelta },
-            ],
+            log,
           },
         };
       });

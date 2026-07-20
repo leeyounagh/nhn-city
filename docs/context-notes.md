@@ -331,3 +331,15 @@
 - **배선**: economy `sellPrice`+`allSellPrices(day,townId)`. /api/town 응답에 `sellPrices`(13종 전부). GameState `sellPrices`(마을 진입 시 서버가 채움, home·이동 시 {}로 클리어). Game.tsx `sell(id,qty)`=gold+=price×n, inventory-=n(buy의 역, 클라 상태). TownView 우측에 "🪙 잉여 자재 팔기" 패널(보유 자재별 개당가 + 1개/전부 버튼).
 - **검증**: 서버 판매가 정확도 416건 0실패(=round(base×tMult×eMult×0.5)), 판매가<구매하한 136건 0위반(무한차익 차단), wood 마을별 편차(nw 4 vs 타 5, 차익 성립). 브라우저: 삼목골서 목재 구매(골드 400→391) → 판매패널 목재 개당4 표시(9구매>4판매) → 판매(391→395·인벤 −1·행 사라짐), 콘솔 0에러. tsc/eslint 그린.
 - **다음**: P4-3 고호감도 특수 아이템(흥정 호감도 임계 돌파 → 특수템 획득 → 상위 건물 요구).
+
+### P4-3 고호감도 특수 아이템 "상인의 신표" (2026-07-20) — P4 완료
+- **사용자 결정**: 획득 조건 = 흥정 호감도 ≥90 도달 시 선물, 요구 건물 = 영주관 + 대성당(최상위 2개).
+- **구현**: 새 MaterialId `token`(상인의 신표, tier3). 기존 건설·투입·인벤토리 UI를 그대로 재사용하되 경제에선 격리:
+  - types MaterialId += token, game-data MATERIALS += token, 영주관·대성당 requires에 token:1.
+  - economy PRICES에 token 더미(base 0, 값 미사용) — Record 타입 충족용. `allSellPrices`에서 token skip(판매 불가). `TOKEN_DISPOSITION=90` export.
+  - world `pickWants`에서 token 제외(상인이 원하지 않음 → 물물교환/소문 대상 아님).
+  - /api/haggle: body에 `tokenAwarded`, `gotToken = !tokenAwarded && newDisposition>=90` 계산해 응답. HaggleState에 tokenAwarded(1회 제한).
+  - Game.tsx: startHaggle/startBarter가 tokenAwarded:false 초기화, sendUtterance가 tokenAwarded 전송 + gotToken이면 inventory.token+=1 & 시스템 로그("상인이 크게 감복해…").
+  - TownView 판매 패널은 sellPrice 있는 자재만(신표는 sellPrices에 없어 자동 제외).
+- **검증**: 서버 — 판매가에 token 없음, disp100·미수령→gotToken=true, 이미수령→false, disp50→false. 건물 requires에 token:1(영주관·대성당) 확인. 브라우저 — 흥정 정상(대량구매 판정·값↓·호감도 25→37%), 신표 필드 통합 후 콘솔 0에러, 저호감도라 미지급(정상). tsc/eslint 그린. ※ 호감도 90 도달→인벤토리 신표 풀 e2e는 90 도달이 의도적으로 어려워 자동화 미강제(서버 gotToken + 클라 += 각각 검증).
+- **P4 완료**: 건설(P2)·생산(P4-1)·잉여판매(P4-2)·특수아이템(P4-3). 다음 = P5(배포·시연영상·소개서, 마감 2026-08-10) 또는 밸런스/폴리시.

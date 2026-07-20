@@ -90,7 +90,11 @@ const PRICES: Record<MaterialId, { base: number; floor: number; tier: Tier }> = 
   bronze: { base: 90, floor: 54, tier: 3 },
   stainedglass: { base: 130, floor: 78, tier: 3 },
   relic: { base: 200, floor: 120, tier: 3 },
+  token: { base: 0, floor: 0, tier: 3 }, // 상인의 신표 — 사고팔지 않음(값 미사용). 흥정 고호감도로만 획득.
 };
+
+// 이 호감도 이상이면 상인이 감복해 '상인의 신표'를 1개 선물한다 (흥정 1회당 1개).
+export const TOKEN_DISPOSITION = 90;
 
 export type ProfileId = "proud" | "greedy" | "lonely" | "pragmatic";
 
@@ -290,10 +294,13 @@ export function sellPrice(day: number | undefined, townId: TownId | undefined, i
   return Math.max(1, Math.round(PRICES[id].base * mult * SELL_RATE));
 }
 
-// 그 마을·날의 전체 자재 판매가 표 (클라 표시용).
+// 그 마을·날의 전체 자재 판매가 표 (클라 표시용). 신표(token)는 거래 불가라 제외.
 export function allSellPrices(day: number, townId: TownId): Partial<Record<MaterialId, number>> {
   const out: Partial<Record<MaterialId, number>> = {};
-  for (const id of Object.keys(PRICES) as MaterialId[]) out[id] = sellPrice(day, townId, id);
+  for (const id of Object.keys(PRICES) as MaterialId[]) {
+    if (id === "token") continue;
+    out[id] = sellPrice(day, townId, id);
+  }
   return out;
 }
 

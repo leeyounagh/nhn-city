@@ -19,6 +19,7 @@ export const MATERIALS: MaterialMeta[] = [
   { id: "bronze", name: "청동", tier: 3 },
   { id: "stainedglass", name: "스테인드글라스", tier: 3 },
   { id: "relic", name: "옛 문명의 부품", tier: 3 },
+  { id: "token", name: "상인의 신표", tier: 3 }, // 흥정 고호감도로만 획득 (구매 불가)
 ];
 
 export const MATERIAL_NAME: Record<string, string> = Object.fromEntries(
@@ -101,8 +102,8 @@ export const BUILDINGS: BuildingDef[] = [
   { id: "watchtower", name: "망루", requires: { stone: 8, steel: 5, bronze: 2 }, income: 10, xp: 25, prereq: ["wall"], minBook: 3 },
   { id: "guildhall", name: "길드회관", requires: { marble: 4, planks: 8, glass: 5 }, income: 30, xp: 28, prereq: ["market", "workshop"], minBook: 3, produces: { marble: 1 } },
   // T4 대업 (대성당은 목표가 아니라 최고난도 건물)
-  { id: "manor", name: "영주관", requires: { marble: 6, brick: 10, stainedglass: 2, bronze: 3 }, income: 40, xp: 30, prereq: ["guildhall"], minBook: 3 },
-  { id: "cathedral", name: "대성당", requires: { marble: 8, stainedglass: 4, bronze: 3, relic: 2 }, income: 25, xp: 35, prereq: ["chapel", "manor"], minBook: 3 },
+  { id: "manor", name: "영주관", requires: { marble: 6, brick: 10, stainedglass: 2, bronze: 3, token: 1 }, income: 40, xp: 30, prereq: ["guildhall"], minBook: 3 },
+  { id: "cathedral", name: "대성당", requires: { marble: 8, stainedglass: 4, bronze: 3, relic: 2, token: 1 }, income: 25, xp: 35, prereq: ["chapel", "manor"], minBook: 3 },
 ];
 
 // 경험치 누적으로 마법의 책이 오르는 임계치

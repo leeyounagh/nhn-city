@@ -96,3 +96,10 @@
 - **시각(KST)**: 12:20 / **브랜치**: master
 - sellPrice=base×townMult×eventMult×0.5 (<구매하한 → 무한차익 차단, 마을별 시세차로 차익). /api/town에 sellPrices, GameState.sellPrices, TownView 판매 패널, sell() 핸들러.
 - 검증: 서버 판매가 416건 0실패·차익차단 136건 0위반, 브라우저 사서(400→391)→팔기(→395) 루프. tsc/eslint 그린.
+
+## feat(game): P4-3 고호감도 특수 아이템 "상인의 신표" (P4 완료)
+
+- **시각(KST)**: 12:55 / **브랜치**: master
+- 새 MaterialId token(상인의 신표) — 흥정 호감도 ≥90 시 상인이 선물(1회), 구매·판매·물물교환 불가. 영주관·대성당 requires token:1. TOKEN_DISPOSITION=90, /api/haggle gotToken, HaggleState.tokenAwarded, Game.sendUtterance가 inventory.token+=1.
+- 검증: 서버 gotToken(≥90·중복방지·저호감도·판매제외), 건물 요구 데이터, 브라우저 흥정 회귀없음. tsc/eslint 그린.
+- **P4 완료** (건설·생산·잉여판매·특수아이템).
