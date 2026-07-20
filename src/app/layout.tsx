@@ -27,7 +27,10 @@ export default function RootLayout({
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* suppressHydrationWarning: 브라우저 확장(ColorZilla 등)이 body에 cz-shortcut-listen 같은 속성을 주입해 생기는 hydration 경고 억제. 자식 요소 검증엔 영향 없음. */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
