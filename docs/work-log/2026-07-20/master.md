@@ -50,3 +50,12 @@
 - **feat(P3-1)**: 마을 특산 할인. economy `townMultiplier`+`deriveMerchant(seed,townId)`(×0.8), /api/town·/api/haggle 동일 적용. 검증: 표시 136건(할인56) 0실패 + 거래 8건 범위내. tsc/eslint 그린.
 - **chore(favicon)**: `src/app/icon.png`을 Ashen Kingdom 로고(1024²)로 교체. /icon.png 200 확인.
 - **fix(hydration)**: `<body>`에 `suppressHydrationWarning`. 원인=브라우저 확장(ColorZilla)이 body에 `cz-shortcut-listen` 주입(서버 HTML엔 0개, 앱 무관). 표준 해법.
+
+---
+
+## feat(game): P3-2 품귀(scarcity) 시스템
+
+- **시각(KST)**: 09:55 / **브랜치**: master
+- 최근 많이 산 자재일수록 시세↑, 이동으로 완화. `scarcityMult=1+min(0.8,count×0.05)`, 가격식 base×markup×townMult×scarcityMult(offer0·floor 양쪽).
+- `GameState.recentBuys`(구매 시 증가, 이동 시 `decayRecentBuys` −3/day). economy `scarcityMultiplier`+`deriveMerchant(...,recentBuys?)`, /api/town·/api/haggle에 전송.
+- 검증: 표시 101건 0실패 + 거래 흥정가 count0<4<10 단조 8건 + 클라 이동 0에러. tsc/eslint 그린.

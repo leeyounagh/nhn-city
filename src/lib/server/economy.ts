@@ -20,6 +20,17 @@ export function townMultiplier(townId: TownId | undefined, id: MaterialId): numb
   return TOWN_BY_ID[townId].specialMaterials.includes(id) ? SPECIAL_TOWN_DISCOUNT : 1;
 }
 
+// 품귀배수: 플레이어가 최근 그 자재를 많이 살수록 시세가 오른다(≥1.0). 구매 1개당 +5%, 최대 +80%.
+const SCARCITY_PER_UNIT = 0.05;
+const SCARCITY_CAP = 0.8;
+export function scarcityMultiplier(
+  recentBuys: Partial<Record<MaterialId, number>> | undefined,
+  id: MaterialId,
+): number {
+  const c = recentBuys?.[id] ?? 0;
+  return 1 + Math.min(SCARCITY_CAP, c * SCARCITY_PER_UNIT);
+}
+
 // 자재별 기준가/하한가 (단가). 하한가 ≈ 기준가의 60%.
 const PRICES: Record<MaterialId, { base: number; floor: number; tier: Tier }> = {
   wood: { base: 10, floor: 6, tier: 1 },
@@ -192,17 +203,21 @@ export interface DerivedMerchant {
 }
 
 // seed로부터 상인의 숨은 스펙을 결정론적으로 복원한다.
-// townId를 주면 특산 마을 할인(마을배수)을 offer0/floor에 반영한다. rng 호출 순서는 불변(결정론 유지).
-export function deriveMerchant(seed: number, townId?: TownId): DerivedMerchant {
+// townId=특산 할인(마을배수), recentBuys=품귀 배수를 offer0/floor에 반영. rng 호출 순서는 불변(결정론 유지).
+export function deriveMerchant(
+  seed: number,
+  townId?: TownId,
+  recentBuys?: Partial<Record<MaterialId, number>>,
+): DerivedMerchant {
   const rng = mulberry32(seed);
   const spec = pick(rng, SPECIALIZATIONS);
   const profile = pick(rng, PROFILES);
   const materials: DerivedMaterial[] = spec.materials.map((id) => {
     const p = PRICES[id];
     const variance = rng() * 0.2; // 0~0.2
-    const tm = townMultiplier(townId, id);
-    const offer0 = Math.round(p.base * spec.markup * tm * (1 + variance));
-    const floor = Math.min(offer0, Math.round(p.floor * spec.markup * tm)); // 하한 클램프
+    const mult = townMultiplier(townId, id) * scarcityMultiplier(recentBuys, id); // 마을배수 × 품귀배수
+    const offer0 = Math.round(p.base * spec.markup * mult * (1 + variance));
+    const floor = Math.min(offer0, Math.round(p.floor * spec.markup * mult)); // 하한 클램프
     return { id, tier: p.tier, offer0, floor, stock: stockFor(p.tier, rng) };
   });
   return { seed, spec, profile, materials };

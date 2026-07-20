@@ -11,6 +11,7 @@ import {
   dailyIncome,
   xpToNext,
   checkPlace,
+  decayRecentBuys,
 } from "@/lib/game-state";
 import { WorldMap } from "@/components/WorldMap";
 import { TownView } from "@/components/TownView";
@@ -53,6 +54,8 @@ export function Game() {
       const days = travelDays(state.location, dest);
       const gain = dailyIncome(state.placements) * days;
       const newDay = state.day + days;
+      // 이동으로 날이 흐르면 최근 구매 기억이 옅어진다(품귀 완화).
+      const decayedBuys = decayRecentBuys(state.recentBuys, days);
       // 이동하면 이전 마을의 상인·소문·흥정은 모두 정리한다 (소문은 하루치 진실).
       setState((s) => ({
         ...s,
@@ -63,6 +66,7 @@ export function Game() {
         merchant: null,
         haggle: null,
         clues: [],
+        recentBuys: decayedBuys,
       }));
       if (dest === "home") {
         setNotice(
@@ -78,7 +82,7 @@ export function Game() {
         const res = await fetch("/api/town", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ day: newDay, town: dest, bookLevel }),
+          body: JSON.stringify({ day: newDay, town: dest, bookLevel, recentBuys: decayedBuys }),
         });
         const data: { merchants?: PublicMerchant[]; rumors?: Rumor[] } = await res.json();
         setState((s) => ({ ...s, townMerchants: data.merchants ?? [], clues: data.rumors ?? [] }));
@@ -88,7 +92,7 @@ export function Game() {
         setBusy(false);
       }
     },
-    [state.location, state.day, state.placements, busy, bookLevel],
+    [state.location, state.day, state.placements, state.recentBuys, busy, bookLevel],
   );
 
   const startHaggle = useCallback((merchant: PublicMerchant, materialId: MaterialId) => {
@@ -155,6 +159,7 @@ export function Game() {
           mode: h.mode,
           payMaterialId: h.payMaterialId,
           day: state.day,
+          recentBuys: state.recentBuys,
           persona: {
             name: m.name,
             appearance: m.appearance,
@@ -197,13 +202,15 @@ export function Game() {
     } catch {
       setState((s) => (s.haggle ? { ...s, haggle: { ...s.haggle, pending: false, log: [...s.haggle.log, { role: "system", text: "말이 통하지 않았다…" }] } } : s));
     }
-  }, [state.merchant, state.haggle, state.day]);
+  }, [state.merchant, state.haggle, state.day, state.recentBuys]);
 
   const buy = useCallback((qty: number) => {
     let msg = "";
     setState((s) => {
       const h = s.haggle;
       if (!h || qty <= 0 || h.currentPrice <= 0) return s;
+      // 획득한 자재만큼 최근 구매량 누적 → 다음 시세에 품귀 반영.
+      const recentBuys = { ...s.recentBuys, [h.materialId]: (s.recentBuys[h.materialId] ?? 0) + qty };
       if (h.mode === "barter" && h.payMaterialId) {
         const units = h.currentPrice * qty; // 지불 물품 총 개수
         if ((s.inventory[h.payMaterialId] ?? 0) < units) return s;
@@ -213,13 +220,13 @@ export function Game() {
           [h.materialId]: (s.inventory[h.materialId] ?? 0) + qty,
         };
         msg = `${h.payMaterialName} ${units}개를 내주고 ${h.materialName} ${qty}개를 얻었다.`;
-        return { ...s, inventory, haggle: null };
+        return { ...s, inventory, recentBuys, haggle: null };
       }
       const cost = h.currentPrice * qty;
       if (cost > s.gold) return s;
       const inventory = { ...s.inventory, [h.materialId]: (s.inventory[h.materialId] ?? 0) + qty };
       msg = `${qty}개를 사들였다.`;
-      return { ...s, gold: s.gold - cost, inventory, haggle: null };
+      return { ...s, gold: s.gold - cost, inventory, recentBuys, haggle: null };
     });
     if (msg) setNotice(msg);
   }, []);

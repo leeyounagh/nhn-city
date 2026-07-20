@@ -61,6 +61,7 @@ export interface GameState {
   merchant: PublicMerchant | null; // 흥정 중인 상인 (townMerchants에서 선택)
   haggle: HaggleState | null;
   clues: Rumor[]; // 오늘 수집한 소문 (날이 바뀌면 비움)
+  recentBuys: Partial<Record<MaterialId, number>>; // 자재별 최근 구매량 (품귀 배수 산정, 이동으로 감쇠)
 }
 
 export function initialState(): GameState {
@@ -75,7 +76,22 @@ export function initialState(): GameState {
     merchant: null,
     haggle: null,
     clues: [],
+    recentBuys: {},
   };
+}
+
+// 이동으로 날이 흐르면 최근 구매 기억이 옅어진다(품귀 완화). 하루당 일정량 감소, 0 이하는 제거.
+export const RECENT_BUY_DECAY_PER_DAY = 3;
+export function decayRecentBuys(
+  rb: Partial<Record<MaterialId, number>>,
+  days: number,
+): Partial<Record<MaterialId, number>> {
+  const out: Partial<Record<MaterialId, number>> = {};
+  for (const [id, v] of Object.entries(rb)) {
+    const nv = Math.max(0, (v ?? 0) - days * RECENT_BUY_DECAY_PER_DAY);
+    if (nv > 0) out[id as MaterialId] = nv;
+  }
+  return out;
 }
 
 // 수집 소문을 누적한다. 같은 id는 최신으로 덮어써 중복을 막는다.

@@ -285,3 +285,10 @@
 - **검증**(dev 서버, 결정론): 표시 8일×4마을 136건 중 특산 56건 floorHint 정확(0실패). floor는 variance 없어 `round(floorbase×markup×tm)` 정밀 대조 가능 — 이게 이번 검증의 핵심 seam. 거래 8건 흥정가 모두 할인 [floor,offer] 범위 내. tsc/eslint 그린.
 - **테스트 함정**: 만물상(general)만 markup 1.15 → 검증식에 markup 반영 필요(초기 실패는 이걸 빠뜨린 테스트 버그였음, 코드 정상).
 - **다음**: P3-2 품귀(recentBuys, 이동 감쇠) → P3-3 뉴스+대풍작 이벤트.
+
+### P3-2 품귀(scarcity) (2026-07-20)
+- **설계**: 플레이어가 최근 많이 산 자재일수록 시세↑, 이동으로 완화. `scarcityMult = 1 + min(0.8, count×0.05)`(구매 1개당 +5%, 최대 +80%). 가격식 = base × markup × townMult × **scarcityMult**. townMult처럼 offer0·floor 양쪽에 곱해 하한까지 올려 "붙박이"(흥정으로 다 깎아도 오른 시세 유지).
+- **상태**(game-state): `GameState.recentBuys: Partial<Record<MaterialId,number>>` 추가(init {}). buy 시 획득 자재 += qty(골드·물물교환 둘 다). 이동 시 `decayRecentBuys(rb, days)` = max(0, v − days×3), 0이하 제거. `RECENT_BUY_DECAY_PER_DAY=3`.
+- **배선**: economy `scarcityMultiplier(recentBuys,id)` + `deriveMerchant(seed, townId?, recentBuys?)`. merchant.ts·/api/town·/api/haggle에 recentBuys 전달(zod `z.record(z.string(),z.number()).optional()`). 클라 Game.tsx: travelTo에서 decay 후 /api/town에 전송·상태반영, buy에서 증가, sendUtterance(/api/haggle)에 state.recentBuys 전송. useCallback deps에 state.recentBuys 추가.
+- **표시=거래 일관**: 둘 다 같은 recentBuys를 같은 deriveMerchant에 전달. ⚠️ 마을 안에서 산 직후엔 표시 offer는 다음 town fetch 전까지 안 바뀜(haggle은 live 반영). 데모 허용, 품귀는 주로 방문·날짜 간 기제.
+- **검증**(dev 서버, 결정론): 표시 101건 floorHint = round(floor×markup×townMult×scarcityMult) 0실패 + 품귀 offer ≥ 기본 offer 단조 0위반. 거래 8건 흥정가 count0<4<10 단조증가(예 nw wood 7→9→12) — count↓=이동감쇠와 동종이라 감쇠 방향도 함께 확인. 클라 이동(decay 경로) 콘솔 0에러. tsc/eslint 그린. (dev.err.log의 unhandledRejection은 이전 playwright eval 잔재 — 파일잠금으로 못 비웠을 뿐, 신규 재현 0)

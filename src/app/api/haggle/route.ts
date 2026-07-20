@@ -34,6 +34,7 @@ const Body = z.object({
   mode: z.enum(["gold", "barter"]).default("gold"),
   payMaterialId: z.string().optional(), // barter: 지불 물품 (상인 wants 중 하나)
   day: z.number().int().min(1).optional(), // barter: wants 진위 검증용
+  recentBuys: z.record(z.string(), z.number()).optional(), // 자재별 최근 구매량 → 품귀배수
   persona: z
     .object({
       name: z.string(),
@@ -49,12 +50,12 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "잘못된 요청" }, { status: 400 });
   }
-  const { seed, utterance, turnsLeft, qualityApplied, mode, day } = parsed.data;
+  const { seed, utterance, turnsLeft, qualityApplied, mode, day, recentBuys } = parsed.data;
   const materialId = parsed.data.materialId as MaterialId;
 
-  // 상인이 오늘 있는 마을 → 특산 할인(마을배수)을 표시(/api/town)와 동일하게 거래가에도 반영.
+  // 상인이 오늘 있는 마을 → 특산 할인(마을배수) + 품귀배수를 표시(/api/town)와 동일하게 거래가에도 반영.
   const wm = day !== undefined ? deriveWorld(day).merchants.find((m) => m.seed === seed) : undefined;
-  const derived = deriveMerchant(seed, wm?.townId);
+  const derived = deriveMerchant(seed, wm?.townId, recentBuys);
   const mat = derived.materials.find((m) => m.id === materialId);
   if (!mat) {
     return NextResponse.json({ error: "취급하지 않는 자재" }, { status: 400 });

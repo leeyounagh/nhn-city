@@ -11,6 +11,7 @@ const Body = z.object({
   day: z.number().int().min(1),
   town: z.enum(["nw", "ne", "sw", "se"]),
   bookLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+  recentBuys: z.record(z.string(), z.number()).optional(), // 자재별 최근 구매량 → 품귀배수
 });
 
 export async function POST(request: Request) {
@@ -18,16 +19,16 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "잘못된 요청" }, { status: 400 });
   }
-  const { day } = parsed.data;
+  const { day, recentBuys } = parsed.data;
   const town = parsed.data.town as TownId;
   const bookLevel = parsed.data.bookLevel as BookLevel;
 
   const here = merchantsInTown(deriveWorld(day), town);
 
   const [merchants, rumors] = await Promise.all([
-    Promise.all(here.map((wm) => generatePublicMerchant(wm.seed, bookLevel, wm.wants, town))) as Promise<
-      PublicMerchant[]
-    >,
+    Promise.all(
+      here.map((wm) => generatePublicMerchant(wm.seed, bookLevel, wm.wants, town, recentBuys)),
+    ) as Promise<PublicMerchant[]>,
     generateRumors(day, town, bookLevel),
   ]);
 
