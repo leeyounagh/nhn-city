@@ -7,8 +7,18 @@ import type {
   MerchantMaterialView,
   PublicMerchant,
   Tier,
+  TownId,
 } from "@/types/game";
-import { MATERIAL_NAME } from "@/lib/game-data";
+import { MATERIAL_NAME, TOWN_BY_ID } from "@/lib/game-data";
+
+// 특산 물품을 그 업종 마을에서 사면 싸다 (마을배수). P3 가격식: base × markup × townMult.
+const SPECIAL_TOWN_DISCOUNT = 0.8;
+
+// 마을배수: 자재가 그 마을의 특산이면 할인, 아니면 1.0. (day/상인과 무관한 결정론)
+export function townMultiplier(townId: TownId | undefined, id: MaterialId): number {
+  if (!townId) return 1;
+  return TOWN_BY_ID[townId].specialMaterials.includes(id) ? SPECIAL_TOWN_DISCOUNT : 1;
+}
 
 // 자재별 기준가/하한가 (단가). 하한가 ≈ 기준가의 60%.
 const PRICES: Record<MaterialId, { base: number; floor: number; tier: Tier }> = {
@@ -182,15 +192,17 @@ export interface DerivedMerchant {
 }
 
 // seed로부터 상인의 숨은 스펙을 결정론적으로 복원한다.
-export function deriveMerchant(seed: number): DerivedMerchant {
+// townId를 주면 특산 마을 할인(마을배수)을 offer0/floor에 반영한다. rng 호출 순서는 불변(결정론 유지).
+export function deriveMerchant(seed: number, townId?: TownId): DerivedMerchant {
   const rng = mulberry32(seed);
   const spec = pick(rng, SPECIALIZATIONS);
   const profile = pick(rng, PROFILES);
   const materials: DerivedMaterial[] = spec.materials.map((id) => {
     const p = PRICES[id];
     const variance = rng() * 0.2; // 0~0.2
-    const offer0 = Math.round(p.base * spec.markup * (1 + variance));
-    const floor = Math.round(p.floor * spec.markup);
+    const tm = townMultiplier(townId, id);
+    const offer0 = Math.round(p.base * spec.markup * tm * (1 + variance));
+    const floor = Math.min(offer0, Math.round(p.floor * spec.markup * tm)); // 하한 클램프
     return { id, tier: p.tier, offer0, floor, stock: stockFor(p.tier, rng) };
   });
   return { seed, spec, profile, materials };

@@ -41,3 +41,12 @@
 ### 검증
 - tsc/eslint 그린. 브라우저: 이동/도움말/노트 모달·무한 팬·건물 배치·모달 위 elementFromPoint(=모달 z-40) 전부 확인. 콘솔·서버 에러 0.
 - docs checklist(P2-7~9)·context-notes 기록.
+
+---
+
+## P3-1 경제 특산 할인 · favicon · hydration 픽스 (3 커밋)
+
+- **시각(KST)**: 09:25 / **브랜치**: master
+- **feat(P3-1)**: 마을 특산 할인. economy `townMultiplier`+`deriveMerchant(seed,townId)`(×0.8), /api/town·/api/haggle 동일 적용. 검증: 표시 136건(할인56) 0실패 + 거래 8건 범위내. tsc/eslint 그린.
+- **chore(favicon)**: `src/app/icon.png`을 Ashen Kingdom 로고(1024²)로 교체. /icon.png 200 확인.
+- **fix(hydration)**: `<body>`에 `suppressHydrationWarning`. 원인=브라우저 확장(ColorZilla)이 body에 `cz-shortcut-listen` 주입(서버 HTML엔 0개, 앱 무관). 표준 해법.

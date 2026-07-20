@@ -52,7 +52,9 @@ export async function POST(request: Request) {
   const { seed, utterance, turnsLeft, qualityApplied, mode, day } = parsed.data;
   const materialId = parsed.data.materialId as MaterialId;
 
-  const derived = deriveMerchant(seed);
+  // 상인이 오늘 있는 마을 → 특산 할인(마을배수)을 표시(/api/town)와 동일하게 거래가에도 반영.
+  const wm = day !== undefined ? deriveWorld(day).merchants.find((m) => m.seed === seed) : undefined;
+  const derived = deriveMerchant(seed, wm?.townId);
   const mat = derived.materials.find((m) => m.id === materialId);
   if (!mat) {
     return NextResponse.json({ error: "취급하지 않는 자재" }, { status: 400 });
@@ -68,7 +70,6 @@ export async function POST(request: Request) {
     if (!payId || !(payId in MATERIAL_NAME) || day === undefined) {
       return NextResponse.json({ error: "잘못된 물물교환 요청" }, { status: 400 });
     }
-    const wm = deriveWorld(day).merchants.find((m) => m.seed === seed);
     if (!wm || !wm.wants.includes(payId)) {
       return NextResponse.json({ error: "상인이 원치 않는 물품" }, { status: 400 });
     }

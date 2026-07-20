@@ -277,3 +277,11 @@
 - **수정**: 보드영역 div에 `isolate`(CSS `isolation: isolate`) 1개 추가 → 새 스태킹 컨텍스트 형성, 타일 z-index를 보드 내부로 가둠. 보드 자체는 in-flow(z-auto)라 fixed z-40 모달들 아래로. 1줄 최소 수정.
 - **기각 가설**: (a)핸들러 파손 → DOM `.click()`으로 튜토리얼/노트 모두 닫힘, 정상. (b)playwright 클릭 실패 = 앱 버그 → 보드 잦은 리렌더로 snapshot ref가 stale(e1352 not found)일 뿐, 자동화 아티팩트. (c)인트로 오버레이(z-60) → 테스트 셋업에서 START GAME 미클릭 잔재였고 실사용 무관.
 - 검증: tsc/eslint 그린. 수정 후 모달 본문 위 elementFromPoint = 모달 오버레이(z-40), X clickable=true, 스샷 깨끗. 팬/배치(sprites=1) 여전히 정상. 콘솔·서버 에러 0.
+
+### P3-1 마을 특산 할인 + 가격식 토대 (2026-07-20)
+- **설계**: P3 가격식 = base × markup × townMult × (eventMult·scarcityMult는 P3-2/3). P3-1은 **townMult**만. 특산 물품을 그 업종 마을에서 사면 ×0.8(`SPECIAL_TOWN_DISCOUNT`). 품귀 상태는 클라 recentBuys를 서버 전송(P3-2 예정), 뉴스/이벤트는 day 결정론(P3-3 예정).
+- **구현**: economy `townMultiplier(townId,id)` = 특산이면 0.8 else 1. `deriveMerchant(seed, townId?)`가 offer0=round(base×markup×tm×(1+var)), floor=min(offer0, round(floorbase×markup×tm)). **rng 호출 순서 불변**(townMultiplier는 rng 미사용)이라 기존 variance/stock 결정론 유지. townId 없으면 tm=1(world.ts의 배치판정용 deriveMerchant 호출은 그대로).
+- **양쪽 일관성**(표시가=거래가): /api/town은 요청 `town` 전달, /api/haggle은 `deriveWorld(day).merchants.find(seed).townId` 전달. 상인은 그 town에 있으므로(merchantsInTown) 두 town 동일 → 같은 offer0/floor. barter의 world 조회도 이 wm 재사용(중복 제거).
+- **검증**(dev 서버, 결정론): 표시 8일×4마을 136건 중 특산 56건 floorHint 정확(0실패). floor는 variance 없어 `round(floorbase×markup×tm)` 정밀 대조 가능 — 이게 이번 검증의 핵심 seam. 거래 8건 흥정가 모두 할인 [floor,offer] 범위 내. tsc/eslint 그린.
+- **테스트 함정**: 만물상(general)만 markup 1.15 → 검증식에 markup 반영 필요(초기 실패는 이걸 빠뜨린 테스트 버그였음, 코드 정상).
+- **다음**: P3-2 품귀(recentBuys, 이동 감쇠) → P3-3 뉴스+대풍작 이벤트.
