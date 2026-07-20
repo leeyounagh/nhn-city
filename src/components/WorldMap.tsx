@@ -1,7 +1,7 @@
 "use client";
 // 월드맵. 폐허 고향 + 4개 상인 마을 노드. 노드를 고르면 이동일수만큼 시간이 흐른다(→상인 재배치).
 import type { LocationId, TownId } from "@/types/game";
-import { TOWN_BY_ID, travelDays, locationName } from "@/lib/game-data";
+import { TOWN_BY_ID, TOWN_ICON, travelDays, locationName } from "@/lib/game-data";
 
 // 3×3 격자 배치: 네 모서리에 마을, 중앙에 고향.
 const CELL: Record<LocationId, string> = {
@@ -16,10 +16,12 @@ const NODES: LocationId[] = ["nw", "ne", "home", "sw", "se"];
 
 export function WorldMap({
   location,
+  homeIcon,
   busy,
   onTravel,
 }: {
   location: LocationId;
+  homeIcon: string; // 고향 대표 스프라이트 (완성도에 따라 진화)
   busy: boolean;
   onTravel: (dest: LocationId) => void;
 }) {
@@ -49,7 +51,18 @@ export function WorldMap({
                     : "border-stone-600/60 bg-stone-800/50 enabled:hover:border-amber-600/60 enabled:hover:bg-stone-800"
               } disabled:cursor-default`}
             >
-              <span className="text-lg">{isHome ? "🏰" : "🏘️"}</span>
+              <span
+                className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-md border bg-stone-950/50 ${
+                  isHome ? "border-emerald-700/50" : "border-stone-600/50"
+                }`}
+              >
+                <img
+                  src={`/buildings/${isHome ? homeIcon : TOWN_ICON[id as TownId]}.png`}
+                  alt=""
+                  draggable={false}
+                  className="h-8 w-8 object-contain"
+                />
+              </span>
               <span className="text-sm font-semibold text-stone-100">{locationName(id)}</span>
               {town && <span className="text-[11px] text-stone-400">{town.industryName}</span>}
               {here ? (

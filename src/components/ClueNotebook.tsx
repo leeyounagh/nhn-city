@@ -21,7 +21,9 @@ export function ClueNotebook({ clues, onClose }: { clues: Rumor[]; onClose: () =
     <div className="fixed inset-0 z-40 flex items-start justify-center bg-black/70 p-4 pt-16">
       <div className="w-full max-w-2xl rounded-lg border border-stone-700 bg-stone-900 shadow-xl">
         <div className="flex items-center justify-between border-b border-stone-700 px-5 py-3">
-          <h2 className="font-bold text-amber-200">📓 단서 노트</h2>
+          <h2 className="flex items-center gap-1.5 font-bold text-amber-200">
+            <img src="/ui/magicbook.png" alt="" draggable={false} className="h-6 w-6 object-contain" /> 단서 노트
+          </h2>
           <button
             onClick={onClose}
             aria-label="단서 노트 닫기"

@@ -4,7 +4,22 @@ import { useState } from "react";
 import type { BookLevel, ClueKind, MaterialId, PublicMerchant, Rumor, TownId } from "@/types/game";
 import { MerchantPanel, PORTRAIT_EMOJI } from "@/components/MerchantPanel";
 import { TownIsoPreview } from "@/components/TownIsoPreview";
-import { MATERIAL_NAME } from "@/lib/game-data";
+import { MATERIAL_NAME, TOWN_ICON } from "@/lib/game-data";
+import { MaterialIcon } from "@/components/MaterialIcon";
+
+// 마을 대표 썸네일 (이름 앞 작은 아이콘).
+function TownThumb({ townId }: { townId: TownId }) {
+  return (
+    <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-md border border-stone-600/50 bg-stone-950/50 align-middle">
+      <img
+        src={`/buildings/${TOWN_ICON[townId]}.png`}
+        alt=""
+        draggable={false}
+        className="h-6 w-6 object-contain"
+      />
+    </span>
+  );
+}
 
 const KIND_LABEL: Record<ClueKind, string> = {
   location: "위치",
@@ -55,8 +70,10 @@ export function TownView({
     <div className="space-y-4">
       {/* 마을 아이소 미리보기 배너 (읽기전용, 팬/줌) */}
       <div>
-        <div className="mb-1.5 flex items-baseline gap-2">
-          <h2 className="text-base font-bold text-stone-100">🏘️ {townName}</h2>
+        <div className="mb-1.5 flex items-center gap-2">
+          <h2 className="flex items-center gap-1.5 text-base font-bold text-stone-100">
+            <TownThumb townId={townId} /> {townName}
+          </h2>
           <span className="text-xs text-stone-400">{industryName} · 드래그로 둘러보기</span>
         </div>
         <TownIsoPreview townId={townId} />
@@ -64,8 +81,10 @@ export function TownView({
 
       <div className="grid gap-4 md:grid-cols-[1fr_320px]">
       <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
-        <div className="mb-3 flex items-baseline gap-2">
-          <h2 className="text-base font-bold text-stone-100">🏘️ {townName} 상인</h2>
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="flex items-center gap-1.5 text-base font-bold text-stone-100">
+            <TownThumb townId={townId} /> {townName} 상인
+          </h2>
           <span className="text-xs text-stone-400">{industryName}</span>
         </div>
 
@@ -124,7 +143,7 @@ export function TownView({
             ))}
           </ul>
         )}
-        <p className="mt-2 text-[11px] text-stone-500">소문은 📓 단서 노트에도 자동 기록된다.</p>
+        <p className="mt-2 text-[11px] text-stone-500">소문은 <img src="/ui/magicbook.png" alt="" draggable={false} className="inline-block h-3.5 w-3.5 align-text-bottom object-contain" /> 단서 노트에도 자동 기록된다.</p>
       </section>
 
       <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
@@ -137,7 +156,7 @@ export function TownView({
               const price = sellPrices[id] ?? 0;
               return (
                 <li key={id} className="flex items-center gap-2 rounded bg-stone-800/40 px-2 py-1.5 text-xs">
-                  <span className="text-stone-200">{MATERIAL_NAME[id]}</span>
+                  <span className="flex items-center gap-1 text-stone-200"><MaterialIcon id={id} className="h-4 w-4" /> {MATERIAL_NAME[id]}</span>
                   <span className="text-stone-500">보유 {have}</span>
                   <span className="ml-auto text-amber-300">개당 {price}</span>
                   <button

@@ -2,6 +2,7 @@
 // 상인 패널. 페르소나 + 책 레벨로 걸러진 정보 + 자재 목록을 보여준다.
 import { useState } from "react";
 import type { BookLevel, MaterialId, PublicMerchant } from "@/types/game";
+import { MaterialIcon } from "@/components/MaterialIcon";
 
 export const PORTRAIT_EMOJI: Record<string, string> = {
   woodmonger: "🪵",
@@ -55,7 +56,9 @@ export function MerchantPanel({
 
       {/* 마법의 책이 읽어낸 정보 (레벨별) */}
       <div className="rounded border border-sky-800/40 bg-sky-950/20 px-3 py-2 text-xs">
-        <p className="mb-1 font-semibold text-sky-300">📖 마법의 책 (Lv.{bookLevel})</p>
+        <p className="mb-1 flex items-center gap-1.5 font-semibold text-sky-300">
+          <img src="/ui/magicbook.png" alt="" draggable={false} className="h-5 w-5 object-contain" /> 마법의 책 (Lv.{bookLevel})
+        </p>
         {merchant.profileHint ? (
           <p className="text-stone-300">{merchant.profileHint}</p>
         ) : (
@@ -74,7 +77,8 @@ export function MerchantPanel({
             disabled={mat.locked}
             className="flex items-center justify-between rounded border border-stone-700 bg-stone-800/40 px-3 py-2 text-left transition enabled:hover:border-amber-600/60 enabled:hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span className="text-sm text-stone-100">
+            <span className="flex items-center gap-1.5 text-sm text-stone-100">
+              <MaterialIcon id={mat.id} className="h-5 w-5" />
               {mat.name}
               <span className="ml-1 text-[10px] text-stone-500">T{mat.tier}</span>
               {mat.locked && <span className="ml-1 text-[10px] text-rose-400">책 Lv.3 필요</span>}

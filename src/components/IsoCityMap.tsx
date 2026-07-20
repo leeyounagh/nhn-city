@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MaterialId } from "@/types/game";
 import { BUILDINGS, MATERIAL_NAME, BUILDING_RENDER_SCALE } from "@/lib/game-data";
+import { MaterialIcon } from "@/components/MaterialIcon";
 import {
   type GameState,
   type Placement,
@@ -10,6 +11,7 @@ import {
   checkPlacement,
   canDeposit,
   hasBlueprint,
+  homeIcon,
 } from "@/lib/game-state";
 
 export const BUILDING_ICON: Record<string, string> = {
@@ -77,6 +79,8 @@ export function IsoCityMap({
   const panMovedRef = useRef(false);
   const didPanRef = useRef(false); // 팬 뒤 따라오는 타일 click(배치/선택) 억제용
   const panInitRef = useRef(false);
+  // 건물 팔레트 마우스 드래그 스크롤 상태.
+  const scrollDragRef = useRef<{ startX: number; startY: number; startScroll: number; el: HTMLElement; decided: boolean; scrolling: boolean } | null>(null);
 
   // 보드 뷰포트 실측. 가시 타일 계산·카메라 중앙정렬에 쓴다.
   useEffect(() => {
@@ -113,6 +117,38 @@ export function IsoCityMap({
     function onUp() {
       panRef.current = null;
       panMovedRef.current = false;
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, []);
+
+  // 건물 팔레트 마우스 좌우 드래그 스크롤. 가로 드래그=스크롤, 세로 드래그=배치에 양보. 터치는 네이티브 스크롤.
+  useEffect(() => {
+    function onMove(e: PointerEvent) {
+      const s = scrollDragRef.current;
+      if (!s) return;
+      const dx = e.clientX - s.startX;
+      const dy = e.clientY - s.startY;
+      if (!s.decided) {
+        if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+        s.decided = true;
+        s.scrolling = Math.abs(dx) > Math.abs(dy);
+        if (s.scrolling) {
+          dragRef.current = null; // 카드 배치 드래그 취소
+          didDragRef.current = true; // 뒤따르는 클릭(선택) 억제
+        } else {
+          scrollDragRef.current = null; // 세로 드래그 → 배치에 양보
+          return;
+        }
+      }
+      if (s.scrolling) s.el.scrollLeft = s.startScroll - dx;
+    }
+    function onUp() {
+      scrollDragRef.current = null;
     }
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
@@ -190,9 +226,22 @@ export function IsoCityMap({
   const placingBuilding = selectedBuilding !== null || drag?.kind === "building";
 
   const startBuildingDrag = (e: React.PointerEvent, buildingId: string) => {
+    if (e.pointerType !== "mouse") return; // 터치는 네이티브 스크롤 + 탭 선택으로 배치
     if (!checkPlace(buildingId, state).canPlace) return;
     didDragRef.current = false;
     dragRef.current = { kind: "building", id: buildingId, startX: e.clientX, startY: e.clientY, moved: false };
+  };
+  // 팔레트 스트립을 마우스로 누르면 좌우 드래그 스크롤 시작점을 기록한다.
+  const stripPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return;
+    scrollDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startScroll: e.currentTarget.scrollLeft,
+      el: e.currentTarget,
+      decided: false,
+      scrolling: false,
+    };
   };
   const clickBuilding = (buildingId: string) => {
     if (didDragRef.current) {
@@ -386,7 +435,17 @@ export function IsoCityMap({
   return (
     <section className="rounded-lg border border-emerald-800/50 bg-emerald-950/20 p-4">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h2 className="text-base font-bold text-stone-100">🏰 폐허가 된 고향</h2>
+        <h2 className="flex items-center gap-1.5 text-base font-bold text-stone-100">
+          <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-md border border-emerald-700/50 bg-stone-950/50">
+            <img
+              src={buildingSprite(homeIcon(state.placements))}
+              alt=""
+              draggable={false}
+              className="h-6 w-6 object-contain"
+            />
+          </span>
+          폐허가 된 고향
+        </h2>
         <span className="text-xs text-stone-400">건물을 끌어다(또는 골라 탭) 빈 터에 놓고, 자재를 끌어다(또는 터를 눌러) 채운다</span>
         <div className="ml-auto flex items-center gap-1">
           <ZoomBtn label="－" onClick={() => zoomTo(Math.max(0.5, +(scale - 0.2).toFixed(2)))} />
@@ -433,6 +492,7 @@ export function IsoCityMap({
         selectedBuilding={selectedBuilding}
         onCardPointerDown={startBuildingDrag}
         onCardClick={clickBuilding}
+        onStripPointerDown={stripPointerDown}
       />
 
       {/* 선택한 건물 모달 — 자재 투입 + 이동·회전·삭제 */}
@@ -483,7 +543,7 @@ function InventoryStrip({
   return (
     <div className="mb-3 rounded-lg border border-stone-700/50 bg-stone-900/40 p-2.5">
       <p className="mb-1.5 text-xs font-semibold text-stone-300">
-        🎒 창고 <span className="font-normal text-stone-500">— 자재를 건물로 끌어다 채운다</span>
+        <img src="/buildings/warehouse.png" alt="" draggable={false} className="mr-1 inline-block h-4 w-4 align-text-bottom object-contain" /> 창고 <span className="font-normal text-stone-500">— 자재를 건물로 끌어다 채운다</span>
       </p>
       <div className="flex flex-wrap gap-1.5">
         {inv.length > 0 ? (
@@ -493,7 +553,7 @@ function InventoryStrip({
               onPointerDown={(e) => onChipPointerDown(e, id)}
               className="cursor-grab touch-none select-none rounded bg-stone-800 px-2 py-0.5 text-xs text-stone-200 active:cursor-grabbing"
             >
-              {MATERIAL_NAME[id]} <b className="tabular-nums text-amber-300">{n}</b>
+              <MaterialIcon id={id} className="mr-0.5 h-3.5 w-3.5" />{MATERIAL_NAME[id]} <b className="tabular-nums text-amber-300">{n}</b>
             </span>
           ))
         ) : (
@@ -521,11 +581,13 @@ function BuildingPalette({
   selectedBuilding,
   onCardPointerDown,
   onCardClick,
+  onStripPointerDown,
 }: {
   state: GameState;
   selectedBuilding: string | null;
   onCardPointerDown: (e: React.PointerEvent, buildingId: string) => void;
   onCardClick: (buildingId: string) => void;
+  onStripPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
 }) {
   const normal = BUILDINGS.filter((b) => !b.deco);
   const deco = BUILDINGS.filter((b) => b.deco);
@@ -544,15 +606,15 @@ function BuildingPalette({
   return (
     <div className="space-y-2">
       <div>
-        <p className="mb-1.5 text-xs font-semibold text-stone-300">🧱 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭</p>
-        <div className="flex gap-2 overflow-x-auto pb-1">{cards(normal)}</div>
+        <p className="mb-1.5 text-xs font-semibold text-stone-300"><img src="/ui/crane.png" alt="" draggable={false} className="mr-1 inline-block h-4 w-4 align-text-bottom object-contain" /> 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭</p>
+        <div onPointerDown={onStripPointerDown} className="flex cursor-grab gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing">{cards(normal)}</div>
       </div>
       {unlocked && (
         <div>
           <p className="mb-1.5 text-xs font-semibold text-amber-300">
             🎨 장식 <span className="font-normal text-stone-400">— 「대건축가의 설계도」로 해금. 바닥·성벽을 자유롭게</span>
           </p>
-          <div className="flex gap-2 overflow-x-auto pb-1">{cards(deco)}</div>
+          <div onPointerDown={onStripPointerDown} className="flex cursor-grab gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing">{cards(deco)}</div>
         </div>
       )}
     </div>
@@ -674,8 +736,8 @@ function PlacementPanel({
                   key={s.id}
                   className="flex items-center justify-between gap-2 rounded bg-stone-800/60 px-2 py-1.5"
                 >
-                  <span className={`text-xs ${done ? "text-emerald-300" : "text-stone-200"}`}>
-                    {MATERIAL_NAME[s.id]} <span className="tabular-nums">{s.have}/{s.need}</span>
+                  <span className={`flex items-center gap-1 text-xs ${done ? "text-emerald-300" : "text-stone-200"}`}>
+                    <MaterialIcon id={s.id} className="h-4 w-4" />{MATERIAL_NAME[s.id]} <span className="tabular-nums">{s.have}/{s.need}</span>
                     <span className="ml-1.5 text-[10px] text-stone-500">보유 {have}</span>
                   </span>
                   {done ? (

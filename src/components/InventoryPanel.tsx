@@ -1,6 +1,7 @@
 "use client";
 // 창고. 지금까지 사 모은 자재를 티어별로 보여준다. 어디서든 헤더 버튼으로 열어 확인한다.
 import { MATERIALS } from "@/lib/game-data";
+import { MaterialIcon } from "@/components/MaterialIcon";
 
 const TIER_LABEL: Record<number, string> = { 1: "1티어 (기본)", 2: "2티어 (가공)", 3: "3티어 (희귀)" };
 
@@ -18,7 +19,9 @@ export function InventoryPanel({
     <div className="fixed inset-0 z-40 flex items-start justify-center bg-black/70 p-4 pt-16">
       <div className="w-full max-w-lg rounded-lg border border-stone-700 bg-stone-900 shadow-xl">
         <div className="flex items-center justify-between border-b border-stone-700 px-5 py-3">
-          <h2 className="font-bold text-amber-200">🎒 창고</h2>
+          <h2 className="flex items-center gap-1.5 font-bold text-amber-200">
+            <img src="/buildings/warehouse.png" alt="" draggable={false} className="h-6 w-6 object-contain" /> 창고
+          </h2>
           <button onClick={onClose} aria-label="창고 닫기" className="text-stone-400 hover:text-stone-200">
             ✕
           </button>
@@ -43,7 +46,9 @@ export function InventoryPanel({
                           key={m.id}
                           className="flex items-center justify-between rounded border border-stone-700/70 bg-stone-800/40 px-3 py-2"
                         >
-                          <span className="text-sm text-stone-200">{m.name}</span>
+                          <span className="flex items-center gap-1.5 text-sm text-stone-200">
+                            <MaterialIcon id={m.id} className="h-5 w-5" /> {m.name}
+                          </span>
                           <b className="tabular-nums text-amber-300">{inventory[m.id]}</b>
                         </li>
                       ))}
