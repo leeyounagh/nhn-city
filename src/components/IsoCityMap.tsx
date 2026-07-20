@@ -272,7 +272,15 @@ export function IsoCityMap({
               }
             }}
             className="absolute"
-            style={{ left, top, width: tileW, height: tileH, zIndex: 1000 + tx + ty }}
+            // clip-path를 버튼에 적용해 클릭 히트영역을 다이아몬드로 제한 (사각형 겹침으로 앞 타일이 클릭 가로채는 문제 해결).
+            style={{
+              left,
+              top,
+              width: tileW,
+              height: tileH,
+              zIndex: 1000 + tx + ty,
+              clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
+            }}
             aria-label={p ? `${BUILDINGS.find((b) => b.id === p.buildingId)?.name} 터` : `빈 터 ${tx},${ty}`}
           >
             <span
