@@ -38,16 +38,27 @@ export interface DailyEvent {
   townId: TownId;
   multiplier: number; // 그 마을 특산 물품에 곱하는 이벤트배수 (<1 = 폭락)
 }
-const EVENT_CHANCE = 0.45;
 const EVENT_CRASH = 0.5;
-const EVENT_DURATION = 4; // 대풍작은 4일 지속. 뉴스 듣고 마을간 거리(최대 3일) 이동해도 이벤트가 살아 있게.
+const EVENT_DURATION = 4; // 대풍작 지속일 (≥ 최대 이동거리 3 → 뉴스 듣고 이동해도 유효).
+const EVENT_START_CHANCE = 0.14; // 하루가 대풍작을 '시작'할 확률 → 약 45% 날이 이벤트 (1-(1-0.14)^4).
+
+// 특정 날에 대풍작이 시작되면 그 마을을 결정론으로 정한다. 시작 안 하면 null.
+function eventStartingOn(startDay: number): TownId | null {
+  const rng = mulberry32((Math.imul(startDay, 0x9e3779b1) ^ 0x632be5ab) >>> 0);
+  if (rng() >= EVENT_START_CHANCE) return null;
+  return TOWN_IDS[Math.floor(rng() * TOWN_IDS.length)];
+}
+
+// 슬라이딩 윈도우: 최근 DURATION일 안에 시작된 이벤트가 오늘 유효(지속 DURATION일).
+// 고정 4일 격자와 달리 아무 날에나 시작 → 경계 아티팩트 없음. 가장 최근 시작을 채택해
+// 남은 지속일을 최대화(뉴스 듣고 이동할 여지↑).
 export function dailyEvent(day: number): DailyEvent | null {
-  // 4일 윈도우 단위로 이벤트를 정한다. 같은 윈도우의 날들은 동일 이벤트(하루짜리라 이동 중 소멸하던 문제 해결).
-  const window = Math.floor((day - 1) / EVENT_DURATION);
-  const rng = mulberry32((Math.imul(window + 1, 0x9e3779b1) ^ 0x632be5ab) >>> 0);
-  if (rng() >= EVENT_CHANCE) return null;
-  const townId = TOWN_IDS[Math.floor(rng() * TOWN_IDS.length)];
-  return { townId, multiplier: EVENT_CRASH };
+  for (let s = day; s > day - EVENT_DURATION; s--) {
+    if (s < 1) break;
+    const townId = eventStartingOn(s);
+    if (townId) return { townId, multiplier: EVENT_CRASH };
+  }
+  return null;
 }
 
 // 이벤트배수: 오늘 대풍작 마을의 특산 물품을 그 마을에서 사면 폭락가, 아니면 1.0.
