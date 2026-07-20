@@ -69,3 +69,12 @@
 - 뉴스: news.ts(marketEvent+generateNews, LLM/폴백) + /api/news + NewsModal. 이동으로 날 바뀌면 하루 1회. types MarketEvent/DailyNews.
 - 검증: 뉴스↔시세 231건 0실패(이벤트 마을 특산 ×0.4, pct=50), 브라우저 평온/이벤트 모달 렌더 0에러. tsc/eslint 그린.
 - **P3 완료** (가격식·특산할인·품귀·이벤트/뉴스).
+
+---
+
+## feat(game): P4-1 생산 시스템
+
+- **시각(KST)**: 11:10 / **브랜치**: master
+- BuildingDef.produces 고정산출: 방앗간 천1·대장간 강철1(T1)/작업장 판자2(T2)/길드회관 대리석1(T3). 상위 티어 생산품은 prereq·책레벨 사슬로 자연 해금.
+- dailyProduction(완공 건물 produces 합) + travelTo에서 income과 동일 패턴으로 inventory += 생산×days. 팔레트·완공패널 🏭 라벨.
+- 검증: 팔레트 UI 실데이터 표시 + 로직 6케이스(합산·복수배치·정산×days·팬텀없음) 0실패. tsc/eslint 그린.

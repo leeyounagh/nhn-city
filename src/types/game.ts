@@ -47,6 +47,7 @@ export interface BuildingDef {
   xp: number;
   prereq: string[]; // 선행 건물 id
   minBook?: number; // 요구 마법의 책 레벨
+  produces?: Partial<Record<MaterialId, number>>; // 완성 시 매일 생산하는 자재(고정 산출). 상위 건물일수록 상위 티어.
 }
 
 export type BookLevel = 1 | 2 | 3;

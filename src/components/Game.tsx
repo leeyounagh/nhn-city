@@ -2,13 +2,14 @@
 // 게임 오케스트레이터. 클라이언트 상태를 소유하고 서버 라우트를 호출해 루프를 돈다.
 import { useCallback, useEffect, useState } from "react";
 import type { DailyNews, HaggleCategory, LocationId, MaterialId, PublicMerchant, Rumor, TownId } from "@/types/game";
-import { BUILDINGS, HAGGLE_TURNS, MAX_BOOK_LEVEL, TOWN_BY_ID, travelDays, locationName } from "@/lib/game-data";
+import { BUILDINGS, HAGGLE_TURNS, MATERIAL_NAME, MAX_BOOK_LEVEL, TOWN_BY_ID, travelDays, locationName } from "@/lib/game-data";
 import {
   type GameState,
   type HaggleState,
   initialState,
   bookLevelFromXp,
   dailyIncome,
+  dailyProduction,
   xpToNext,
   checkPlace,
   decayRecentBuys,
@@ -58,18 +59,32 @@ export function Game() {
       const newDay = state.day + days;
       // 이동으로 날이 흐르면 최근 구매 기억이 옅어진다(품귀 완화).
       const decayedBuys = decayRecentBuys(state.recentBuys, days);
+      // 완공 건물이 일수만큼 생산한 자재를 정리(알림용). 실제 인벤토리 반영은 아래 setState에서 최신 상태로.
+      const produced = dailyProduction(state.placements);
+      const prodEntries = Object.entries(produced) as [MaterialId, number][];
+      const prodMsg =
+        prodEntries.length > 0
+          ? ` 생산: ${prodEntries.map(([id, n]) => `${MATERIAL_NAME[id]} ${n * days}`).join(", ")}.`
+          : "";
       // 이동하면 이전 마을의 상인·소문·흥정은 모두 정리한다 (소문은 하루치 진실).
-      setState((s) => ({
-        ...s,
-        day: newDay,
-        gold: s.gold + gain,
-        location: dest,
-        townMerchants: [],
-        merchant: null,
-        haggle: null,
-        clues: [],
-        recentBuys: decayedBuys,
-      }));
+      setState((s) => {
+        const inventory = { ...s.inventory };
+        for (const [id, n] of Object.entries(dailyProduction(s.placements)) as [MaterialId, number][]) {
+          inventory[id] = (inventory[id] ?? 0) + n * days;
+        }
+        return {
+          ...s,
+          day: newDay,
+          gold: s.gold + gain,
+          inventory,
+          location: dest,
+          townMerchants: [],
+          merchant: null,
+          haggle: null,
+          clues: [],
+          recentBuys: decayedBuys,
+        };
+      });
       // 날이 바뀌면 아침 시황 뉴스를 하루 1회 띄운다 (목적지 무관, 논블로킹).
       if (newDay > lastNewsDay) {
         setLastNewsDay(newDay);
@@ -84,14 +99,14 @@ export function Game() {
       }
       if (dest === "home") {
         setNotice(
-          gain > 0
+          (gain > 0
             ? `고향으로 돌아왔다. ${days}일간 완성 건물이 ${gain}골드를 벌었다.`
-            : "폐허가 된 고향으로 돌아왔다.",
+            : "폐허가 된 고향으로 돌아왔다.") + prodMsg,
         );
         return;
       }
       setBusy(true);
-      setNotice(`${locationName(dest)}에 도착했다. (${days}일 이동)`);
+      setNotice(`${locationName(dest)}에 도착했다. (${days}일 이동)` + prodMsg);
       try {
         const res = await fetch("/api/town", {
           method: "POST",

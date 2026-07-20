@@ -300,3 +300,11 @@
 - **배선**: merchant.ts·/api/town·/api/haggle에 day 전달(표시·거래 동일 이벤트가). 클라 Game.tsx: `news`/`lastNewsDay` 상태, travelTo에서 newDay>lastNewsDay면 /api/news 논블로킹 페치→`NewsModal`(z-40, 목적지 무관). 뉴스는 "어디가 싸다"를 알려주는 전역 방송(도착 마을과 무관).
 - **검증**(dev 서버): 14일 중 이벤트 7/평온 7. **뉴스↔시세 대조 231건 0실패** — 이벤트 마을 특산 floorHint=round(floor×markup×0.8×0.5), 그 외/비이벤트 마을 정상, pct=50 일치. 브라우저: 평온일 모달("잔잔한 장세")·이벤트일 모달("무쇠고개 광업 대풍작 −50%, 석재·강철·청동·대리석·고철") 정상 렌더, 콘솔 0에러. tsc/eslint 그린. (헤드라인은 API키 없어 폴백 경로 확인 — 키 있으면 LLM.)
 - **P3 완료**: 가격식(마을×이벤트×품귀×하한클램프) + 특산 할인 + 품귀 + 대풍작/뉴스 전부. 다음 = P4(도시 건설 연결·생산·특수아이템) 또는 P5(배포·산출물).
+
+### P4 착수 + P4-1 생산 시스템 (2026-07-20)
+- **사용자 결정**: (a) 생산 모델 = **고정 산출**(투입→산출 공정 아님), (b) 판매처 = **아무 상인**(시장 건물 불필요), (c) 특수아이템 조건은 P4-3에서 확정(기본안: 흥정 호감도 임계 돌파).
+- **P4-1 생산**: `BuildingDef.produces?: Partial<Record<MaterialId,number>>` 추가. 고정 산출 배정 — 방앗간 cloth1·대장간 steel1(T1) / 작업장 planks2(T2) / 길드회관 marble1(T3). "상위 발전=상위 티어 생산품 해금"이 prereq·minBook 사슬로 자연 게이팅(marble=tier3는 T3 길드회관에서).
+- **정산**: `dailyProduction(placements)`(완공 건물 produces 합) 신설. Game.travelTo에서 income(gold)과 동일 패턴으로 `inventory[id] += dailyProduction(s.placements)[id] × days`. 도착 notice에 "생산: 강철 3, ..." 붙임(home·마을 공통). 생산은 목적지 무관·이동 일수만큼(건물은 자리 비워도 생산).
+- **UI 슬롯**: 팔레트 카드·완공 PlacementPanel에 🏭 생산 라벨(MATERIAL_NAME 재사용).
+- **검증**: 팔레트 UI가 실제 produces 데이터 표시(🌾방앗간 천·밧줄+1 / ⚒️대장간 강철+1 / 🔨작업장 판자+2 / 🏛️길드회관 대리석+1) — 렌더 소스=dailyProduction 소스라 실데이터 배선 확인. dailyProduction 합산·복수배치·정산×days·팬텀없음 로직 6케이스 0실패. income 정산과 동일 패턴(기검증). tsc/eslint 그린. ⚠️ 완전 e2e(생산자 건설→이동→재고)는 모든 생산건물이 선행 사슬(자재 ~30개 구매) 뒤라 자동화 비현실적 → 미실행, 수식 단위검증+실데이터 UI로 대체.
+- **다음**: P4-2 잉여 자재 판매(아무 상인, 구매의 역) → P4-3 고호감도 특수아이템.

@@ -136,6 +136,20 @@ export function dailyIncome(placements: Placement[]): number {
   }, 0);
 }
 
+// 완공 건물들이 하루에 생산하는 자재 합계 (고정 산출). 이동 시 일수만큼 인벤토리에 쌓인다.
+export function dailyProduction(placements: Placement[]): Partial<Record<MaterialId, number>> {
+  const out: Partial<Record<MaterialId, number>> = {};
+  for (const p of placements) {
+    if (!p.built) continue;
+    const b = BUILDINGS.find((x) => x.id === p.buildingId);
+    if (!b?.produces) continue;
+    for (const [id, n] of Object.entries(b.produces) as [MaterialId, number][]) {
+      out[id] = (out[id] ?? 0) + n;
+    }
+  }
+  return out;
+}
+
 // 완공된 건물 종류 집합 (선행 게이팅 판정용).
 export function builtTypes(placements: Placement[]): Set<string> {
   return new Set(placements.filter((p) => p.built).map((p) => p.buildingId));

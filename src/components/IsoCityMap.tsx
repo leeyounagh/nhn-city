@@ -464,6 +464,11 @@ function BuildingPalette({
               <span className="text-2xl leading-none">{BUILDING_ICON[b.id] ?? "🏠"}</span>
               <span className="text-xs font-semibold text-stone-100">{b.name}</span>
               {b.income > 0 && <span className="text-[10px] text-emerald-300">+{b.income}/day</span>}
+              {b.produces && (
+                <span className="text-[10px] text-sky-300">
+                  🏭 {(Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => `${MATERIAL_NAME[id]}+${n}`).join(" ")}
+                </span>
+              )}
               {!c.canPlace && (
                 <span className="text-[10px] text-rose-400">
                   {!c.prereqMet ? "선행 필요" : `책 Lv.${b.minBook}`}
@@ -507,7 +512,13 @@ function PlacementPanel({
       </div>
 
       {placement.built ? (
-        <p className="text-sm font-medium text-emerald-400">완성됨 — 매일 골드 수입을 낸다.</p>
+        <p className="text-sm font-medium text-emerald-400">
+          완성됨 — 매일 골드 수입
+          {b.produces
+            ? ` + ${(Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => `${MATERIAL_NAME[id]} ${n}`).join(", ")} 생산`
+            : ""}
+          을(를) 낸다.
+        </p>
       ) : (
         <>
           <ul className="flex flex-col gap-1.5">
