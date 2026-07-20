@@ -12,8 +12,9 @@ export async function generatePublicMerchant(
   wants: MaterialId[] = [],
   townId?: TownId, // 상인이 있는 마을 → 특산 할인(마을배수) 반영
   recentBuys?: Partial<Record<MaterialId, number>>, // 플레이어 최근 구매량 → 품귀배수 반영
+  day?: number, // 오늘 → 대풍작 이벤트배수 반영
 ): Promise<PublicMerchant> {
-  const derived = deriveMerchant(seed, townId, recentBuys);
+  const derived = deriveMerchant(seed, townId, recentBuys, day);
   const llm = extractJson<Partial<Persona>>(
     await askText(personaSystem(), personaUser(derived.spec)),
   );

@@ -9,7 +9,9 @@ import type {
   Tier,
   TownId,
 } from "@/types/game";
-import { MATERIAL_NAME, TOWN_BY_ID } from "@/lib/game-data";
+import { MATERIAL_NAME, TOWN_BY_ID, TOWNS } from "@/lib/game-data";
+
+const TOWN_IDS: TownId[] = TOWNS.map((t) => t.id);
 
 // 특산 물품을 그 업종 마을에서 사면 싸다 (마을배수). P3 가격식: base × markup × townMult.
 const SPECIAL_TOWN_DISCOUNT = 0.8;
@@ -29,6 +31,34 @@ export function scarcityMultiplier(
 ): number {
   const c = recentBuys?.[id] ?? 0;
   return 1 + Math.min(SCARCITY_CAP, c * SCARCITY_PER_UNIT);
+}
+
+// 하루치 시장 이벤트(대풍작). 결정론(day). 약 45% 날에 한 마을 특산품이 폭락한다.
+export interface DailyEvent {
+  townId: TownId;
+  multiplier: number; // 그 마을 특산 물품에 곱하는 이벤트배수 (<1 = 폭락)
+}
+const EVENT_CHANCE = 0.45;
+const EVENT_CRASH = 0.5;
+export function dailyEvent(day: number): DailyEvent | null {
+  const rng = mulberry32((Math.imul(day, 0x9e3779b1) ^ 0x632be5ab) >>> 0);
+  if (rng() >= EVENT_CHANCE) return null;
+  const townId = TOWN_IDS[Math.floor(rng() * TOWN_IDS.length)];
+  return { townId, multiplier: EVENT_CRASH };
+}
+
+// 이벤트배수: 오늘 대풍작 마을의 특산 물품을 그 마을에서 사면 폭락가, 아니면 1.0.
+export function eventMultiplier(
+  day: number | undefined,
+  townId: TownId | undefined,
+  id: MaterialId,
+): number {
+  if (day === undefined || !townId) return 1;
+  const ev = dailyEvent(day);
+  if (ev && ev.townId === townId && TOWN_BY_ID[townId].specialMaterials.includes(id)) {
+    return ev.multiplier;
+  }
+  return 1;
 }
 
 // 자재별 기준가/하한가 (단가). 하한가 ≈ 기준가의 60%.
@@ -208,6 +238,7 @@ export function deriveMerchant(
   seed: number,
   townId?: TownId,
   recentBuys?: Partial<Record<MaterialId, number>>,
+  day?: number,
 ): DerivedMerchant {
   const rng = mulberry32(seed);
   const spec = pick(rng, SPECIALIZATIONS);
@@ -215,7 +246,9 @@ export function deriveMerchant(
   const materials: DerivedMaterial[] = spec.materials.map((id) => {
     const p = PRICES[id];
     const variance = rng() * 0.2; // 0~0.2
-    const mult = townMultiplier(townId, id) * scarcityMultiplier(recentBuys, id); // 마을배수 × 품귀배수
+    // 가격식: 마을배수 × 이벤트배수 × 품귀배수
+    const mult =
+      townMultiplier(townId, id) * eventMultiplier(day, townId, id) * scarcityMultiplier(recentBuys, id);
     const offer0 = Math.round(p.base * spec.markup * mult * (1 + variance));
     const floor = Math.min(offer0, Math.round(p.floor * spec.markup * mult)); // 하한 클램프
     return { id, tier: p.tier, offer0, floor, stock: stockFor(p.tier, rng) };

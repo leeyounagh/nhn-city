@@ -292,3 +292,11 @@
 - **배선**: economy `scarcityMultiplier(recentBuys,id)` + `deriveMerchant(seed, townId?, recentBuys?)`. merchant.ts·/api/town·/api/haggle에 recentBuys 전달(zod `z.record(z.string(),z.number()).optional()`). 클라 Game.tsx: travelTo에서 decay 후 /api/town에 전송·상태반영, buy에서 증가, sendUtterance(/api/haggle)에 state.recentBuys 전송. useCallback deps에 state.recentBuys 추가.
 - **표시=거래 일관**: 둘 다 같은 recentBuys를 같은 deriveMerchant에 전달. ⚠️ 마을 안에서 산 직후엔 표시 offer는 다음 town fetch 전까지 안 바뀜(haggle은 live 반영). 데모 허용, 품귀는 주로 방문·날짜 간 기제.
 - **검증**(dev 서버, 결정론): 표시 101건 floorHint = round(floor×markup×townMult×scarcityMult) 0실패 + 품귀 offer ≥ 기본 offer 단조 0위반. 거래 8건 흥정가 count0<4<10 단조증가(예 nw wood 7→9→12) — count↓=이동감쇠와 동종이라 감쇠 방향도 함께 확인. 클라 이동(decay 경로) 콘솔 0에러. tsc/eslint 그린. (dev.err.log의 unhandledRejection은 이전 playwright eval 잔재 — 파일잠금으로 못 비웠을 뿐, 신규 재현 0)
+
+### P3-3 아침 뉴스 + 대풍작 이벤트 (2026-07-20) — P3 완료
+- **설계**: `dailyEvent(day)` 결정론(약 45% 날에 한 마을 대풍작 → 그 마을 특산품 ×0.5 폭락). 가격식 최종 = base × markup × townMult × **eventMult** × scarcityMult. 특산 할인(0.8)과 겹쳐 이벤트 마을 특산 = ×0.4 = 차익 기회.
+- **economy**: `DailyEvent`, `dailyEvent(day)`(mulberry32(day별 시드), EVENT_CHANCE 0.45, EVENT_CRASH 0.5), `eventMultiplier(day, townId, id)`(이벤트 마을 && 그 마을 특산일 때만 0.5). `deriveMerchant(seed, townId?, recentBuys?, day?)` 4번째 인자 day 추가.
+- **뉴스 파이프라인**: `news.ts`(`marketEvent(day)`=공개 서술{townName·industryName·materialNames·pct}, `generateNews(day)`=이벤트+LLM헤드라인/폴백). prompt `newsSystem/newsUser/fallbackHeadline`. `/api/news`(POST day). 타입 `MarketEvent`·`DailyNews`(types/game).
+- **배선**: merchant.ts·/api/town·/api/haggle에 day 전달(표시·거래 동일 이벤트가). 클라 Game.tsx: `news`/`lastNewsDay` 상태, travelTo에서 newDay>lastNewsDay면 /api/news 논블로킹 페치→`NewsModal`(z-40, 목적지 무관). 뉴스는 "어디가 싸다"를 알려주는 전역 방송(도착 마을과 무관).
+- **검증**(dev 서버): 14일 중 이벤트 7/평온 7. **뉴스↔시세 대조 231건 0실패** — 이벤트 마을 특산 floorHint=round(floor×markup×0.8×0.5), 그 외/비이벤트 마을 정상, pct=50 일치. 브라우저: 평온일 모달("잔잔한 장세")·이벤트일 모달("무쇠고개 광업 대풍작 −50%, 석재·강철·청동·대리석·고철") 정상 렌더, 콘솔 0에러. tsc/eslint 그린. (헤드라인은 API키 없어 폴백 경로 확인 — 키 있으면 LLM.)
+- **P3 완료**: 가격식(마을×이벤트×품귀×하한클램프) + 특산 할인 + 품귀 + 대풍작/뉴스 전부. 다음 = P4(도시 건설 연결·생산·특수아이템) 또는 P5(배포·산출물).

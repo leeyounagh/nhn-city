@@ -59,3 +59,13 @@
 - 최근 많이 산 자재일수록 시세↑, 이동으로 완화. `scarcityMult=1+min(0.8,count×0.05)`, 가격식 base×markup×townMult×scarcityMult(offer0·floor 양쪽).
 - `GameState.recentBuys`(구매 시 증가, 이동 시 `decayRecentBuys` −3/day). economy `scarcityMultiplier`+`deriveMerchant(...,recentBuys?)`, /api/town·/api/haggle에 전송.
 - 검증: 표시 101건 0실패 + 거래 흥정가 count0<4<10 단조 8건 + 클라 이동 0에러. tsc/eslint 그린.
+
+---
+
+## feat(game): P3-3 아침 뉴스 + 대풍작 이벤트 (P3 완료)
+
+- **시각(KST)**: 10:30 / **브랜치**: master
+- `dailyEvent(day)` 결정론(~45% 날 한 마을 대풍작 → 특산품 ×0.5, 할인과 겹쳐 ×0.4). 가격식 최종 = base×markup×townMult×eventMult×scarcityMult. deriveMerchant에 day 인자 추가.
+- 뉴스: news.ts(marketEvent+generateNews, LLM/폴백) + /api/news + NewsModal. 이동으로 날 바뀌면 하루 1회. types MarketEvent/DailyNews.
+- 검증: 뉴스↔시세 231건 0실패(이벤트 마을 특산 ×0.4, pct=50), 브라우저 평온/이벤트 모달 렌더 0에러. tsc/eslint 그린.
+- **P3 완료** (가격식·특산할인·품귀·이벤트/뉴스).

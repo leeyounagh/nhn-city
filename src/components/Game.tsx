@@ -1,7 +1,7 @@
 "use client";
 // 게임 오케스트레이터. 클라이언트 상태를 소유하고 서버 라우트를 호출해 루프를 돈다.
 import { useCallback, useEffect, useState } from "react";
-import type { HaggleCategory, LocationId, MaterialId, PublicMerchant, Rumor, TownId } from "@/types/game";
+import type { DailyNews, HaggleCategory, LocationId, MaterialId, PublicMerchant, Rumor, TownId } from "@/types/game";
 import { BUILDINGS, HAGGLE_TURNS, MAX_BOOK_LEVEL, TOWN_BY_ID, travelDays, locationName } from "@/lib/game-data";
 import {
   type GameState,
@@ -32,6 +32,8 @@ export function Game() {
   const [showInventory, setShowInventory] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+  const [news, setNews] = useState<DailyNews | null>(null); // 오늘 아침 시황 (모달)
+  const [lastNewsDay, setLastNewsDay] = useState(1); // 뉴스를 마지막으로 띄운 날 (하루 1회)
 
   // 세션에 한 번만 자동 재생 (새로고침 반복 방지). sessionStorage는 SSR에 없어 마운트 후 읽는다.
   useEffect(() => {
@@ -68,6 +70,18 @@ export function Game() {
         clues: [],
         recentBuys: decayedBuys,
       }));
+      // 날이 바뀌면 아침 시황 뉴스를 하루 1회 띄운다 (목적지 무관, 논블로킹).
+      if (newDay > lastNewsDay) {
+        setLastNewsDay(newDay);
+        fetch("/api/news", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ day: newDay }),
+        })
+          .then((r) => r.json())
+          .then((n: DailyNews) => setNews(n))
+          .catch(() => {});
+      }
       if (dest === "home") {
         setNotice(
           gain > 0
@@ -92,7 +106,7 @@ export function Game() {
         setBusy(false);
       }
     },
-    [state.location, state.day, state.placements, state.recentBuys, busy, bookLevel],
+    [state.location, state.day, state.placements, state.recentBuys, lastNewsDay, busy, bookLevel],
   );
 
   const startHaggle = useCallback((merchant: PublicMerchant, materialId: MaterialId) => {
@@ -410,6 +424,45 @@ export function Game() {
       )}
 
       {showIntro && <IntroCutscene onFinish={finishIntro} />}
+
+      {news && <NewsModal news={news} onClose={() => setNews(null)} />}
+    </div>
+  );
+}
+
+// 아침 시황 뉴스 모달. 이동으로 날이 바뀌면 하루 1회 뜬다. 이벤트가 있으면 폭락 마을·물품을 보여준다.
+function NewsModal({ news, onClose }: { news: DailyNews; onClose: () => void }) {
+  const ev = news.event;
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-24 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md rounded-lg border border-amber-700/60 bg-stone-900 p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          aria-label="뉴스 닫기"
+          className="absolute right-3 top-3 text-stone-400 hover:text-stone-200"
+        >
+          ✕
+        </button>
+        <p className="mb-2 text-xs font-semibold tracking-wide text-amber-400">📰 아침 시황</p>
+        <p className="mb-3 text-base font-bold leading-snug text-stone-100">{news.headline}</p>
+        {ev ? (
+          <div className="rounded border border-emerald-800/50 bg-emerald-950/30 px-3 py-2 text-sm">
+            <p className="text-emerald-300">
+              <b>{ev.townName}</b> {ev.industryName} 대풍작 — 특산품{" "}
+              <span className="font-semibold text-amber-300">−{ev.pct}%</span>
+            </p>
+            <p className="mt-1 text-xs text-stone-400">{ev.materialNames.join(" · ")} 지금이 살 때.</p>
+          </div>
+        ) : (
+          <p className="text-sm text-stone-400">특별한 사건은 없다. 장세가 잔잔하다.</p>
+        )}
+      </div>
     </div>
   );
 }

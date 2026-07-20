@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   const [merchants, rumors] = await Promise.all([
     Promise.all(
-      here.map((wm) => generatePublicMerchant(wm.seed, bookLevel, wm.wants, town, recentBuys)),
+      here.map((wm) => generatePublicMerchant(wm.seed, bookLevel, wm.wants, town, recentBuys, day)),
     ) as Promise<PublicMerchant[]>,
     generateRumors(day, town, bookLevel),
   ]);

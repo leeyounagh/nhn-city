@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
   // 상인이 오늘 있는 마을 → 특산 할인(마을배수) + 품귀배수를 표시(/api/town)와 동일하게 거래가에도 반영.
   const wm = day !== undefined ? deriveWorld(day).merchants.find((m) => m.seed === seed) : undefined;
-  const derived = deriveMerchant(seed, wm?.townId, recentBuys);
+  const derived = deriveMerchant(seed, wm?.townId, recentBuys, day);
   const mat = derived.materials.find((m) => m.id === materialId);
   if (!mat) {
     return NextResponse.json({ error: "취급하지 않는 자재" }, { status: 400 });

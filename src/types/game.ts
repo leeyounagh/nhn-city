@@ -103,6 +103,20 @@ export interface PublicMerchant {
   wants: { id: MaterialId; name: string }[]; // 오늘 이 상인이 원하는 물품 (물물교환 지불 후보)
 }
 
+// 아침 뉴스로 공개되는 시장 이벤트(대풍작 등). 가격 공식 원본은 서버에만, 이 서술만 공개.
+export interface MarketEvent {
+  townId: TownId;
+  townName: string;
+  industryName: string;
+  materialNames: string[]; // 값이 떨어진 특산 물품 이름들
+  pct: number; // 하락률 % (예: 50 = 반값)
+}
+
+export interface DailyNews {
+  headline: string; // LLM(또는 폴백) 헤드라인 한 문장
+  event: MarketEvent | null; // 이벤트 없으면 평온한 장세
+}
+
 export type HaggleStatus = "ongoing" | "timeup" | "broke" | "closed";
 
 export interface HaggleResult {
