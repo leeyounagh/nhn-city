@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { HaggleCategory, PublicMerchant } from "@/types/game";
 import type { HaggleState } from "@/lib/game-state";
+import { GameIcon } from "@/components/GameIcon";
 
 const CATEGORY_LABEL: Record<HaggleCategory, string> = {
   flattery: "아부",
@@ -75,6 +76,31 @@ function dispColor(d: number): { text: string; bar: string } {
   if (d >= 34) return { text: "text-amber-300", bar: "bg-amber-500" };
   return { text: "text-rose-300", bar: "bg-rose-500" };
 }
+// 마법의 책 분석 카드의 한 줄. 값이 있으면 공개, 없으면 ?(잠금 안내).
+function AnalysisRow({ label, value, lock }: { label: string; value?: string; lock?: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">{label}</p>
+      {value ? (
+        <p className="text-xs leading-snug text-stone-300">{value}</p>
+      ) : (
+        <p className="flex items-center gap-1 text-xs text-stone-600">
+          <span className="font-bold text-amber-500/60">?</span> {lock}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// 호감도 → 기분 한마디 (이모지 대신 텍스트로).
+function dispMood(d: number): string {
+  if (d >= 80) return "깊은 신뢰";
+  if (d >= 67) return "우호적";
+  if (d >= 45) return "누그러짐";
+  if (d >= 34) return "데면데면";
+  if (d >= 15) return "떨떠름";
+  return "적대적";
+}
 
 export function HaggleDialog({
   merchant,
@@ -123,8 +149,8 @@ export function HaggleDialog({
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4">
       <div className="flex h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-lg border border-stone-700 bg-stone-900 sm:h-[80vh] sm:max-w-3xl sm:flex-row sm:rounded-lg">
-        {/* 왼쪽 대형 초상화 (데스크톱 전용) */}
-        <aside className="hidden shrink-0 flex-col items-center gap-3 border-r border-stone-700 bg-stone-950/40 p-4 sm:flex sm:w-56">
+        {/* 왼쪽 — 초상화 + 마법의 책 분석 카드 (데스크톱 전용) */}
+        <aside className="hidden shrink-0 flex-col gap-3 overflow-y-auto border-r border-stone-700 bg-stone-950/40 p-4 sm:flex sm:w-60">
           <Portrait
             portrait={merchant.portrait}
             file={merchant.portraitFile}
@@ -138,12 +164,16 @@ export function HaggleDialog({
               {isBarter ? `${haggle.materialName} 물물교환` : `${haggle.materialName} 흥정`}
             </p>
           </div>
-          {/* 랜덤 부여된 성격 힌트 (페르소나 톤) */}
-          <div className="w-full">
-            <p className="mb-1 text-center text-[10px] font-semibold uppercase tracking-wide text-stone-500">성격</p>
-            <p className="rounded bg-stone-800/60 px-2.5 py-2 text-center text-xs italic leading-relaxed text-stone-300">
-              “{merchant.personalityTone}”
+          {/* 마법의 책 분석 — 흥정이 곧 정보 수집. 책 레벨로 단서가 하나씩 열린다. */}
+          <div className="rounded-lg border border-sky-800/50 bg-sky-950/25 p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-sky-300">
+              <GameIcon name="spellBook" className="h-4 w-4" /> 마법의 책 분석
             </p>
+            <div className="space-y-2">
+              <AnalysisRow label="성격" value={merchant.personalityTone} />
+              <AnalysisRow label="성향" value={merchant.profileHint} lock="책 Lv.2에서 열림" />
+              <AnalysisRow label="약점" value={merchant.weaknessHint} lock="책 Lv.3에서 열림" />
+            </div>
           </div>
         </aside>
 
@@ -169,25 +199,35 @@ export function HaggleDialog({
         <div className="grid grid-cols-3 gap-2 border-b border-stone-800 px-4 py-3 text-center text-xs">
           <div>
             <p className="text-stone-400">{isBarter ? "교환비 (1개당)" : "현재가"}</p>
-            <p className="text-base font-bold text-amber-300">
+            <p className="text-lg font-bold tabular-nums text-amber-300">
               {isBarter
                 ? priceReady
                   ? `${haggle.payMaterialName} ${haggle.currentPrice}개`
                   : "흥정 전"
-                : `${haggle.currentPrice}골드`}
+                : `${haggle.currentPrice}G`}
             </p>
+            {/* 기준가 대비 얼마나 깎았는지 = 흥정 게임의 핵심 피드백 */}
+            {!isBarter && (
+              <p className="text-[10px] text-stone-500">
+                기준 {haggle.offer}G
+                {haggle.offer - haggle.currentPrice > 0 && (
+                  <span className="ml-1 font-semibold text-emerald-400">▼{haggle.offer - haggle.currentPrice}</span>
+                )}
+              </p>
+            )}
           </div>
           <div>
             <p className="text-stone-400">호감도</p>
             {haggle.disposition === undefined ? (
               <>
-                <p className="text-base font-bold text-stone-500">—</p>
+                <p className="text-lg font-bold text-stone-500">—</p>
                 <div className="mx-auto mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-stone-700" />
               </>
             ) : (
               <>
-                <p className={`text-base font-bold tabular-nums ${dispColor(haggle.disposition).text}`}>
+                <p className={`text-lg font-bold tabular-nums ${dispColor(haggle.disposition).text}`}>
                   {haggle.disposition}
+                  <span className="ml-1 text-[10px] font-medium">{dispMood(haggle.disposition)}</span>
                 </p>
                 <div className="mx-auto mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-stone-700">
                   <div
@@ -200,7 +240,7 @@ export function HaggleDialog({
           </div>
           <div>
             <p className="text-stone-400">남은 턴</p>
-            <p className="text-base font-bold text-stone-100">{haggle.turnsLeft}</p>
+            <p className="text-lg font-bold tabular-nums text-stone-100">{haggle.turnsLeft}</p>
           </div>
         </div>
 
@@ -239,7 +279,7 @@ export function HaggleDialog({
           ))}
           {haggle.log.length <= 1 && ongoing && !haggle.pending && (
             <div className="mt-6 flex flex-col items-center gap-1 text-center">
-              <span className="text-2xl opacity-40">💬</span>
+              <GameIcon name="trade" className="h-7 w-7 text-stone-600" />
               <p className="text-xs text-stone-500">아부·논리·대량구매·딱한사정… 무슨 말이든 건네 흥정을 시작하라.</p>
               <p className="text-[11px] text-stone-600">약점을 파고들면 호감도가 오르고 값이 내려간다.</p>
             </div>
@@ -253,48 +293,48 @@ export function HaggleDialog({
           )}
         </div>
 
-        {/* 입력 */}
+        {/* 입력 — 한 컴포넌트처럼 통합 */}
         {ongoing && (
-          <div className="flex gap-2 border-t border-stone-800 px-4 py-3">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submit()}
-              disabled={haggle.pending}
-              placeholder="상인을 어떻게 구워삶을까…"
-              className="flex-1 rounded border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-100 placeholder:text-stone-500 focus:border-amber-600 focus:outline-none"
-            />
-            <button
-              onClick={submit}
-              disabled={haggle.pending || !text.trim()}
-              className="rounded bg-stone-700 px-4 py-2 text-sm font-semibold text-stone-100 transition enabled:hover:bg-stone-600 disabled:opacity-40"
-            >
-              제안
-            </button>
+          <div className="border-t border-stone-800 px-4 py-3">
+            <div className="flex items-center gap-1 rounded-lg border border-stone-700 bg-stone-800/60 p-1 transition focus-within:border-amber-600">
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submit()}
+                disabled={haggle.pending}
+                placeholder="상인을 어떻게 설득할까…"
+                className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none"
+              />
+              <button
+                onClick={submit}
+                disabled={haggle.pending || !text.trim()}
+                className="h-9 shrink-0 rounded-md bg-amber-600 px-4 text-sm font-semibold text-stone-950 transition enabled:hover:bg-amber-500 disabled:opacity-40"
+              >
+                제안
+              </button>
+            </div>
           </div>
         )}
 
-        {/* 구매 */}
-        <div className="flex items-center gap-2 border-t border-stone-800 px-4 py-3">
+        {/* 구매 — 수량 스테퍼 + 총액 + 우측 구매 (RPG 상점 느낌) */}
+        <div className="flex items-center gap-3 border-t border-stone-800 px-4 py-3">
           {canBuy ? (
             <>
-              <label className="text-xs text-stone-400">수량</label>
-              <input
-                type="number"
-                min={1}
-                max={maxQty}
-                value={qty}
-                onChange={(e) => setQty(Math.max(1, Math.min(maxQty, Number(e.target.value) || 1)))}
-                className="w-16 rounded border border-stone-700 bg-stone-800 px-2 py-1.5 text-sm text-stone-100"
-              />
-              <span className="text-xs text-stone-500">
-                {isBarter
-                  ? `총 ${haggle.payMaterialName} ${haggle.currentPrice * qty}개 (보유 ${payHave})`
-                  : `총 ${haggle.currentPrice * qty}골드`}
-              </span>
+              <div className="flex items-center rounded-lg border border-stone-700 bg-stone-800/60">
+                <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="grid h-8 w-8 place-items-center text-lg text-stone-300 transition hover:text-amber-300">−</button>
+                <span className="w-9 text-center text-sm font-semibold tabular-nums text-stone-100">{qty}</span>
+                <button onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="grid h-8 w-8 place-items-center text-lg text-stone-300 transition hover:text-amber-300">+</button>
+              </div>
+              <div className="text-xs text-stone-400">
+                총액{" "}
+                <span className="font-semibold tabular-nums text-amber-300">
+                  {isBarter ? `${haggle.payMaterialName} ${haggle.currentPrice * qty}개` : `${haggle.currentPrice * qty}G`}
+                </span>
+                {isBarter && <span className="text-stone-500"> · 보유 {payHave}</span>}
+              </div>
               <button
                 onClick={() => onBuy(qty)}
-                className="ml-auto rounded bg-amber-600 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-500"
+                className="ml-auto h-10 rounded-lg bg-amber-600 px-5 text-sm font-semibold text-stone-950 shadow-md shadow-amber-950/40 transition hover:bg-amber-500 active:bg-amber-700"
               >
                 {isBarter ? "교환하기" : "수락하고 구매"}
               </button>
@@ -304,7 +344,7 @@ export function HaggleDialog({
           ) : (
             <button
               onClick={onClose}
-              className="ml-auto rounded bg-stone-700 px-4 py-2 text-sm font-semibold text-stone-100 transition hover:bg-stone-600"
+              className="ml-auto h-10 rounded-lg border border-stone-600 px-5 text-sm font-semibold text-stone-200 transition hover:bg-stone-700"
             >
               물러나기
             </button>
