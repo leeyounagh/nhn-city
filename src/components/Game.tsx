@@ -429,59 +429,7 @@ export function Game() {
   const invCount = Object.values(state.inventory).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-stone-950 to-stone-900 text-stone-200">
-      <header className="sticky top-0 z-10 border-b border-stone-700/60 bg-stone-950/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <h1 className="text-lg font-bold tracking-wide text-amber-200">Ashen Kingdom</h1>
-          <Stat label="골드" value={`${state.gold}`} accent="text-amber-300" />
-          <Stat label="일차" value={`${state.day}일`} />
-          <Stat label="수입/day" value={`+${income}`} accent="text-emerald-300" />
-          <div className="flex items-center gap-2">
-            <Stat label="마법의 책" value={`Lv.${bookLevel}${bookLevel >= MAX_BOOK_LEVEL ? " (최대)" : ""}`} accent="text-sky-300" icon="/ui/magicbook.png" />
-            {next && (
-              <span className="text-xs text-stone-400">다음 Lv까지 경험치 {next.need}</span>
-            )}
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => setShowWorldMap(true)}
-              className="rounded border border-amber-700/60 bg-amber-950/30 px-3 py-1.5 text-sm text-amber-200 transition hover:bg-amber-900/40"
-            >
-              <img src="/ui/travel.png" alt="" draggable={false} className="mr-1 inline-block h-5 w-5 align-text-bottom object-contain" /> 이동
-            </button>
-            {state.location === "home" && (
-              <button
-                onClick={passDay}
-                disabled={busy}
-                className="rounded border border-indigo-700/60 bg-indigo-950/30 px-3 py-1.5 text-sm text-indigo-200 transition hover:bg-indigo-900/40 disabled:opacity-50"
-              >
-                <img src="/ui/passday.png" alt="" draggable={false} className="mr-1 inline-block h-5 w-5 align-text-bottom object-contain" /> 하루 넘기기
-              </button>
-            )}
-            {state.location !== "home" && (
-              <button
-                onClick={() => setShowInventory(true)}
-                className="rounded border border-stone-600 px-3 py-1.5 text-sm text-stone-300 transition hover:bg-stone-800"
-              >
-                <img src="/buildings/warehouse.png" alt="" draggable={false} className="mr-1 inline-block h-4 w-4 align-text-bottom object-contain" /> 창고{invCount > 0 ? ` (${invCount})` : ""}
-              </button>
-            )}
-            <button
-              onClick={() => setShowNotebook(true)}
-              className="rounded border border-stone-600 px-3 py-1.5 text-sm text-stone-300 transition hover:bg-stone-800"
-            >
-              <img src="/ui/magicbook.png" alt="" draggable={false} className="mr-1 inline-block h-4 w-4 align-text-bottom object-contain" /> 단서 노트{state.clues.length > 0 ? ` (${state.clues.length})` : ""}
-            </button>
-            <button
-              onClick={() => setShowTutorial((v) => !v)}
-              className="rounded border border-stone-600 px-3 py-1.5 text-sm text-stone-300 transition hover:bg-stone-800"
-            >
-              도움말
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen w-full bg-gradient-to-b from-stone-950 to-stone-900 pb-24 text-stone-200">
       {showTutorial && (
         <Tutorial onClose={() => setShowTutorial(false)} onReplayStory={() => setShowIntro(true)} />
       )}
@@ -554,6 +502,66 @@ export function Game() {
       {showIntro && <IntroCutscene onFinish={finishIntro} />}
 
       {news && <NewsModal news={news} onClose={() => setNews(null)} />}
+
+      <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-amber-900/40 bg-gradient-to-t from-stone-950 via-stone-950/95 to-stone-900/90 shadow-[0_-6px_20px_rgba(0,0,0,0.55)] backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
+          <span className="font-display hidden pr-1 text-lg font-bold tracking-wider text-amber-200 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)] sm:inline">
+            Ashen Kingdom
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <ResChip label="골드" value={`${state.gold}`} accent="text-amber-300" />
+            <ResChip label="일차" value={`${state.day}일`} />
+            <ResChip label="수입" value={`+${income}`} accent="text-emerald-300" />
+            <div className="flex items-center gap-1.5 rounded-md border border-sky-900/50 bg-sky-950/30 px-2.5 py-1 shadow-sm">
+              <img src="/ui/magicbook.png" alt="" draggable={false} className="h-5 w-5 object-contain" />
+              <span className="text-[10px] font-medium uppercase tracking-wide text-sky-500/80">마법의 책</span>
+              <span className="text-sm font-bold text-sky-300">Lv.{bookLevel}</span>
+              {bookLevel >= MAX_BOOK_LEVEL ? (
+                <span className="text-[10px] font-semibold text-amber-300">최대</span>
+              ) : (
+                next && <span className="text-[10px] text-stone-500">· 다음 {next.need}</span>
+              )}
+            </div>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setShowWorldMap(true)}
+              className="flex items-center gap-1.5 rounded-md border border-amber-400/40 bg-amber-600/90 px-3.5 py-1.5 text-sm font-semibold text-stone-950 shadow-sm transition hover:bg-amber-500"
+            >
+              <img src="/ui/travel.png" alt="" draggable={false} className="h-5 w-5 object-contain" /> 이동
+            </button>
+            {state.location === "home" && (
+              <button
+                onClick={passDay}
+                disabled={busy}
+                className="flex items-center gap-1.5 rounded-md border border-indigo-400/40 bg-indigo-600/80 px-3 py-1.5 text-sm font-medium text-indigo-50 shadow-sm transition hover:bg-indigo-500 disabled:opacity-50"
+              >
+                <img src="/ui/passday.png" alt="" draggable={false} className="h-5 w-5 object-contain" /> 하루 넘기기
+              </button>
+            )}
+            {state.location !== "home" && (
+              <button
+                onClick={() => setShowInventory(true)}
+                className="flex items-center gap-1.5 rounded-md border border-stone-700 bg-stone-900/50 px-3 py-1.5 text-sm text-stone-300 shadow-sm transition hover:border-stone-500 hover:bg-stone-800"
+              >
+                <img src="/buildings/warehouse.png" alt="" draggable={false} className="h-4 w-4 object-contain" /> 창고{invCount > 0 ? ` (${invCount})` : ""}
+              </button>
+            )}
+            <button
+              onClick={() => setShowNotebook(true)}
+              className="flex items-center gap-1.5 rounded-md border border-stone-700 bg-stone-900/50 px-3 py-1.5 text-sm text-stone-300 shadow-sm transition hover:border-stone-500 hover:bg-stone-800"
+            >
+              <img src="/ui/magicbook.png" alt="" draggable={false} className="h-4 w-4 object-contain" /> 단서 노트{state.clues.length > 0 ? ` (${state.clues.length})` : ""}
+            </button>
+            <button
+              onClick={() => setShowTutorial((v) => !v)}
+              className="flex items-center gap-1.5 rounded-md border border-stone-700 bg-stone-900/50 px-3 py-1.5 text-sm text-stone-300 shadow-sm transition hover:border-stone-500 hover:bg-stone-800"
+            >
+              도움말
+            </button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -646,7 +654,7 @@ function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onReplaySto
         >
           ✕
         </button>
-        <p className="mb-2 font-semibold text-sky-300">📖 Ashen Kingdom — 어떻게 하나?</p>
+        <p className="font-display mb-2 text-base font-semibold text-sky-300">📖 Ashen Kingdom — 어떻게 하나?</p>
         <p className="mb-2 text-stone-400">
           목표 = 소문을 읽어 상인과 거래하고, 폐허 위에 도시를 다시 세운다.
         </p>
@@ -668,12 +676,12 @@ function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onReplaySto
   );
 }
 
-function Stat({ label, value, accent, icon }: { label: string; value: string; accent?: string; icon?: string }) {
+// 하단 푸터의 리소스 배지 (골드·일차·수입). 라벨은 작게, 값은 굵게 강조색으로.
+function ResChip({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="flex items-center gap-1.5">
-      {icon && <img src={icon} alt="" draggable={false} className="h-6 w-6 object-contain" />}
-      <span className="text-xs text-stone-400">{label}</span>
-      <span className={`text-sm font-semibold ${accent ?? "text-stone-100"}`}>{value}</span>
+    <div className="flex items-center gap-1.5 rounded-md border border-stone-700/60 bg-stone-900/60 px-2.5 py-1 shadow-sm">
+      <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">{label}</span>
+      <span className={`text-sm font-bold tabular-nums ${accent ?? "text-stone-100"}`}>{value}</span>
     </div>
   );
 }

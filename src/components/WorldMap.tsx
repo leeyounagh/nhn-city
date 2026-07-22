@@ -28,10 +28,29 @@ export function WorldMap({
   return (
     <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-stone-300">🗺️ 월드맵</h2>
+        <h2 className="font-display text-base font-semibold text-stone-200">🗺️ 월드맵</h2>
         <span className="text-xs text-stone-500">노드를 눌러 이동 (이동일수만큼 하루가 흐른다)</span>
       </div>
-      <div className="grid grid-cols-3 grid-rows-3 gap-2 sm:gap-3">
+      <div className="relative grid grid-cols-3 grid-rows-3 gap-2 sm:gap-3">
+        {/* 중앙 고향 → 네 모서리 마을로 뻗는 길. 배경 레이어(pointer-events 없음), 노드 버튼이 위에 옴. */}
+        <svg
+          aria-hidden
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+        >
+          {[
+            [16.7, 16.7],
+            [83.3, 16.7],
+            [16.7, 83.3],
+            [83.3, 83.3],
+          ].map(([x, y]) => (
+            <g key={`${x}-${y}`}>
+              <line x1={50} y1={50} x2={x} y2={y} stroke="#78716c" strokeOpacity={0.3} strokeWidth={6} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+              <line x1={50} y1={50} x2={x} y2={y} stroke="#d97706" strokeOpacity={0.55} strokeWidth={2} strokeDasharray="4 5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+            </g>
+          ))}
+        </svg>
         {NODES.map((id) => {
           const here = id === location;
           const isHome = id === "home";
@@ -43,7 +62,7 @@ export function WorldMap({
               type="button"
               disabled={here || busy}
               onClick={() => onTravel(id)}
-              className={`${CELL[id]} flex flex-col items-center justify-center gap-0.5 rounded-lg border px-2 py-3 text-center transition ${
+              className={`${CELL[id]} relative z-10 flex flex-col items-center justify-center gap-0.5 rounded-lg border px-2 py-3 text-center transition ${
                 here
                   ? "border-amber-500/70 bg-amber-900/40"
                   : isHome

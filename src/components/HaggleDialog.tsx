@@ -69,6 +69,13 @@ function deltaColor(delta: number, isDisposition: boolean): string {
   return "text-stone-400";
 }
 
+// 호감도 구간별 색. 낮음=적대(rose), 중간=중립(amber), 높음=우호(emerald).
+function dispColor(d: number): { text: string; bar: string } {
+  if (d >= 67) return { text: "text-emerald-300", bar: "bg-emerald-500" };
+  if (d >= 34) return { text: "text-amber-300", bar: "bg-amber-500" };
+  return { text: "text-rose-300", bar: "bg-rose-500" };
+}
+
 export function HaggleDialog({
   merchant,
   haggle,
@@ -125,7 +132,7 @@ export function HaggleDialog({
             emojiClassName="flex aspect-square w-full items-center justify-center rounded-lg border border-stone-700 bg-stone-800 text-7xl"
           />
           <div className="text-center">
-            <p className="font-semibold text-stone-100">{merchant.name}</p>
+            <p className="font-display text-lg font-semibold text-stone-100">{merchant.name}</p>
             <p className="text-xs text-stone-400">{merchant.title}</p>
             <p className="mt-1 text-xs text-amber-300/80">
               {isBarter ? `${haggle.materialName} 물물교환` : `${haggle.materialName} 흥정`}
@@ -147,7 +154,7 @@ export function HaggleDialog({
           <div className="flex items-center gap-3">
             <Portrait portrait={merchant.portrait} file={merchant.portraitFile} />
             <div>
-              <p className="font-semibold text-stone-100">
+              <p className="font-display font-semibold text-stone-100">
                 {merchant.name}와(과) {isBarter ? "물물교환" : "흥정"}
               </p>
               <p className="text-xs text-stone-400">
@@ -172,12 +179,24 @@ export function HaggleDialog({
           </div>
           <div>
             <p className="text-stone-400">호감도</p>
-            <div className="mx-auto mt-1 h-2 w-full overflow-hidden rounded bg-stone-700">
-              <div
-                className="h-full bg-rose-400 transition-all"
-                style={{ width: `${haggle.disposition ?? 0}%` }}
-              />
-            </div>
+            {haggle.disposition === undefined ? (
+              <>
+                <p className="text-base font-bold text-stone-500">—</p>
+                <div className="mx-auto mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-stone-700" />
+              </>
+            ) : (
+              <>
+                <p className={`text-base font-bold tabular-nums ${dispColor(haggle.disposition).text}`}>
+                  {haggle.disposition}
+                </p>
+                <div className="mx-auto mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-stone-700">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${dispColor(haggle.disposition).bar}`}
+                    style={{ width: `${haggle.disposition}%` }}
+                  />
+                </div>
+              </>
+            )}
           </div>
           <div>
             <p className="text-stone-400">남은 턴</p>
@@ -218,6 +237,13 @@ export function HaggleDialog({
               )}
             </div>
           ))}
+          {haggle.log.length <= 1 && ongoing && !haggle.pending && (
+            <div className="mt-6 flex flex-col items-center gap-1 text-center">
+              <span className="text-2xl opacity-40">💬</span>
+              <p className="text-xs text-stone-500">아부·논리·대량구매·딱한사정… 무슨 말이든 건네 흥정을 시작하라.</p>
+              <p className="text-[11px] text-stone-600">약점을 파고들면 호감도가 오르고 값이 내려간다.</p>
+            </div>
+          )}
           {haggle.pending && <p className="text-xs text-stone-500">…상인이 생각 중…</p>}
           {haggle.status === "timeup" && (
             <p className="text-center text-xs text-rose-400">흥정 턴을 다 썼다. 지금 값으로 사거나 물러나라.</p>

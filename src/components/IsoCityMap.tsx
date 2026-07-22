@@ -435,7 +435,7 @@ export function IsoCityMap({
   return (
     <section className="rounded-lg border border-emerald-800/50 bg-emerald-950/20 p-4">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h2 className="flex items-center gap-1.5 text-base font-bold text-stone-100">
+        <h2 className="font-display flex items-center gap-1.5 text-base font-bold text-stone-100">
           <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-md border border-emerald-700/50 bg-stone-950/50">
             <img
               src={buildingSprite(homeIcon(state.placements))}
@@ -484,6 +484,8 @@ export function IsoCityMap({
       >
         {tiles}
         {sprites}
+        {/* 비네트 — 중앙을 띄우고 가장자리를 어둡게. 클릭은 통과. */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.5)_100%)]" />
       </div>
 
       {/* 건물 팔레트 */}
@@ -557,7 +559,7 @@ function InventoryStrip({
             </span>
           ))
         ) : (
-          <span className="text-xs text-stone-500">창고가 비었다. 마을에서 자재를 사 오라.</span>
+          <span className="rounded-md border border-dashed border-stone-700 px-2.5 py-1 text-xs text-stone-500">창고가 비었다 — 마을에서 자재를 사 오라.</span>
         )}
       </div>
     </div>

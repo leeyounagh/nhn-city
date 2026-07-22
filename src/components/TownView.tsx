@@ -21,6 +21,27 @@ function TownThumb({ townId }: { townId: TownId }) {
   );
 }
 
+// 상인 목록 아바타. 흥정창과 동일하게 실제 초상화를 쓰되, 없으면 이모지 폴백.
+function MerchantAvatar({ merchant }: { merchant: PublicMerchant }) {
+  const [ok, setOk] = useState(true);
+  if (ok) {
+    return (
+      <img
+        src={`/merchants/${merchant.portraitFile ?? merchant.portrait}.png`}
+        alt=""
+        draggable={false}
+        onError={() => setOk(false)}
+        className="h-12 w-12 shrink-0 rounded-lg border border-stone-600 object-cover"
+      />
+    );
+  }
+  return (
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-stone-600 bg-stone-800 text-2xl">
+      {PORTRAIT_EMOJI[merchant.portrait] ?? "🧑"}
+    </span>
+  );
+}
+
 const KIND_LABEL: Record<ClueKind, string> = {
   location: "위치",
   wants: "원함",
@@ -71,7 +92,7 @@ export function TownView({
       {/* 마을 아이소 미리보기 배너 (읽기전용, 팬/줌) */}
       <div>
         <div className="mb-1.5 flex items-center gap-2">
-          <h2 className="flex items-center gap-1.5 text-base font-bold text-stone-100">
+          <h2 className="font-display flex items-center gap-1.5 text-base font-bold text-stone-100">
             <TownThumb townId={townId} /> {townName}
           </h2>
           <span className="text-xs text-stone-400">{industryName} · 드래그로 둘러보기</span>
@@ -82,7 +103,7 @@ export function TownView({
       <div className="grid gap-4 md:grid-cols-[1fr_320px]">
       <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
         <div className="mb-3 flex items-center gap-2">
-          <h2 className="flex items-center gap-1.5 text-base font-bold text-stone-100">
+          <h2 className="font-display flex items-center gap-1.5 text-base font-bold text-stone-100">
             <TownThumb townId={townId} /> {townName} 상인
           </h2>
           <span className="text-xs text-stone-400">{industryName}</span>
@@ -91,7 +112,7 @@ export function TownView({
         {busy ? (
           <p className="py-8 text-center text-sm text-stone-500">마을에 들어서는 중…</p>
         ) : merchants.length === 0 ? (
-          <p className="py-8 text-center text-sm text-stone-500">오늘 이 마을엔 상인이 없다.</p>
+          <div className="rounded-lg border border-dashed border-stone-700 py-8 text-center text-sm text-stone-500">오늘 이 마을엔 상인이 없다.</div>
         ) : (
           <ul className="flex flex-col gap-2">
             {merchants.map((m) => (
@@ -99,14 +120,16 @@ export function TownView({
                 <button
                   type="button"
                   onClick={() => setSelected(m)}
-                  className="flex w-full items-center gap-3 rounded border border-stone-700 bg-stone-800/40 px-3 py-2 text-left transition hover:border-amber-600/60 hover:bg-stone-800"
+                  className="group flex w-full items-center gap-3 rounded-lg border border-stone-700 bg-stone-800/40 px-3 py-2.5 text-left transition hover:border-amber-600/60 hover:bg-stone-800"
                 >
-                  <span className="text-3xl">{PORTRAIT_EMOJI[m.portrait] ?? "🧑"}</span>
-                  <span className="min-w-0">
+                  <MerchantAvatar merchant={m} />
+                  <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold text-stone-100">{m.name}</span>
                     <span className="block truncate text-xs text-stone-400">{m.title}</span>
                   </span>
-                  <span className="ml-auto text-xs text-amber-400">흥정 ▸</span>
+                  <span className="shrink-0 rounded-md border border-amber-600/40 bg-amber-950/30 px-2.5 py-1 text-xs font-medium text-amber-300 transition group-hover:bg-amber-900/40">
+                    흥정 ▸
+                  </span>
                 </button>
               </li>
             ))}
@@ -149,7 +172,7 @@ export function TownView({
       <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
         <h3 className="mb-2 text-sm font-semibold text-stone-300">🪙 잉여 자재 팔기</h3>
         {sellRows.length === 0 ? (
-          <p className="py-3 text-center text-xs text-stone-500">팔 자재가 없다.</p>
+          <div className="rounded-lg border border-dashed border-stone-700 py-4 text-center text-xs text-stone-500">아직 팔 자재가 없다.</div>
         ) : (
           <ul className="space-y-1.5">
             {sellRows.map(([id, have]) => {
