@@ -89,9 +89,9 @@ export function TownView({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full min-h-0 flex-col gap-2">
       {/* 마을 아이소 미리보기 배너 (읽기전용, 팬/줌) */}
-      <div>
+      <div className="shrink-0">
         <div className="mb-1.5 flex items-center gap-2">
           <h2 className="font-display flex items-center gap-1.5 text-base font-bold text-stone-100">
             <TownThumb townId={townId} /> {townName}
@@ -101,7 +101,7 @@ export function TownView({
         <TownIsoPreview townId={townId} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[1fr_320px]">
+      <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto md:grid-cols-[1fr_320px]">
       <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
         <div className="mb-3 flex items-center gap-2">
           <h2 className="flex items-center gap-1.5 text-base font-bold text-stone-100">

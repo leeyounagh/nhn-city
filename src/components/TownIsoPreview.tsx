@@ -2,7 +2,7 @@
 // 마을 아이소 미리보기. 읽기전용 7×7 씬(업종 테마 바닥 + 건물·장식). 마우스 드래그로 팬, ±로 줌.
 import { useEffect, useRef, useState } from "react";
 import type { TownId } from "@/types/game";
-import { TOWN_SCENES, TOWN_FLOOR, TOWN_BG, SCENE_GRID } from "@/lib/town-scenes";
+import { TOWN_SCENES, TOWN_FLOOR, SCENE_GRID } from "@/lib/town-scenes";
 import { BUILDING_RENDER_SCALE } from "@/lib/game-data";
 
 const TW = 72;
@@ -28,7 +28,8 @@ export function TownIsoPreview({ townId }: { townId: TownId }) {
   const [viewport, setViewport] = useState({ w: 0, h: 0 });
   const boxRef = useRef<HTMLDivElement>(null);
   const panRef = useRef<{ sx: number; sy: number; px: number; py: number } | null>(null);
-  const initRef = useRef(false);
+  const interactedRef = useRef(false); // 사용자가 팬/줌하면 auto-fit 멈춤
+  const fittedTownRef = useRef<string | null>(null); // 마지막으로 맞춘 마을
 
   useEffect(() => {
     const el = boxRef.current;
@@ -40,23 +41,28 @@ export function TownIsoPreview({ townId }: { townId: TownId }) {
     return () => ro.disconnect();
   }, []);
 
-  // 최초 측정 시 7×7 전체가 보이도록 auto-fit + 중앙 정렬 (1회).
+  // 7×7 전체가 보이도록 auto-fit + 중앙 정렬. 리사이즈(모바일 포함)마다 다시 맞추고,
+  // 마을이 바뀌면 상호작용을 초기화해 새 씬을 다시 맞춘다. 사용자가 팬/줌하면 그대로 유지.
   useEffect(() => {
-    if (initRef.current || viewport.w === 0 || viewport.h === 0) return;
-    initRef.current = true;
+    if (viewport.w === 0 || viewport.h === 0) return;
+    const townChanged = fittedTownRef.current !== townId;
+    if (interactedRef.current && !townChanged) return;
+    fittedTownRef.current = townId;
+    interactedRef.current = false;
     const contentW = SCENE_GRID * TW; // 지면 폭 + 여백
     const contentH = (SCENE_GRID - 1) * TH + TW * 2; // 지면 높이 + 건물 헤드룸
     const fit = Math.min((viewport.w - 24) / contentW, (viewport.h - 24) / contentH);
     setScale(fit);
     // 지면 중앙(world (0, 3*TH))을 박스 하단 60%쯤에 두어 위로 건물 헤드룸 확보.
     setPan({ x: viewport.w / 2, y: viewport.h * 0.62 - (SCENE_GRID - 1) * (TH / 2) * fit });
-  }, [viewport]);
+  }, [viewport, townId]);
 
   // 마우스 드래그 팬.
   useEffect(() => {
     function move(e: PointerEvent) {
       const p = panRef.current;
       if (!p) return;
+      interactedRef.current = true; // 사용자가 직접 팬 → auto-fit 중단
       setPan({ x: p.px + (e.clientX - p.sx), y: p.py + (e.clientY - p.sy) });
     }
     function up() {
@@ -71,6 +77,7 @@ export function TownIsoPreview({ townId }: { townId: TownId }) {
   }, []);
 
   const zoom = (nz: number) => {
+    interactedRef.current = true; // 사용자가 줌 → auto-fit 중단
     const cx = viewport.w / 2;
     const cy = viewport.h / 2;
     const wxc = (cx - pan.x) / scale;
@@ -171,11 +178,12 @@ export function TownIsoPreview({ townId }: { townId: TownId }) {
           if (e.pointerType !== "mouse") return;
           panRef.current = { sx: e.clientX, sy: e.clientY, px: pan.x, py: pan.y };
         }}
-        style={{ backgroundColor: TOWN_BG[townId] }}
-        className="relative h-[440px] w-full cursor-grab touch-none active:cursor-grabbing"
+        className="relative h-[34vh] max-h-[300px] min-h-[180px] w-full cursor-grab touch-none bg-stone-950 active:cursor-grabbing"
       >
         {grounds}
         {sprites}
+        {/* 안개 비네트 — 초록 배경 대신 어두운 가장자리로 마을을 띄운다. 클릭 통과. */}
+        <div className="pointer-events-none absolute inset-0 z-[19999] bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.6)_100%)]" />
       </div>
     </div>
   );

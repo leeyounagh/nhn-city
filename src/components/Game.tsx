@@ -451,10 +451,10 @@ export function Game() {
           />
         </main>
       ) : (
-        // 마을뷰: 콘텐츠형 화면이라 남는 영역 안에서 세로 스크롤.
-        <main className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-          <div className="mx-auto max-w-5xl space-y-4">
-            <p className="text-sm italic text-stone-400">{notice}</p>
+        // 마을뷰: 한 화면 고정. 미리보기는 위에 고정, 상인/소문/판매만 내부 스크롤.
+        <main className="flex min-h-0 flex-1 flex-col px-3 pb-2 pt-2">
+          <p className="mb-1.5 shrink-0 truncate px-1 text-xs italic text-stone-400">{notice}</p>
+          <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
             <TownView
               townId={state.location as TownId}
               townName={locationName(state.location)}
