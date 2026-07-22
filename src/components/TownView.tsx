@@ -212,6 +212,7 @@ export function TownView({
             merchant={selected}
             bookLevel={bookLevel}
             busy={busy}
+            onClose={() => setSelected(null)}
             onHaggle={(id) => {
               const m = selected;
               setSelected(null);
@@ -233,18 +234,10 @@ export function TownView({
 function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-2 flex justify-end">
-          <button
-            onClick={onClose}
-            className="rounded bg-stone-800 px-3 py-1 text-sm text-stone-300 hover:bg-stone-700"
-          >
-            닫기 ✕
-          </button>
-        </div>
         {children}
       </div>
     </div>
