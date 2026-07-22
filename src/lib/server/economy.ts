@@ -81,6 +81,7 @@ const PRICES: Record<MaterialId, { base: number; floor: number; tier: Tier }> = 
   stone: { base: 12, floor: 7, tier: 1 },
   clay: { base: 10, floor: 6, tier: 1 },
   scrap: { base: 15, floor: 9, tier: 1 },
+  rope: { base: 8, floor: 5, tier: 1 },
   planks: { base: 30, floor: 18, tier: 2 },
   brick: { base: 35, floor: 21, tier: 2 },
   glass: { base: 45, floor: 27, tier: 2 },
@@ -148,7 +149,7 @@ const SPECIALIZATIONS: Specialization[] = [
     id: "draper",
     title: "직물잡화상",
     portrait: "draper",
-    materials: ["clay", "cloth"],
+    materials: ["clay", "cloth", "rope"],
     markup: 1,
     tone: "수다스럽고 친화적인 잡화 행상",
   },
@@ -156,7 +157,7 @@ const SPECIALIZATIONS: Specialization[] = [
     id: "general",
     title: "만물상",
     portrait: "general",
-    materials: ["wood", "stone", "clay", "scrap"],
+    materials: ["wood", "stone", "clay", "scrap", "rope"],
     markup: 1.15,
     tone: "두루뭉술하고 능구렁이 같은 만물 장수",
   },
@@ -195,6 +196,14 @@ const WEAKNESS_HINT: Record<ProfileId, string> = {
   lonely: "잡담과 딱한 사정에 마음을 연다. 협박엔 곧장 등을 돌린다.",
   pragmatic: "논리와 자재 흠집 지적에 반응한다. 값싼 아부는 역효과.",
 };
+
+// 마법의 책 조언 라우트용 힌트 접근자 (레벨 게이팅은 호출부에서).
+export function getProfileHint(profile: ProfileId): string {
+  return PROFILE_HINT[profile];
+}
+export function getWeaknessHint(profile: ProfileId): string {
+  return WEAKNESS_HINT[profile];
+}
 
 // 초상화 풀(Midjourney 사전생성). archetype으로 거르고, mood가 성향과 맞으면 우선 후보.
 // 아키타입당 여러 장을 넣을수록 다양성↑. mood 없는 항목은 항상 후보로 남는다.

@@ -389,3 +389,9 @@
 - **warehouse 축소**: game-data `BUILDING_RENDER_SCALE`(warehouse 0.6) 신설, IsoCityMap·TownIsoPreview 스프라이트 폭에 곱(홈·마을 공통).
 - **barrel 제거**: TOWN_SCENES에서 barrel 삭제(logs 대체), public/buildings/barrel.png 삭제.
 - **모달 덮임 버그**: TownIsoPreview 컨테이너에 `isolate` 없어 씬 스프라이트(z 10000)가 마을 모달(z-40)을 덮음. `isolate` 추가로 격리(홈 보드는 이미 isolate라 정상이었음). 검증: 노트 모달 위 스프라이트 0.
+
+### [추가] 새 재료 rope(밧줄) — 재료 연동 6곳 패턴 (2026-07-22, 사용자)
+- **rope 스펙**: T1, 기준가 8/하한 5. 직물잡화상·만물상 취급, 직물 마을(베틀마을) 특산(×0.8 할인). cloth 이름 "천·밧줄"→"천"으로 겹침 해소.
+- **건물 수요**: 우물(2)·노점(1)·시장(2)·성벽(3)·망루(2) — 초반~중반 분산.
+- **아이콘**: ChatGPT 생성 → PowerShell 채도 크로마키(max-min<26 → alpha0)로 회색배경·중앙구멍·그림자 제거 → 256px. 한글 파일명은 PS 스크립트 인코딩에서 깨지니 **ASCII 경로로 복사 후 처리**.
+- **재료 추가 시 배선 6곳(재사용)**: ①types MaterialId ②game-data MATERIALS(+MATERIAL_NAME 자동) ③economy PRICES ④economy SPECIALIZATIONS(상인 풀) ⑤game-data TOWNS specialMaterials(특산) ⑥game-data BUILDINGS requires. tsc가 `Record<MaterialId>` 누락을 잡아줌. MaterialIcon은 `/materials/{id}.png` 자동.

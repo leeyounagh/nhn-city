@@ -10,11 +10,12 @@ export const MATERIALS: MaterialMeta[] = [
   { id: "stone", name: "석재", tier: 1 },
   { id: "clay", name: "점토", tier: 1 },
   { id: "scrap", name: "고철", tier: 1 },
+  { id: "rope", name: "밧줄", tier: 1 },
   { id: "planks", name: "판자", tier: 2 },
   { id: "brick", name: "벽돌", tier: 2 },
   { id: "glass", name: "유리", tier: 2 },
   { id: "steel", name: "강철", tier: 2 },
-  { id: "cloth", name: "천·밧줄", tier: 2 },
+  { id: "cloth", name: "천", tier: 2 },
   { id: "marble", name: "대리석", tier: 3 },
   { id: "bronze", name: "청동", tier: 3 },
   { id: "stainedglass", name: "스테인드글라스", tier: 3 },
@@ -102,7 +103,7 @@ export const TOWNS: TownMeta[] = [
     name: "베틀마을",
     industry: "textile",
     industryName: "직물",
-    specialMaterials: ["cloth", "clay", "brick"],
+    specialMaterials: ["cloth", "clay", "brick", "rope"],
     neighbors: { nw: 1, se: 2, ne: 3 },
   },
   {
@@ -139,26 +140,26 @@ export function travelDays(from: LocationId, to: LocationId): number {
 export const BUILDINGS: BuildingDef[] = [
   // T0 기초 (선행 없음)
   { id: "hut", name: "오두막", requires: { wood: 5, stone: 3 }, income: 8, xp: 10, prereq: [] },
-  { id: "well", name: "우물", requires: { stone: 6, scrap: 3 }, income: 3, xp: 8, prereq: [] },
+  { id: "well", name: "우물", requires: { stone: 6, scrap: 3, rope: 2 }, income: 3, xp: 8, prereq: [] },
   { id: "warehouse", name: "창고", requires: { wood: 4, clay: 4, scrap: 2 }, income: 5, xp: 10, prereq: [] },
   // T1 생활 (방앗간·대장간 = 첫 생산 건물 → tier2 자재 자급 시작)
   { id: "mill", name: "방앗간", requires: { wood: 6, stone: 4, cloth: 2 }, income: 14, xp: 15, prereq: ["hut", "well"], produces: { cloth: 1 } },
   { id: "smithy", name: "대장간", requires: { stone: 5, scrap: 4, steel: 3 }, income: 12, xp: 15, prereq: ["warehouse", "well"], produces: { steel: 1 } },
   { id: "inn", name: "여관", requires: { planks: 5, brick: 4, cloth: 3 }, income: 20, xp: 18, prereq: ["hut", "warehouse"] },
   // T2 발전 (책 Lv2)
-  { id: "market", name: "시장", requires: { planks: 5, cloth: 4, glass: 3 }, income: 22, xp: 20, prereq: ["mill", "inn"], minBook: 2 },
+  { id: "market", name: "시장", requires: { planks: 5, cloth: 4, glass: 3, rope: 2 }, income: 22, xp: 20, prereq: ["mill", "inn"], minBook: 2 },
   { id: "workshop", name: "작업장", requires: { planks: 6, brick: 5, steel: 3 }, income: 16, xp: 20, prereq: ["smithy"], minBook: 2, produces: { planks: 2 } },
   { id: "chapel", name: "예배당", requires: { brick: 6, glass: 4, bronze: 2 }, income: 6, xp: 22, prereq: ["inn"], minBook: 2 },
   // T3 권위·방어
-  { id: "wall", name: "성벽", requires: { stone: 10, brick: 8, steel: 5 }, income: 5, xp: 25, prereq: ["workshop"], minBook: 2 },
-  { id: "watchtower", name: "망루", requires: { stone: 8, steel: 5, bronze: 2 }, income: 10, xp: 25, prereq: ["wall"], minBook: 3 },
+  { id: "wall", name: "성벽", requires: { stone: 10, brick: 8, steel: 5, rope: 3 }, income: 5, xp: 25, prereq: ["workshop"], minBook: 2 },
+  { id: "watchtower", name: "망루", requires: { stone: 8, steel: 5, bronze: 2, rope: 2 }, income: 10, xp: 25, prereq: ["wall"], minBook: 3 },
   { id: "guildhall", name: "길드회관", requires: { marble: 4, planks: 8, glass: 5 }, income: 30, xp: 28, prereq: ["market", "workshop"], minBook: 3, produces: { marble: 1 } },
   // T4 대업 (대성당은 목표가 아니라 최고난도 건물)
   { id: "manor", name: "영주관", requires: { marble: 6, brick: 10, stainedglass: 2, bronze: 3, token: 1 }, income: 40, xp: 30, prereq: ["guildhall"], minBook: 3 },
   { id: "cathedral", name: "대성당", requires: { marble: 8, stainedglass: 4, bronze: 3, relic: 2, token: 1 }, income: 25, xp: 35, prereq: ["chapel", "manor"], minBook: 3 },
   // 상업 (Shops Markets 팩) — 완공 시 골드 수입을 주는 상점·시장 건물
   { id: "storeshed", name: "곳간", requires: { wood: 4, planks: 2 }, income: 5, xp: 10, prereq: ["warehouse"] },
-  { id: "stall", name: "노점", requires: { planks: 2, cloth: 2 }, income: 10, xp: 12, prereq: ["hut"] },
+  { id: "stall", name: "노점", requires: { planks: 2, cloth: 2, rope: 1 }, income: 10, xp: 12, prereq: ["hut"] },
   { id: "pavilion", name: "장옥", requires: { planks: 4, brick: 2, cloth: 3 }, income: 16, xp: 16, prereq: ["market"], minBook: 2 },
   { id: "shop", name: "상점", requires: { planks: 4, brick: 3, glass: 2 }, income: 18, xp: 18, prereq: ["market"], minBook: 2 },
   { id: "shop2", name: "잡화점", requires: { planks: 3, brick: 4, cloth: 3 }, income: 17, xp: 18, prereq: ["market"], minBook: 2 },

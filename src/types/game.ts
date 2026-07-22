@@ -7,6 +7,7 @@ export type MaterialId =
   | "stone"
   | "clay"
   | "scrap"
+  | "rope"
   | "planks"
   | "brick"
   | "glass"
