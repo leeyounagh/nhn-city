@@ -1,6 +1,6 @@
 "use client";
 // 상인 패널. 페르소나 + 책 레벨로 걸러진 정보 + 자재 목록을 보여준다.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BookLevel, MaterialId, PublicMerchant } from "@/types/game";
 import { MaterialIcon } from "@/components/MaterialIcon";
 
@@ -27,6 +27,36 @@ export function MerchantPanel({
   onBarter?: (rareId: MaterialId, payId: MaterialId) => void;
 }) {
   const [barterFor, setBarterFor] = useState<MaterialId | null>(null);
+  // 마법의 책 AI 조언 (Lv2+). 상인을 열면 서버 LLM이 성정을 읽어 인게임 조언을 읊는다.
+  const [advice, setAdvice] = useState<string | null>(null);
+  const [adviceLoading, setAdviceLoading] = useState(false);
+  const seed = merchant?.seed;
+  useEffect(() => {
+    if (seed === undefined || bookLevel < 2) {
+      setAdvice(null);
+      return;
+    }
+    let cancelled = false;
+    setAdvice(null);
+    setAdviceLoading(true);
+    fetch("/api/book-advice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seed, bookLevel }),
+    })
+      .then((r) => r.json())
+      .then((d: { advice?: string | null }) => {
+        if (!cancelled) setAdvice(d.advice ?? null);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setAdviceLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [seed, bookLevel]);
+
   if (!merchant) {
     return (
       <section className="flex flex-col items-center justify-center gap-4 rounded-lg border border-stone-700/60 bg-stone-900/50 p-8 text-center">
@@ -67,6 +97,18 @@ export function MerchantPanel({
           </p>
         )}
         {merchant.weaknessHint && <p className="mt-1 text-amber-300">약점: {merchant.weaknessHint}</p>}
+        {bookLevel >= 2 && (adviceLoading || advice) && (
+          <div className="mt-1.5 border-t border-sky-800/30 pt-1.5">
+            <p className="mb-0.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-400/70">
+              📖 책의 조언 <span className="rounded bg-sky-900/50 px-1 text-[9px] text-sky-300">AI</span>
+            </p>
+            {adviceLoading ? (
+              <p className="italic text-stone-500">책장을 넘기는 중…</p>
+            ) : (
+              <p className="italic text-sky-200/90">“{advice}”</p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">

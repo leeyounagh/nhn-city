@@ -218,3 +218,36 @@ export function fallbackHeadline(event: MarketEvent | null): string {
     ? `${event.townName} ${event.industryName} 대풍작! 특산품 시세 폭락`
     : "오늘 장세는 잔잔하다. 큰 소식 없음.";
 }
+
+// ── 마법의 책 조언 ──────────────────────────────────────────────
+// 책 레벨로 걸러진 성향(+Lv3 약점)을 받아, 마법의 책의 목소리로 짧은 조언을 읊는다.
+// 2레이어: 가격·하한가·호감도·확률 등 수치와 시스템 용어는 절대 말하지 않는다.
+export function bookAdviceSystem(): string {
+  return [
+    "너는 낡은 마법의 책이다. 눈앞의 상인을 읽어, 흥정에 나선 주인에게 짧게 속삭인다.",
+    "예스럽고 신비로운 한 목소리로, 한국어 1~2문장.",
+    "게임 수치(가격·하한가·호감도·확률)나 시스템 용어(카테고리·레벨 등)는 절대 말하지 않는다. 오직 상인의 사람됨과 대하는 태도만 은유로 일러준다.",
+    "출력은 조언 문장만. 따옴표·JSON·머리말 없이.",
+  ].join("\n");
+}
+
+export function bookAdviceUser(
+  title: string,
+  tone: string,
+  profileHint: string,
+  weaknessHint?: string,
+): string {
+  return [
+    `상인: ${title}`,
+    `분위기: ${tone}`,
+    `읽어낸 성정: ${profileHint}`,
+    weaknessHint ? `드러난 약점: ${weaknessHint}` : "약점은 아직 흐릿하다.",
+    "이 상인을 어떻게 대하면 좋을지, 마법의 책의 목소리로 한두 문장 조언하라.",
+  ].join("\n");
+}
+
+export function fallbackBookAdvice(profileHint: string, weaknessHint?: string): string {
+  return weaknessHint
+    ? `책장에 글귀가 또렷이 떠오른다 — ${weaknessHint}`
+    : `책장에 흐릿한 상이 맺힌다 — ${profileHint}`;
+}
