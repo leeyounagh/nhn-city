@@ -2,6 +2,7 @@
 // 월드맵. 폐허 고향(허브) + 4개 상인 마을 노드. 카드가 아니라 "지역"처럼 — 방사형 길로 연결된 탐험 화면.
 import type { IndustryId, LocationId, TownId } from "@/types/game";
 import { TOWN_BY_ID, TOWN_ICON, travelDays, locationName } from "@/lib/game-data";
+import { GameIcon } from "@/components/GameIcon";
 
 // 3×3 격자 배치: 네 모서리에 마을, 중앙에 고향.
 const CELL: Record<LocationId, string> = {
@@ -40,7 +41,9 @@ export function WorldMap({
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:34px_34px] opacity-[0.04]" />
 
       <div className="relative mb-3 flex items-center justify-between">
-        <h2 className="font-display text-base font-semibold tracking-wide text-stone-100">🗺️ 월드맵</h2>
+        <h2 className="font-display flex items-center gap-1.5 text-base font-semibold tracking-wide text-stone-100">
+          <GameIcon name="compass" className="h-5 w-5 text-amber-400" /> 월드맵
+        </h2>
         <span className="text-xs text-stone-500">지역을 눌러 이동 (이동일수만큼 하루가 흐른다)</span>
       </div>
 
@@ -123,7 +126,7 @@ export function WorldMap({
                 </span>
               ) : (
                 <>
-                  <span className="text-[11px] font-medium tabular-nums text-stone-300">🚶 {days}일</span>
+                  <span className="flex items-center gap-1 text-[11px] font-medium tabular-nums text-stone-300"><GameIcon name="footprint" className="h-3 w-3" /> {days}일</span>
                   <span className="pointer-events-none text-[10px] font-semibold text-amber-300 opacity-0 transition group-enabled:group-hover:opacity-100">
                     이동하기 ▸
                   </span>

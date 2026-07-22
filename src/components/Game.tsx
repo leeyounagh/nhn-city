@@ -21,6 +21,7 @@ import { IsoCityMap } from "@/components/IsoCityMap";
 import { HaggleDialog } from "@/components/HaggleDialog";
 import { ClueNotebook } from "@/components/ClueNotebook";
 import { BookCodex } from "@/components/BookCodex";
+import { GameIcon, type GameIconName } from "@/components/GameIcon";
 import { InventoryPanel } from "@/components/InventoryPanel";
 import { IntroCutscene } from "@/components/IntroCutscene";
 
@@ -519,14 +520,14 @@ export function Game() {
             Ashen Kingdom
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            <ResChip label="골드" value={`${state.gold}`} accent="text-amber-300" />
+            <ResChip label="골드" value={`${state.gold}`} accent="text-amber-300" icon="coins" />
             <ResChip label="일차" value={`${state.day}일`} />
-            <ResChip label="수입" value={`+${income}`} accent="text-emerald-300" />
+            <ResChip label="수입" value={`+${income}`} accent="text-emerald-300" icon="income" />
             <button
               onClick={() => setShowBook(true)}
               className="flex items-center gap-1.5 rounded-md border border-sky-900/50 bg-sky-950/30 px-2.5 py-1 shadow-sm transition hover:border-sky-600/60 hover:bg-sky-900/40"
             >
-              <img src="/ui/magicbook.png" alt="" draggable={false} className="h-5 w-5 object-contain" />
+              <GameIcon name="spellBook" className="h-4 w-4 text-sky-300" />
               <span className="text-[10px] font-medium uppercase tracking-wide text-sky-500/80">마법의 책</span>
               <span className="text-sm font-bold text-sky-300">Lv.{bookLevel}</span>
               {bookLevel >= MAX_BOOK_LEVEL ? (
@@ -542,7 +543,7 @@ export function Game() {
               onClick={() => setShowWorldMap(true)}
               className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-600 bg-stone-800 px-4 text-sm font-medium tracking-wide text-stone-100 transition hover:bg-stone-700"
             >
-              <img src="/ui/travel.png" alt="" draggable={false} className="h-5 w-5 object-contain" /> 이동
+              <GameIcon name="footprint" className="h-5 w-5" /> 이동
             </button>
             {state.location === "home" && (
               <button
@@ -550,7 +551,7 @@ export function Game() {
                 disabled={busy}
                 className="flex h-10 items-center gap-1.5 rounded-lg bg-amber-600 px-4 text-sm font-semibold tracking-wide text-stone-950 shadow-md shadow-amber-950/40 transition hover:bg-amber-500 disabled:opacity-50"
               >
-                <img src="/ui/passday.png" alt="" draggable={false} className="h-5 w-5 object-contain" /> 하루 넘기기
+                <GameIcon name="hourglass" className="h-5 w-5" /> 하루 넘기기
               </button>
             )}
 
@@ -563,20 +564,20 @@ export function Game() {
                 onClick={() => setShowInventory(true)}
                 className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
               >
-                <img src="/buildings/warehouse.png" alt="" draggable={false} className="h-4 w-4 object-contain" /> 창고{invCount > 0 ? ` (${invCount})` : ""}
+                <GameIcon name="chest" className="h-4 w-4" /> 창고{invCount > 0 ? ` (${invCount})` : ""}
               </button>
             )}
             <button
               onClick={() => setShowNotebook(true)}
               className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
             >
-              <img src="/ui/magicbook.png" alt="" draggable={false} className="h-4 w-4 object-contain" /> 단서 노트{state.clues.length > 0 ? ` (${state.clues.length})` : ""}
+              <GameIcon name="scroll" className="h-4 w-4" /> 단서 노트{state.clues.length > 0 ? ` (${state.clues.length})` : ""}
             </button>
             <button
               onClick={() => setShowTutorial((v) => !v)}
               className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-400 transition hover:border-amber-600/50 hover:text-amber-200"
             >
-              도움말
+              <GameIcon name="candle" className="h-4 w-4" /> 도움말
             </button>
           </div>
         </div>
@@ -697,9 +698,10 @@ function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onReplaySto
 }
 
 // 하단 푸터의 리소스 배지 (골드·일차·수입). 라벨은 작게, 값은 굵게 강조색으로.
-function ResChip({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function ResChip({ label, value, accent, icon }: { label: string; value: string; accent?: string; icon?: GameIconName }) {
   return (
     <div className="flex items-center gap-1.5 rounded-md border border-stone-700/60 bg-stone-900/60 px-2.5 py-1 shadow-sm">
+      {icon && <GameIcon name={icon} className={`h-4 w-4 ${accent ?? "text-stone-400"}`} />}
       <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">{label}</span>
       <span className={`text-sm font-bold tabular-nums ${accent ?? "text-stone-100"}`}>{value}</span>
     </div>

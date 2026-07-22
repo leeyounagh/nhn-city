@@ -6,6 +6,7 @@ import { MerchantPanel, PORTRAIT_EMOJI } from "@/components/MerchantPanel";
 import { TownIsoPreview } from "@/components/TownIsoPreview";
 import { MATERIAL_NAME, TOWN_ICON } from "@/lib/game-data";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { GameIcon } from "@/components/GameIcon";
 
 // 마을 대표 썸네일 (이름 앞 작은 아이콘).
 function TownThumb({ townId }: { townId: TownId }) {
@@ -139,7 +140,7 @@ export function TownView({
 
       <div className="flex flex-col gap-4">
       <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-stone-300">🗣️ 이 마을에 도는 소문</h3>
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-stone-300"><GameIcon name="scroll" className="h-4 w-4 text-amber-400/80" /> 이 마을에 도는 소문</h3>
         {busy ? (
           <p className="py-4 text-center text-xs text-stone-500">귀를 기울이는 중…</p>
         ) : rumors.length === 0 ? (
@@ -170,7 +171,7 @@ export function TownView({
       </section>
 
       <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
-        <h3 className="mb-2 text-sm font-semibold text-stone-300">🪙 잉여 자재 팔기</h3>
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-stone-300"><GameIcon name="coins" className="h-4 w-4 text-amber-400" /> 잉여 자재 팔기</h3>
         {sellRows.length === 0 ? (
           <div className="rounded-lg border border-dashed border-stone-700 py-4 text-center text-xs text-stone-500">아직 팔 자재가 없다.</div>
         ) : (

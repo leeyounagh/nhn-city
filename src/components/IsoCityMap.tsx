@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { MaterialId } from "@/types/game";
 import { BUILDINGS, MATERIAL_NAME, BUILDING_RENDER_SCALE } from "@/lib/game-data";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { GameIcon } from "@/components/GameIcon";
 import {
   type GameState,
   type Placement,
@@ -544,7 +545,7 @@ function InventoryStrip({
   return (
     <div className="mb-2 shrink-0 rounded-lg border border-stone-700/50 bg-stone-900/40 px-2.5 py-1.5">
       <p className="mb-1 text-xs font-semibold text-stone-300">
-        <img src="/buildings/warehouse.png" alt="" draggable={false} className="mr-1 inline-block h-4 w-4 align-text-bottom object-contain" /> 창고 <span className="font-normal text-stone-500">— 자재를 건물로 끌어다 채운다</span>
+        <GameIcon name="chest" className="mr-1 inline-block h-4 w-4 align-text-bottom text-amber-400/80" /> 창고 <span className="font-normal text-stone-500">— 자재를 건물로 끌어다 채운다</span>
       </p>
       <div className="flex flex-wrap gap-1.5">
         {inv.length > 0 ? (
@@ -607,7 +608,7 @@ function BuildingPalette({
   return (
     <div className="shrink-0 space-y-1.5">
       <div>
-        <p className="mb-1.5 text-xs font-semibold text-stone-300"><img src="/ui/crane.png" alt="" draggable={false} className="mr-1 inline-block h-4 w-4 align-text-bottom object-contain" /> 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭</p>
+        <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-stone-300"><GameIcon name="hammer" className="h-4 w-4 text-amber-400/80" /> 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭</p>
         <div onPointerDown={onStripPointerDown} className="flex cursor-grab gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing">{cards(normal)}</div>
       </div>
       {unlocked && (

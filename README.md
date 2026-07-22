@@ -32,6 +32,7 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 ## Credits / 에셋 크레딧
 
 - **아이소메트릭 건물·타일 스프라이트**: *Isometric Realm — Medieval* by **JP Cummins** ([jpcu.itch.io/isometric-realm-medieval1](https://jpcu.itch.io/isometric-realm-medieval1), www.jpcummins.com). itch.io 구매 에셋.
+- **UI 아이콘**: [game-icons.net](https://game-icons.net) — Lorc, Delapouite, DarkZaitzev 제작. [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). 인라인 SVG로 사용(`src/components/GameIcon.tsx`).
 
 ## Deploy on Vercel
 

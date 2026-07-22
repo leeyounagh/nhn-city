@@ -3,6 +3,7 @@
 // 레벨별 해금 + 흥정 카테고리 뜻풀이 + 성향 4종 개념. 2레이어 원칙: 정답 매핑(카테고리↔성향)은 없다.
 import type { BookLevel } from "@/types/game";
 import { BOOK_XP_THRESHOLDS, MAX_BOOK_LEVEL } from "@/lib/game-data";
+import { GameIcon, type GameIconName } from "@/components/GameIcon";
 
 // 레벨별 해금 내용 (Lv1~3).
 const LEVEL_UNLOCKS: { level: BookLevel; title: string; desc: string }[] = [
@@ -31,10 +32,10 @@ const PROFILES: { name: string; desc: string }[] = [
 ];
 
 // 섹션 헤더 — 아이콘 + 제목 + 좌우로 뻗는 금박 괘선.
-function SectionRule({ icon, title }: { icon: string; title: string }) {
+function SectionRule({ icon, title }: { icon: GameIconName; title: string }) {
   return (
     <div className="mb-2.5 flex items-center gap-2">
-      <span className="text-sm">{icon}</span>
+      <GameIcon name={icon} className="h-4 w-4 text-amber-400/80" />
       <h3 className="shrink-0 text-sm font-semibold tracking-tight text-amber-100/90">{title}</h3>
       <span className="h-px flex-1 bg-gradient-to-r from-amber-700/50 to-transparent" />
     </div>
@@ -79,7 +80,7 @@ export function BookCodex({
           >
             ✕
           </button>
-          <img src="/ui/magicbook.png" alt="" draggable={false} className="mx-auto mb-1 h-10 w-10 object-contain drop-shadow-[0_2px_6px_rgba(217,164,65,0.4)]" />
+          <GameIcon name="spellBook" className="mx-auto mb-1 h-10 w-10 text-amber-300 drop-shadow-[0_2px_6px_rgba(217,164,65,0.4)]" />
           <h2 className="font-display text-2xl font-bold tracking-wide text-amber-200 [text-shadow:0_2px_8px_rgba(0,0,0,0.6)]">
             마법의 책
           </h2>
@@ -114,7 +115,7 @@ export function BookCodex({
 
           {/* 해금된 능력 */}
           <div>
-            <SectionRule icon="🔓" title="해금된 능력" />
+            <SectionRule icon="chest" title="해금된 능력" />
             <div className="space-y-2">
               {LEVEL_UNLOCKS.map((u) => {
                 const unlocked = bookLevel >= u.level;
@@ -155,7 +156,7 @@ export function BookCodex({
 
           {/* 흥정 기술 */}
           <div>
-            <SectionRule icon="💬" title="흥정 기술" />
+            <SectionRule icon="trade" title="흥정 기술" />
             <p className="mb-2 text-[11px] text-stone-500">
               무엇이 먹힐지는 상대마다 다르다. 반응을 보고, 책이 강해지면 그 상인의 약점이 드러난다.
             </p>
@@ -175,7 +176,7 @@ export function BookCodex({
 
           {/* 상인 성향 */}
           <div>
-            <SectionRule icon="👤" title="상인의 성향" />
+            <SectionRule icon="merchant" title="상인의 성향" />
             <p className="mb-2 text-[11px] text-stone-500">
               상인의 겉모습·말투는 매번 다르지만, 속내는 아래 <b className="text-violet-300">네 성향</b> 중 하나다. 책 Lv2에서 그 상인의 성향이, Lv3에서 정확한 약점이 드러난다.
             </p>
