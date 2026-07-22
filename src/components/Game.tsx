@@ -20,6 +20,7 @@ import { TownView } from "@/components/TownView";
 import { IsoCityMap } from "@/components/IsoCityMap";
 import { HaggleDialog } from "@/components/HaggleDialog";
 import { ClueNotebook } from "@/components/ClueNotebook";
+import { BookCodex } from "@/components/BookCodex";
 import { InventoryPanel } from "@/components/InventoryPanel";
 import { IntroCutscene } from "@/components/IntroCutscene";
 
@@ -31,6 +32,7 @@ export function Game() {
   const [busy, setBusy] = useState(false);
   const [showTutorial, setShowTutorial] = useState(true);
   const [showNotebook, setShowNotebook] = useState(false);
+  const [showBook, setShowBook] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
@@ -429,15 +431,15 @@ export function Game() {
   const invCount = Object.values(state.inventory).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-stone-950 to-stone-900 pb-24 text-stone-200">
+    <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-b from-stone-950 to-stone-900 text-stone-200">
       {showTutorial && (
         <Tutorial onClose={() => setShowTutorial(false)} onReplayStory={() => setShowIntro(true)} />
       )}
 
-      <p className="mx-auto max-w-6xl px-4 pt-3 text-sm italic text-stone-400">{notice}</p>
-
       {state.location === "home" ? (
-        <main className="w-full px-4 py-4">
+        // 고향맵: 한 화면 고정. 맵이 남는 공간(flex-1)을 전부 차지하고 세로 스크롤 없음.
+        <main className="flex min-h-0 flex-1 flex-col px-3 pb-2 pt-2">
+          <p className="mb-1.5 shrink-0 truncate px-1 text-xs italic text-stone-400">{notice}</p>
           <IsoCityMap
             state={state}
             onPlace={placeBuilding}
@@ -448,21 +450,25 @@ export function Game() {
           />
         </main>
       ) : (
-        <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
-          <TownView
-            townId={state.location as TownId}
-            townName={locationName(state.location)}
-            industryName={TOWN_BY_ID[state.location as TownId].industryName}
-            merchants={state.townMerchants}
-            rumors={state.clues}
-            bookLevel={bookLevel}
-            busy={busy}
-            inventory={state.inventory}
-            sellPrices={state.sellPrices}
-            onHaggle={startHaggle}
-            onBarter={startBarter}
-            onSell={sell}
-          />
+        // 마을뷰: 콘텐츠형 화면이라 남는 영역 안에서 세로 스크롤.
+        <main className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          <div className="mx-auto max-w-5xl space-y-4">
+            <p className="text-sm italic text-stone-400">{notice}</p>
+            <TownView
+              townId={state.location as TownId}
+              townName={locationName(state.location)}
+              industryName={TOWN_BY_ID[state.location as TownId].industryName}
+              merchants={state.townMerchants}
+              rumors={state.clues}
+              bookLevel={bookLevel}
+              busy={busy}
+              inventory={state.inventory}
+              sellPrices={state.sellPrices}
+              onHaggle={startHaggle}
+              onBarter={startBarter}
+              onSell={sell}
+            />
+          </div>
         </main>
       )}
 
@@ -499,12 +505,16 @@ export function Game() {
         <ClueNotebook clues={state.clues} onClose={() => setShowNotebook(false)} />
       )}
 
+      {showBook && (
+        <BookCodex bookLevel={bookLevel} xp={state.xp} onClose={() => setShowBook(false)} />
+      )}
+
       {showIntro && <IntroCutscene onFinish={finishIntro} />}
 
       {news && <NewsModal news={news} onClose={() => setNews(null)} />}
 
-      <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-amber-900/40 bg-gradient-to-t from-stone-950 via-stone-950/95 to-stone-900/90 shadow-[0_-6px_20px_rgba(0,0,0,0.55)] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
+      <footer className="shrink-0 border-t border-amber-900/40 bg-gradient-to-t from-stone-950 via-stone-950/95 to-stone-900/90 shadow-[0_-6px_20px_rgba(0,0,0,0.55)] backdrop-blur">
+        <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
           <span className="font-display hidden pr-1 text-lg font-bold tracking-wider text-amber-200 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)] sm:inline">
             Ashen Kingdom
           </span>
@@ -512,7 +522,10 @@ export function Game() {
             <ResChip label="골드" value={`${state.gold}`} accent="text-amber-300" />
             <ResChip label="일차" value={`${state.day}일`} />
             <ResChip label="수입" value={`+${income}`} accent="text-emerald-300" />
-            <div className="flex items-center gap-1.5 rounded-md border border-sky-900/50 bg-sky-950/30 px-2.5 py-1 shadow-sm">
+            <button
+              onClick={() => setShowBook(true)}
+              className="flex items-center gap-1.5 rounded-md border border-sky-900/50 bg-sky-950/30 px-2.5 py-1 shadow-sm transition hover:border-sky-600/60 hover:bg-sky-900/40"
+            >
               <img src="/ui/magicbook.png" alt="" draggable={false} className="h-5 w-5 object-contain" />
               <span className="text-[10px] font-medium uppercase tracking-wide text-sky-500/80">마법의 책</span>
               <span className="text-sm font-bold text-sky-300">Lv.{bookLevel}</span>
@@ -521,12 +534,13 @@ export function Game() {
               ) : (
                 next && <span className="text-[10px] text-stone-500">· 다음 {next.need}</span>
               )}
-            </div>
+            </button>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            {/* 메인 액션 — 색으로 위계. 하루 넘기기(주)=금색, 이동=stone. */}
             <button
               onClick={() => setShowWorldMap(true)}
-              className="flex items-center gap-1.5 rounded-md border border-amber-400/40 bg-amber-600/90 px-3.5 py-1.5 text-sm font-semibold text-stone-950 shadow-sm transition hover:bg-amber-500"
+              className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-600 bg-stone-800 px-4 text-sm font-medium tracking-wide text-stone-100 transition hover:bg-stone-700"
             >
               <img src="/ui/travel.png" alt="" draggable={false} className="h-5 w-5 object-contain" /> 이동
             </button>
@@ -534,28 +548,33 @@ export function Game() {
               <button
                 onClick={passDay}
                 disabled={busy}
-                className="flex items-center gap-1.5 rounded-md border border-indigo-400/40 bg-indigo-600/80 px-3 py-1.5 text-sm font-medium text-indigo-50 shadow-sm transition hover:bg-indigo-500 disabled:opacity-50"
+                className="flex h-10 items-center gap-1.5 rounded-lg bg-amber-600 px-4 text-sm font-semibold tracking-wide text-stone-950 shadow-md shadow-amber-950/40 transition hover:bg-amber-500 disabled:opacity-50"
               >
                 <img src="/ui/passday.png" alt="" draggable={false} className="h-5 w-5 object-contain" /> 하루 넘기기
               </button>
             )}
+
+            {/* 구분선 */}
+            <span className="mx-0.5 hidden h-6 w-px bg-stone-700/60 sm:block" />
+
+            {/* 보조 액션 — ghost */}
             {state.location !== "home" && (
               <button
                 onClick={() => setShowInventory(true)}
-                className="flex items-center gap-1.5 rounded-md border border-stone-700 bg-stone-900/50 px-3 py-1.5 text-sm text-stone-300 shadow-sm transition hover:border-stone-500 hover:bg-stone-800"
+                className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
               >
                 <img src="/buildings/warehouse.png" alt="" draggable={false} className="h-4 w-4 object-contain" /> 창고{invCount > 0 ? ` (${invCount})` : ""}
               </button>
             )}
             <button
               onClick={() => setShowNotebook(true)}
-              className="flex items-center gap-1.5 rounded-md border border-stone-700 bg-stone-900/50 px-3 py-1.5 text-sm text-stone-300 shadow-sm transition hover:border-stone-500 hover:bg-stone-800"
+              className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
             >
               <img src="/ui/magicbook.png" alt="" draggable={false} className="h-4 w-4 object-contain" /> 단서 노트{state.clues.length > 0 ? ` (${state.clues.length})` : ""}
             </button>
             <button
               onClick={() => setShowTutorial((v) => !v)}
-              className="flex items-center gap-1.5 rounded-md border border-stone-700 bg-stone-900/50 px-3 py-1.5 text-sm text-stone-300 shadow-sm transition hover:border-stone-500 hover:bg-stone-800"
+              className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-400 transition hover:border-amber-600/50 hover:text-amber-200"
             >
               도움말
             </button>
@@ -626,9 +645,10 @@ function WorldMapModal({
         <div className="mb-2 flex justify-end">
           <button
             onClick={onClose}
-            className="rounded border border-stone-600 bg-stone-900/80 px-3 py-1 text-sm text-stone-300 transition hover:bg-stone-800"
+            aria-label="닫기"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-700 bg-stone-900/80 text-stone-400 transition hover:border-amber-600/50 hover:text-amber-200"
           >
-            닫기 ✕
+            ✕
           </button>
         </div>
         <WorldMap location={location} homeIcon={homeIconId} busy={busy} onTravel={onTravel} />
@@ -654,7 +674,7 @@ function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onReplaySto
         >
           ✕
         </button>
-        <p className="font-display mb-2 text-base font-semibold text-sky-300">📖 Ashen Kingdom — 어떻게 하나?</p>
+        <p className="mb-2 text-base font-semibold text-sky-300">📖 Ashen Kingdom — 어떻게 하나?</p>
         <p className="mb-2 text-stone-400">
           목표 = 소문을 읽어 상인과 거래하고, 폐허 위에 도시를 다시 세운다.
         </p>

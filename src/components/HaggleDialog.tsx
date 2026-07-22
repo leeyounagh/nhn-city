@@ -132,7 +132,7 @@ export function HaggleDialog({
             emojiClassName="flex aspect-square w-full items-center justify-center rounded-lg border border-stone-700 bg-stone-800 text-7xl"
           />
           <div className="text-center">
-            <p className="font-display text-lg font-semibold text-stone-100">{merchant.name}</p>
+            <p className="text-lg font-semibold text-stone-100">{merchant.name}</p>
             <p className="text-xs text-stone-400">{merchant.title}</p>
             <p className="mt-1 text-xs text-amber-300/80">
               {isBarter ? `${haggle.materialName} 물물교환` : `${haggle.materialName} 흥정`}
@@ -154,7 +154,7 @@ export function HaggleDialog({
           <div className="flex items-center gap-3">
             <Portrait portrait={merchant.portrait} file={merchant.portraitFile} />
             <div>
-              <p className="font-display font-semibold text-stone-100">
+              <p className="font-semibold text-stone-100">
                 {merchant.name}와(과) {isBarter ? "물물교환" : "흥정"}
               </p>
               <p className="text-xs text-stone-400">

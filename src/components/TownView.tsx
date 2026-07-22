@@ -103,7 +103,7 @@ export function TownView({
       <div className="grid gap-4 md:grid-cols-[1fr_320px]">
       <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
         <div className="mb-3 flex items-center gap-2">
-          <h2 className="font-display flex items-center gap-1.5 text-base font-bold text-stone-100">
+          <h2 className="flex items-center gap-1.5 text-base font-bold text-stone-100">
             <TownThumb townId={townId} /> {townName} 상인
           </h2>
           <span className="text-xs text-stone-400">{industryName}</span>

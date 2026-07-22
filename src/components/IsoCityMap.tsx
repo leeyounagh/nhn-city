@@ -433,10 +433,10 @@ export function IsoCityMap({
   }
 
   return (
-    <section className="rounded-lg border border-emerald-800/50 bg-emerald-950/20 p-4">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
+    <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-stone-700 bg-stone-900/60 p-3">
+      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2">
         <h2 className="font-display flex items-center gap-1.5 text-base font-bold text-stone-100">
-          <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-md border border-emerald-700/50 bg-stone-950/50">
+          <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-md border border-stone-600/50 bg-stone-950/50">
             <img
               src={buildingSprite(homeIcon(state.placements))}
               alt=""
@@ -459,7 +459,7 @@ export function IsoCityMap({
 
       {/* 이동 모드 안내 */}
       {movingId && (
-        <div className="mb-2 flex items-center justify-between gap-2 rounded border border-sky-700/60 bg-sky-950/50 px-3 py-2 text-sm text-sky-200">
+        <div className="mb-2 flex shrink-0 items-center justify-between gap-2 rounded border border-sky-700/60 bg-sky-950/50 px-3 py-2 text-sm text-sky-200">
           <span>🚚 옮길 빈 터(초록)를 탭하세요. 빨간 칸엔 다른 건물이 있어 놓을 수 없습니다.</span>
           <button
             onClick={() => setMovingId(null)}
@@ -479,8 +479,7 @@ export function IsoCityMap({
           panMovedRef.current = false;
           panRef.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
         }}
-        className="relative isolate mb-3 cursor-grab touch-none overflow-hidden rounded border border-stone-700/50 bg-stone-950/40 active:cursor-grabbing"
-        style={{ height: "72vh" }}
+        className="relative isolate mb-2 min-h-0 flex-1 cursor-grab touch-none overflow-hidden rounded border border-stone-700 bg-stone-950/40 shadow-[inset_0_0_50px_rgba(0,0,0,0.55)] ring-1 ring-amber-900/20 active:cursor-grabbing"
       >
         {tiles}
         {sprites}
@@ -525,7 +524,7 @@ export function IsoCityMap({
           {drag.kind === "building" ? (
             <img src={buildingSprite(drag.id)} alt="" className="w-32 opacity-90 drop-shadow-lg" draggable={false} />
           ) : (
-            <span className="rounded bg-emerald-700 px-2 py-0.5 text-xs font-semibold text-emerald-50 shadow-lg">
+            <span className="rounded bg-stone-800 px-2 py-0.5 text-xs font-semibold text-amber-100 shadow-lg ring-1 ring-amber-600/40">
               {MATERIAL_NAME[drag.id]}
             </span>
           )}
@@ -543,8 +542,8 @@ function InventoryStrip({
   onChipPointerDown: (e: React.PointerEvent, materialId: string) => void;
 }) {
   return (
-    <div className="mb-3 rounded-lg border border-stone-700/50 bg-stone-900/40 p-2.5">
-      <p className="mb-1.5 text-xs font-semibold text-stone-300">
+    <div className="mb-2 shrink-0 rounded-lg border border-stone-700/50 bg-stone-900/40 px-2.5 py-1.5">
+      <p className="mb-1 text-xs font-semibold text-stone-300">
         <img src="/buildings/warehouse.png" alt="" draggable={false} className="mr-1 inline-block h-4 w-4 align-text-bottom object-contain" /> 창고 <span className="font-normal text-stone-500">— 자재를 건물로 끌어다 채운다</span>
       </p>
       <div className="flex flex-wrap gap-1.5">
@@ -606,7 +605,7 @@ function BuildingPalette({
       />
     ));
   return (
-    <div className="space-y-2">
+    <div className="shrink-0 space-y-1.5">
       <div>
         <p className="mb-1.5 text-xs font-semibold text-stone-300"><img src="/ui/crane.png" alt="" draggable={false} className="mr-1 inline-block h-4 w-4 align-text-bottom object-contain" /> 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭</p>
         <div onPointerDown={onStripPointerDown} className="flex cursor-grab gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing">{cards(normal)}</div>
