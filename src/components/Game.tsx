@@ -1,6 +1,6 @@
 "use client";
 // 게임 오케스트레이터. 클라이언트 상태를 소유하고 서버 라우트를 호출해 루프를 돈다.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useLayoutEffect, useState } from "react";
 import type { DailyNews, HaggleCategory, LocationId, MaterialId, PublicMerchant, Rumor, TownId } from "@/types/game";
 import { BUILDINGS, HAGGLE_TURNS, MATERIAL_NAME, MAX_BOOK_LEVEL, TOWN_BY_ID, travelDays, locationName } from "@/lib/game-data";
 import {
@@ -36,14 +36,16 @@ export function Game() {
   const [showBook, setShowBook] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
-  const [showIntro, setShowIntro] = useState(false);
+  // null = 판정 전(첫 프레임) · true = 재생 · false = 종료. 판정 전엔 검은 커버로 게임 노출을 막는다.
+  const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const [news, setNews] = useState<DailyNews | null>(null); // 오늘 아침 시황 (모달)
   const [lastNewsDay, setLastNewsDay] = useState(1); // 뉴스를 마지막으로 띄운 날 (하루 1회)
 
   // 세션에 한 번만 자동 재생 (새로고침 반복 방지). sessionStorage는 SSR에 없어 마운트 후 읽는다.
-  useEffect(() => {
+  // 페인트 직전에 판정해 게임 메인이 한 프레임 노출되는 깜빡임을 막는다.
+  useLayoutEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 시스템(sessionStorage) 동기화용 정당한 마운트 1회 세팅
-    if (!sessionStorage.getItem(INTRO_SEEN_KEY)) setShowIntro(true);
+    setShowIntro(!sessionStorage.getItem(INTRO_SEEN_KEY));
   }, []);
 
   const finishIntro = useCallback(() => {
@@ -510,7 +512,8 @@ export function Game() {
         <BookCodex bookLevel={bookLevel} xp={state.xp} onClose={() => setShowBook(false)} />
       )}
 
-      {showIntro && <IntroCutscene onFinish={finishIntro} />}
+      {showIntro === null && <div className="fixed inset-0 z-[60] bg-black" />}
+      {showIntro === true && <IntroCutscene onFinish={finishIntro} />}
 
       {news && <NewsModal news={news} onClose={() => setNews(null)} />}
 
@@ -605,7 +608,7 @@ function NewsModal({ news, onClose }: { news: DailyNews; onClose: () => void }) 
         >
           ✕
         </button>
-        <p className="mb-2 text-xs font-semibold tracking-wide text-amber-400">📰 아침 시황</p>
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-amber-400"><GameIcon name="newspaper" className="h-4 w-4" /> 아침 시황</p>
         <p className="mb-3 text-base font-bold leading-snug text-stone-100">{news.headline}</p>
         {ev ? (
           <div className="rounded border border-emerald-800/50 bg-emerald-950/30 px-3 py-2 text-sm">

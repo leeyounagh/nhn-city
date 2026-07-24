@@ -136,7 +136,7 @@ export function BookCodex({
                         unlocked ? "bg-amber-500 text-stone-950" : "bg-stone-700 text-stone-400"
                       }`}
                     >
-                      {unlocked ? "✓" : "🔒"}
+                      {unlocked ? "✓" : <GameIcon name="padlock" className="h-3.5 w-3.5" />}
                     </span>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-stone-100">

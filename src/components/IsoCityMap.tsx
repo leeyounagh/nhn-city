@@ -461,7 +461,7 @@ export function IsoCityMap({
       {/* 이동 모드 안내 */}
       {movingId && (
         <div className="mb-2 flex shrink-0 items-center justify-between gap-2 rounded border border-sky-700/60 bg-sky-950/50 px-3 py-2 text-sm text-sky-200">
-          <span>🚚 옮길 빈 터(초록)를 탭하세요. 빨간 칸엔 다른 건물이 있어 놓을 수 없습니다.</span>
+          <span className="flex items-center gap-1.5"><GameIcon name="handTruck" className="h-4 w-4 shrink-0" /> 옮길 빈 터(초록)를 탭하세요. 빨간 칸엔 다른 건물이 있어 놓을 수 없습니다.</span>
           <button
             onClick={() => setMovingId(null)}
             className="shrink-0 rounded border border-sky-600 px-2 py-0.5 text-xs text-sky-100 hover:bg-sky-900/60"
@@ -613,8 +613,8 @@ function BuildingPalette({
       </div>
       {unlocked && (
         <div>
-          <p className="mb-1.5 text-xs font-semibold text-amber-300">
-            🎨 장식 <span className="font-normal text-stone-400">— 「대건축가의 설계도」로 해금. 바닥·성벽을 자유롭게</span>
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-amber-300">
+            <GameIcon name="paintBrush" className="h-4 w-4" /> 장식 <span className="font-normal text-stone-400">— 「대건축가의 설계도」로 해금. 바닥·성벽을 자유롭게</span>
           </p>
           <div onPointerDown={onStripPointerDown} className="flex cursor-grab gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing">{cards(deco)}</div>
         </div>
@@ -660,8 +660,8 @@ function PaletteCard({
       <span className="text-xs font-semibold text-stone-100">{b.name}</span>
       {b.income > 0 && <span className="text-[10px] text-emerald-300">+{b.income}/day</span>}
       {b.produces && (
-        <span className="text-[10px] text-sky-300">
-          🏭 {(Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => `${MATERIAL_NAME[id]}+${n}`).join(" ")}
+        <span className="flex items-center gap-1 text-[10px] text-sky-300">
+          <GameIcon name="factory" className="h-3 w-3 shrink-0" /> {(Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => `${MATERIAL_NAME[id]}+${n}`).join(" ")}
         </span>
       )}
       {!b.deco && !c.canPlace && (
@@ -763,21 +763,21 @@ function PlacementPanel({
         <div className="mt-4 flex gap-2 border-t border-stone-700/60 pt-3">
           <button
             onClick={() => onStartMove(placement.id)}
-            className="flex-1 rounded border border-sky-700/60 bg-sky-950/40 px-2 py-1.5 text-xs font-semibold text-sky-200 transition hover:bg-sky-900/50"
+            className="flex flex-1 items-center justify-center gap-1 rounded border border-sky-700/60 bg-sky-950/40 px-2 py-1.5 text-xs font-semibold text-sky-200 transition hover:bg-sky-900/50"
           >
-            🚚 이동
+            <GameIcon name="handTruck" className="h-4 w-4" /> 이동
           </button>
           <button
             onClick={() => onRotate(placement.id)}
-            className="flex-1 rounded border border-stone-600 bg-stone-800/50 px-2 py-1.5 text-xs font-semibold text-stone-200 transition hover:bg-stone-700"
+            className="flex flex-1 items-center justify-center gap-1 rounded border border-stone-600 bg-stone-800/50 px-2 py-1.5 text-xs font-semibold text-stone-200 transition hover:bg-stone-700"
           >
-            ↔ 회전
+            <GameIcon name="clockwiseRotation" className="h-4 w-4" /> 회전
           </button>
           <button
             onClick={() => onReclaim(placement.id)}
-            className="flex-1 rounded border border-rose-800/60 bg-rose-950/40 px-2 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50"
+            className="flex flex-1 items-center justify-center gap-1 rounded border border-rose-800/60 bg-rose-950/40 px-2 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50"
           >
-            🗑 삭제
+            <GameIcon name="trashCan" className="h-4 w-4" /> 삭제
           </button>
         </div>
         <p className="mt-2 text-[11px] text-stone-500">삭제하면 투입·소모한 자재를 전부 돌려받는다.</p>
