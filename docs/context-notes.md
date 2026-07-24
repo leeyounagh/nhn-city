@@ -395,3 +395,17 @@
 - **건물 수요**: 우물(2)·노점(1)·시장(2)·성벽(3)·망루(2) — 초반~중반 분산.
 - **아이콘**: ChatGPT 생성 → PowerShell 채도 크로마키(max-min<26 → alpha0)로 회색배경·중앙구멍·그림자 제거 → 256px. 한글 파일명은 PS 스크립트 인코딩에서 깨지니 **ASCII 경로로 복사 후 처리**.
 - **재료 추가 시 배선 6곳(재사용)**: ①types MaterialId ②game-data MATERIALS(+MATERIAL_NAME 자동) ③economy PRICES ④economy SPECIALIZATIONS(상인 풀) ⑤game-data TOWNS specialMaterials(특산) ⑥game-data BUILDINGS requires. tsc가 `Record<MaterialId>` 누락을 잡아줌. MaterialIcon은 `/materials/{id}.png` 자동.
+
+### AI 폴백 데이터 다양화 (2026-07-25, 사용자 지시 "최대한 많이")
+- **문제**: AI 크레딧 소진/키 없음 시 폴백이 상황당 1개 고정 → 반복 노출 때 단조로움.
+- **해결**: `prompt.ts`에 `variant<T>(arr, n)` 헬퍼(= `arr[((n%len)+len)%len]`, 음수·NaN 보정) 추가. 각 폴백을 "변형 배열 + 결정론 선택"으로 확장. 총 **104개** 문장.
+  - **페르소나**: `FALLBACK_PERSONAS`를 `Record<string, Persona[]>`로 — 6전문화×4변형=24. `fallbackPersona(spec, seed=0)`.
+  - **흥정 대사**: `FALLBACK_LINES` 7카테고리×6=42. `fallbackLine(cat, persona, seed=0, turnsLeft=0)` → 인덱스 `seed+turnsLeft`라 같은 카테고리 연속 발언도 턴마다 대사가 밀려 바뀜.
+  - **소문**: `FALLBACK_RUMOR_{LOCATION6/WANTS6/LEAVING3/STAYING3}` 함수배열. `fallbackRumor(frag)`가 내부에서 `frag.merchantSeed`로 선택(시그니처 불변).
+  - **헤드라인**: `FALLBACK_HEADLINES_{EVENT7/CALM5}`. `fallbackHeadline(event, day=0)`.
+  - **책 조언**: `BOOK_ADVICE_{WEAKNESS4/PROFILE4}` 도입부 함수배열. `fallbackBookAdvice(profile, weakness?, seed=0)`.
+- **결정론 유지**: 같은 `(seed, turnsLeft, day)` = 항상 같은 결과. "같은 seed=같은 결과" 원칙 불변.
+- **2레이어 격리 불변**: 판정·호감도·가격·하한가 로직은 무수정, **대사 텍스트만** 확장. 추가 인자는 전부 옵셔널이라 하위호환.
+- **호출부 배선**: `merchant.ts`(seed), `haggle/route.ts`(seed·turnsLeft), `news.ts`(day), `book-advice/route.ts`(seed). `rumor.ts`는 frag 그대로 전달.
+- **확인 방법**: 폴백은 `ANTHROPIC_API_KEY` 없거나 크레딧 소진 시만 노출됨. 육안 검증 시 키를 비우고 `pnpm dev`. tsc/eslint 그린.
+- **다음에 폴백 늘릴 때**: 배열에 문장만 추가하면 됨(개수 무관, `variant`가 자동 분산). 새 폴백 종류 추가 시 seed/day 같은 결정론 인덱스를 호출부에서 옵셔널로 넘길 것.

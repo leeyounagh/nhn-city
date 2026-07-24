@@ -82,7 +82,7 @@ export async function POST(request: Request) {
 
   // 첫 턴이면 서버가 성향별 초기 호감도를 시드한다 (클라에 노출 안 함).
   const disposition = parsed.data.disposition ?? initialDisposition(derived.profile);
-  const persona: Persona = parsed.data.persona ?? fallbackPersona(derived.spec);
+  const persona: Persona = parsed.data.persona ?? fallbackPersona(derived.spec, seed);
 
   // LLM 분류 + 연기 (실패 시 키워드 폴백).
   const llm = extractJson<{ category?: string; line?: string }>(
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
   const category: HaggleCategory = isValidCategory(llm?.category)
     ? llm.category
     : fallbackCategory(utterance);
-  const line = llm?.line?.trim() || fallbackLine(category, persona);
+  const line = llm?.line?.trim() || fallbackLine(category, persona, seed, turnsLeft);
 
   // 코드가 호감도·가격(골드) 또는 교환비(개수)를 계산한다.
   const newDisposition = applyCategory(disposition, category, derived.profile);

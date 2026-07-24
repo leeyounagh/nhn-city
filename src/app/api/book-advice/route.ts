@@ -31,6 +31,6 @@ export async function POST(request: Request) {
     200,
   );
   // LLM이 따옴표로 감싸는 경우 제거. 실패 시 템플릿 폴백.
-  const advice = raw?.trim().replace(/^["'“”]+|["'“”]+$/g, "") || fallbackBookAdvice(profileHint, weaknessHint);
+  const advice = raw?.trim().replace(/^["'“”]+|["'“”]+$/g, "") || fallbackBookAdvice(profileHint, weaknessHint, seed);
   return NextResponse.json({ advice });
 }

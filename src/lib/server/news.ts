@@ -24,6 +24,6 @@ export function marketEvent(day: number): MarketEvent | null {
 export async function generateNews(day: number): Promise<DailyNews> {
   const event = marketEvent(day);
   const llm = extractJson<{ headline?: string }>(await askText(newsSystem(), newsUser(event), 120));
-  const headline = llm?.headline?.trim() || fallbackHeadline(event);
+  const headline = llm?.headline?.trim() || fallbackHeadline(event, day);
   return { headline, event };
 }

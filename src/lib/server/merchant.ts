@@ -18,7 +18,7 @@ export async function generatePublicMerchant(
   const llm = extractJson<Partial<Persona>>(
     await askText(personaSystem(), personaUser(derived.spec)),
   );
-  const fb = fallbackPersona(derived.spec);
+  const fb = fallbackPersona(derived.spec, seed);
   const persona: Persona = {
     name: llm?.name ?? fb.name,
     appearance: llm?.appearance ?? fb.appearance,
