@@ -30,10 +30,11 @@ npx eslint <files>
   - 실좌표 클릭 필요: 타일 히트영역은 clip-path 다이아라 DOM `.click()`은 오차. 좌표 기반 클릭 사용.
 
 ## 4. 2레이어 아키텍처 (핵심 파일)
-- **서버 전용 진실** — `src/lib/server/economy.ts`(가격·상인 스펙·성향·호감도Δ·흥정식·초상화풀·`getProfileHint`/`getWeaknessHint`), `src/lib/server/world.ts`(일별 상인 6명 생성·마을 배치), `src/app/api/*`(haggle/town/news/**book-advice** 라우트).
-- **클라 공개 데이터** — `src/lib/game-data.ts`(자재·건물·마을·상수·`BUILDING_RENDER_SCALE`·`TOWN_ICON`·`BOOK_XP_THRESHOLDS`), `src/lib/game-state.ts`(GameState·생산·게이팅·`homeIcon`).
-- **UI** — `src/components/*`. 오케스트레이터 `Game.tsx`(상태 소유·푸터HUD·모달들·Tutorial), 홈 아이소맵 `IsoCityMap.tsx`, 마을 `TownView.tsx`+미리보기 `TownIsoPreview.tsx`, 상인 `MerchantPanel.tsx`+흥정 `HaggleDialog.tsx`, 마법의 책 `BookCodex.tsx`, 재료 아이콘 `MaterialIcon.tsx`, **UI 아이콘 `GameIcon.tsx`(game-icons SVG 12종, currentColor)**.
-- **데이터 명세** — `docs/경제모델.md`(구현 반영), `docs/기획서.md`.
+- **서버 전용 진실** — `src/lib/server/economy.ts`(가격·상인 스펙·성향·호감도Δ·흥정식·초상화풀·**`MERCHANTS` 영구 24명 정체성**·`merchantIdentity`·`canBarter`), `src/lib/server/world.ts`(**24명 슬라이딩 체류→하루 6명 등장·`daysLeft`**), `src/lib/server/rumor.ts`(소문 신선도·위치필터), `src/app/api/*`(haggle/town/news/book-advice).
+- **클라 공개 데이터** — `src/lib/game-data.ts`(자재·건물·`BuildingDef.category`·`BUILDING_RENDER_SCALE`·`TOWN_ICON`), `src/lib/game-state.ts`(GameState·**`merchantMemory`·`decayedDisposition`·`dispositionRank`**·생산·게이팅).
+- **로직 훅** — `src/hooks/useGameEngine.ts`(클라 상태 소유 + 서버 호출 + 모든 액션, `GameEngine` 타입 export). ⚠️ **게임 로직은 여기**, `Game.tsx`는 렌더 조립만(72줄).
+- **UI** — `src/components/Game.tsx`(얇은 조립: 메인영역 + `<ModalStack>` + `<GameFooter>`), `src/components/game/`(`modals/`=NewsModal·RelationsModal·WorldMapModal·Tutorial, `hud/`=ResChip·GameFooter, `ModalStack.tsx`), 홈맵 `IsoCityMap.tsx`(⚠️ 814줄, 리팩토링 대상), 마을 `TownView.tsx`+`TownIsoPreview.tsx`, 상인 `MerchantPanel.tsx`+`HaggleDialog.tsx`, `BookCodex.tsx`, `GameIcon.tsx`(game-icons SVG 19종).
+- **데이터 명세** — `docs/경제모델.md`(구현 반영, §2.4 상인 v2), `docs/기획서.md`.
 
 ## 5. 자산 파이프라인
 - **건물 스프라이트** — itch "Isometric Realm — Medieval" by JP Cummins(구매, README 크레딧 필수). 원본 고해상 → PowerShell `System.Drawing`으로 max ~400~512px 다운스케일 → `public/buildings/{id}.png`. `buildingSprite(id)`가 id→png 매핑.
@@ -45,7 +46,12 @@ npx eslint <files>
 - **인트로 진입 깜빡임 제거** — `Game.tsx`. `showIntro`가 `useEffect`(페인트 후)에서 켜져 메인 화면이 한 프레임 노출되던 문제. `useLayoutEffect`로 판정하고, `showIntro`를 `boolean|null` 3-state로 바꿔 판정 전(null)엔 검은 풀스크린 커버(`fixed inset-0 z-[60] bg-black`)를 덮어 SSR HTML 노출 갭까지 차단. 첫 진입: 커버→인트로, 재방문: 커버→게임(메인 flash 없음).
 - **잔여 이모지 → GameIcon SVG** (§7-1 완료) — game-icons.net(CC BY 3.0)에서 7종 추출·추가: `newspaper`·`factory`·`handTruck`·`clockwiseRotation`·`trashCan`·`paintBrush`·`padlock`. 교체 8곳: 뉴스 헤더(Game), 생산·이동안내·이동/회전/삭제 버튼·장식 해금(IsoCityMap), 책 잠금(BookCodex). 물물교환 헤더는 이미 `trade`, "A ↔ B" 관계 구분자·`✕`·`✓`·초상화/건물 폴백 이모지는 의도적 유지.
 - **파비콘 교체** — `src/app/icon.png`를 Ashen Kingdom A 엠블럼으로(1024→512 다운스케일, 534KB). App Router 파일 규약이라 코드 변경 없음.
-- **AI 폴백 데이터 다양화** — §7 신규 항목. 아래 §6-1 상세는 `context-notes.md` "폴백 확장" 참조.
+- **AI 폴백 데이터 다양화** — 페르소나·흥정대사·소문·헤드라인·책조언 폴백을 "변형 배열+결정론 선택(`variant`)"으로 104개 확장. `context-notes.md` "폴백 확장" 참조.
+- **상인 영구 정체성 + 호감도 지속 (v2, 대작업)** — 하루살이 상인 → **영구 24명**(전문화6×4, id별 고정 seed로 전문화·초상화·성별·이름·외모 불변). `deriveWorld`는 **6슬롯 슬라이딩 체류**(각 슬롯 4명을 5일씩 순환, `daysLeft` 분산). 호감도는 `GameState.merchantMemory`에 **영구 저장+감쇠(-5/일)**, 신표 상인별 1회. 소문 정합: **위치=최신(100% 존재)/오래된소식(stale 뱃지)**, **wants=물물교환 가능 상인만**, 외견으로 상인 지칭(AI 없이 추리). 호감도 UI(MerchantPanel 배지 + 관계명부 모달). 단골 대사(흥정 프롬프트에 호감도 문맥). → `context-notes.md`·`project_ashen_merchant_loyalty` 메모리.
+- **상인 초상화 36장** — 미드저니 소프트애니(`--niji 6`), `public/merchants/{id}-1..6.png`. 24장 정체성 고정, 12장 이벤트 상인 예약.
+- **건물 확장** — 성 14·교회 4 신규(`castle`/`church` category). `BuildingDef.category`(core/commerce/tower/church/castle) + 팔레트 하단 **카테고리 탭**. marble 밸런스 조정(성 70→20, 석재 위주). 밸런스 시뮬 스크립트(`game-data.ts` 파싱)로 검증.
+- **생산 뉴스 모달** — 아침 뉴스(NewsModal)에 "오늘의 생산" 섹션(이동×일수/하루넘기기×1).
+- **대규모 리팩토링** — `Game.tsx` **930→72줄**. 로직 → `hooks/useGameEngine.ts`(상태+액션, `GameEngine` 타입 export), UI 조각 → `components/game/`(`modals/`·`hud/`·`ModalStack.tsx`). engine 객체를 통째로 넘겨 props 폭증 방지.
 
 ## 6. 이전 세션 (2026-07-22, 커밋됨 · UI 대개편 + 신규 기능)
 UI를 "웹앱"에서 "다크 판타지 게임"으로. ChatGPT 화면별 비평을 받아 순차 반영, 매 단계 tsc + playwright 검증.
@@ -63,12 +69,13 @@ UI를 "웹앱"에서 "다크 판타지 게임"으로. ChatGPT 화면별 비평�
 - **흥정창** — 현재가에 기준가·할인폭(▼N), 호감도 게이지+기분, 왼쪽 마법의 책 분석 카드(성향·약점 Lv2/3 단계 공개), 입력+제안 통합·수량 스테퍼.
 
 ## 7. 남은 일 (우선순위 순)
-1. ~~**잔여 이모지 마무리**~~ — ✅ 2026-07-25 완료(§6-1). 렌더되는 잔여 이모지 전부 GameIcon SVG로 교체.
-2. **마을뷰 심화** — 마을 이미지 정보 오버레이(상인 N·소문 N), 소문/판매 탭(모바일), 상인 카드 정보(보유품목/호감도). (오버레이 배지도 GameIcon 사용할 것)
-3. **밸런스 시뮬** — 하한가 플레이 총비용 vs 시작자금(400)·수입 곡선으로 N일 클리어 가능성 검증. rope 추가로 T1 수요 약간↑. `경제모델.md §8` 참조.
-4. **승리 조건/엔딩 화면** — 미구현(오픈엔드, 대성당이 최고난도 건물).
-5. **P5 산출물** — Vercel 배포(ANTHROPIC_API_KEY 필요 — 없으면 AI가 폴백), 데모 영상, 게임 소개·AI 기술문서.
-6. **아트** — 초상화 풀 확충(아키타입당 1장), 애니 프레임(사용자 제작).
+1. **IsoCityMap 리팩토링** — 814줄에 아이소맵 렌더+팔레트+드래그/카메라가 뒤엉킴. 카메라/드래그 → `useIsoCamera` 훅, 팔레트(BuildingPalette·PaletteCard) → 별도 파일. (Game.tsx 리팩토링의 연장, 다음 타깃)
+2. **밸런스 시뮬 심화** — 골드 곡선은 OK(62일 클리어). **진짜 병목은 고급자재 물리 공급**(marble 63·bronze 66)이 상인 재고(재등장4일×1~3)+생산으로 감당되는지. 시뮬 스크립트(`game-data.ts` 파싱, scratchpad)에 **상인 공급 모델 추가** 필요. 성 bronze 34도 관찰 대상.
+3. **마을뷰 심화** — 마을 이미지 정보 오버레이(상인 N·소문 N), 소문/판매 탭(모바일), 상인 카드 정보. (오버레이 배지도 GameIcon)
+4. **승리 조건/엔딩 화면** — 미구현(오픈엔드, 대성채/대성당이 최고난도).
+5. **P5 산출물** — Vercel 배포(ANTHROPIC_API_KEY 필요 — 없으면 AI 폴백), 데모 영상, 게임 소개·AI 기술문서.
+6. **아트** — 이벤트 상인 초상화 12장(남은 슬롯), 애니 프레임(사용자 제작).
+7. **미완결 스프린트** — 페르소나 캐시(보류, checklist P6 Sprint 3): 이름·외모는 고정됐으나 greeting/tone은 마을 재진입마다 재생성. 필요 시 클라 캐시.
 
 ## 8. 알아둘 함정
 - 모달이 타일/스프라이트에 덮이는 문제 → 부모에 `isolate`(isolation:isolate)로 스택 컨텍스트 격리(모달 z-40 아래로 자식 z 가둠). IsoCityMap boardArea, TownIsoPreview 루트에 적용됨.
@@ -76,6 +83,10 @@ UI를 "웹앱"에서 "다크 판타지 게임"으로. ChatGPT 화면별 비평�
 - 대풍작 이벤트는 슬라이딩 윈도우(지속 4일 ≥ 최대 이동거리 3)라 뉴스 듣고 이동해도 유효.
 - 「상인의 신표」(token)는 구매·판매 불가 — 호감도 ≥90 흥정 보상 전용. 「대건축가의 설계도」(blueprint)는 확률 6%·Lv3 잠금, 보유 시 장식 배치 해금.
 - GitHub 리모트: `github.com/leeyounagh/nhn-city` (master). 과거 `public/sprites` 41MB 데드 에셋은 히스토리에서 제거됨(.gitignore에 `/public/sprites/`).
+- **게임 로직은 `Game.tsx`가 아니라 `hooks/useGameEngine.ts`** — 액션·상태 수정은 여기서. Game.tsx는 렌더 조립만.
+- **상인 정체성**: `deriveMerchant(seed)`가 `merchantIdentity(seed)`로 자동 조회해 전문화·초상화를 고정(rng 소비 순서는 보존). 새 상인/전문화 추가 시 `MERCHANTS`(economy.ts)와 초상화 `{id}-n.png`를 함께 손봐야.
+- **슬라이딩 체류 period 경계**: 소문 위치는 `daysLeft>3`인 상인만 흘려 100% 존재 보장. 이 필터를 건드리면 "소문 보고 갔는데 없음" 버그가 재발할 수 있음.
+- **HMR 상태 보존 주의**: `GameState`에 필드 추가 시 dev 중이면 옛 state에 그 필드가 없어 런타임 에러. 접근 시 `?.`/`?? {}` 방어 + 하드 새로고침.
 - **단일화면 레이아웃 규칙(UI 대개편 후)** — 루트 `h-screen overflow-hidden flex-col`, 맵/콘텐츠 `flex-1 min-h-0`, 나머지 `shrink-0`. 페이지는 절대 스크롤 안 함(콘텐츠 내부만). 새 화면도 이 규칙 유지.
 - **아이콘** — 이모지 대신 `GameIcon`(game-icons.net CC BY 3.0). 새 아이콘 필요 시 `/tmp/gi.json`(github 트리) 또는 재다운로드 → 배경 rect(`M0 0h512v512H0z`) 다음 path 추출 → `GameIcon.tsx` PATHS에 추가. currentColor라 `text-amber-400` 등으로 틴트.
 - **폰트** — `font-display`(Cinzel+Song Myung)는 세계관 문구(로고·지명·마법의책·월드맵)에만. 섹션 제목·카드·버튼은 Sans. 남발 금지.
