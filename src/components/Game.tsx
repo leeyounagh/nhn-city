@@ -1,7 +1,7 @@
 "use client";
 // 게임 오케스트레이터. 클라이언트 상태를 소유하고 서버 라우트를 호출해 루프를 돈다.
 import { useCallback, useLayoutEffect, useState } from "react";
-import type { DailyNews, HaggleCategory, LocationId, MaterialId, PublicMerchant, Rumor, TownId } from "@/types/game";
+import type { DailyNews, HaggleCategory, LocationId, MaterialId, NewsWithProduction, PublicMerchant, Rumor, TownId } from "@/types/game";
 import { BUILDINGS, HAGGLE_TURNS, MATERIAL_NAME, MAX_BOOK_LEVEL, TOWN_BY_ID, travelDays, locationName } from "@/lib/game-data";
 import {
   type GameState,
@@ -15,23 +15,23 @@ import {
   checkPlace,
   decayRecentBuys,
   decayedDisposition,
-  dispositionRank,
   homeIcon,
 } from "@/lib/game-state";
-import { WorldMap } from "@/components/WorldMap";
 import { TownView } from "@/components/TownView";
 import { IsoCityMap } from "@/components/IsoCityMap";
 import { HaggleDialog } from "@/components/HaggleDialog";
 import { ClueNotebook } from "@/components/ClueNotebook";
 import { BookCodex } from "@/components/BookCodex";
-import { GameIcon, type GameIconName } from "@/components/GameIcon";
+import { GameIcon } from "@/components/GameIcon";
 import { InventoryPanel } from "@/components/InventoryPanel";
 import { IntroCutscene } from "@/components/IntroCutscene";
+import { NewsModal } from "@/components/game/modals/NewsModal";
+import { RelationsModal } from "@/components/game/modals/RelationsModal";
+import { WorldMapModal } from "@/components/game/modals/WorldMapModal";
+import { Tutorial } from "@/components/game/modals/Tutorial";
+import { ResChip } from "@/components/game/hud/ResChip";
 
 const INTRO_SEEN_KEY = "lc_intro_seen";
-
-// 아침 뉴스 모달에 그날 정산된 생산량을 함께 실어 보여준다(클라 계산분).
-type NewsWithProduction = DailyNews & { produced?: Partial<Record<MaterialId, number>> };
 
 // 흥정 종료 시 그 상인과의 호감도·신표 수령을 기억에 저장한다(seed=정체성 키). 대화 없이 닫으면 유지.
 function rememberMerchant(s: GameState): Record<number, MerchantMemory> {
@@ -640,291 +640,6 @@ export function Game() {
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-// 관계 명부 모달. 거래하며 쌓은 상인들과의 호감도(감쇠 반영)를 한눈에. 어디서나 열람.
-function RelationAvatar({ file }: { file?: string }) {
-  const [ok, setOk] = useState(true);
-  if (ok && file) {
-    return (
-      <img
-        src={`/merchants/${file}.png`}
-        alt=""
-        draggable={false}
-        onError={() => setOk(false)}
-        className="h-10 w-10 shrink-0 rounded-lg border border-stone-600 object-cover"
-      />
-    );
-  }
-  return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-600 bg-stone-800">
-      <GameIcon name="merchant" className="h-5 w-5 text-stone-500" />
-    </span>
-  );
-}
-
-function RelationsModal({
-  memory,
-  day,
-  onClose,
-}: {
-  memory: Record<number, MerchantMemory>;
-  day: number;
-  onClose: () => void;
-}) {
-  const rows = Object.entries(memory)
-    .map(([seed, m]) => ({ seed, m, current: decayedDisposition(m, day) }))
-    .sort((a, b) => b.current - a.current);
-  return (
-    <div
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-16 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-md rounded-lg border border-amber-700/60 bg-stone-900 p-5 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          aria-label="닫기"
-          className="absolute right-3 top-3 text-stone-400 hover:text-stone-200"
-        >
-          ✕
-        </button>
-        <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-amber-400">
-          <GameIcon name="merchant" className="h-4 w-4" /> 관계 명부
-        </p>
-        <p className="mb-4 text-xs text-stone-500">거래하며 쌓은 상인들. 오래 안 만나면 호감도가 식는다.</p>
-        {rows.length === 0 ? (
-          <p className="py-6 text-center text-sm text-stone-500">
-            아직 흥정한 상인이 없다. 소문을 좇아 상인을 찾아라.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {rows.map(({ seed, m, current }) => {
-              const rank = dispositionRank(current);
-              const daysAgo = day - m.lastDay;
-              const cooling = current < m.disposition;
-              return (
-                <li
-                  key={seed}
-                  className="flex items-center gap-3 rounded-lg border border-stone-700/60 bg-stone-800/40 p-2.5"
-                >
-                  <RelationAvatar file={m.portraitFile} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-stone-100">
-                      {m.name} <span className="text-xs text-stone-500">{m.title}</span>
-                    </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${rank.tone}`}
-                      >
-                        {rank.label} · {current}
-                      </span>
-                      {m.tokenTaken && <span className="text-[10px] text-sky-400">신표</span>}
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-right text-[10px] leading-tight text-stone-500">
-                    {daysAgo === 0 ? "오늘" : `${daysAgo}일 전`}
-                    {cooling && (
-                      <>
-                        <br />
-                        <span className="text-rose-400/70">식는 중</span>
-                      </>
-                    )}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// 아침 시황 뉴스 모달. 이동으로 날이 바뀌면 하루 1회 뜬다. 이벤트가 있으면 폭락 마을·물품을 보여준다.
-function NewsModal({ news, onClose }: { news: NewsWithProduction; onClose: () => void }) {
-  const ev = news.event;
-  const prod = news.produced ? (Object.entries(news.produced) as [MaterialId, number][]) : [];
-  return (
-    <div
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-24 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-md rounded-lg border border-amber-700/60 bg-stone-900 p-5 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          aria-label="뉴스 닫기"
-          className="absolute right-3 top-3 text-stone-400 hover:text-stone-200"
-        >
-          ✕
-        </button>
-        <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-amber-400"><GameIcon name="newspaper" className="h-4 w-4" /> 아침 시황</p>
-        <p className="mb-3 text-base font-bold leading-snug text-stone-100">{news.headline}</p>
-        {ev ? (
-          <div className="rounded border border-emerald-800/50 bg-emerald-950/30 px-3 py-2 text-sm">
-            <p className="text-emerald-300">
-              <b>{ev.townName}</b> {ev.industryName} 대풍작 — 특산품{" "}
-              <span className="font-semibold text-amber-300">−{ev.pct}%</span>
-            </p>
-            <p className="mt-1 text-xs text-stone-400">{ev.materialNames.join(" · ")} 지금이 살 때.</p>
-          </div>
-        ) : (
-          <p className="text-sm text-stone-400">특별한 사건은 없다. 장세가 잔잔하다.</p>
-        )}
-        {prod.length > 0 && (
-          <div className="mt-2 rounded border border-sky-800/50 bg-sky-950/30 px-3 py-2">
-            <p className="flex items-center gap-1.5 text-sm text-sky-300">
-              <GameIcon name="factory" className="h-4 w-4" /> 오늘의 생산
-            </p>
-            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-stone-200">
-              {prod.map(([id, n]) => (
-                <span key={id}>
-                  {MATERIAL_NAME[id]} <span className="font-semibold text-emerald-300">+{n}</span>
-                </span>
-              ))}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// 월드맵을 오버레이 모달로 감싼다. 노드 클릭 시 이동 후 모달이 닫힌다. WorldMap 자체는 그대로 재사용.
-function WorldMapModal({
-  location,
-  homeIconId,
-  busy,
-  onTravel,
-  onClose,
-}: {
-  location: LocationId;
-  homeIconId: string;
-  busy: boolean;
-  onTravel: (dest: LocationId) => void;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div className="mt-16 w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-2 flex justify-end">
-          <button
-            onClick={onClose}
-            aria-label="닫기"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-700 bg-stone-900/80 text-stone-400 transition hover:border-amber-600/50 hover:text-amber-200"
-          >
-            ✕
-          </button>
-        </div>
-        <WorldMap location={location} homeIcon={homeIconId} busy={busy} onTravel={onTravel} />
-      </div>
-    </div>
-  );
-}
-
-// 도움말 — 세계관 속 "고서"처럼 연출. 카드형 5장 + 오프닝 다시보기.
-const GUIDE: { icon: GameIconName; title: string; body: React.ReactNode }[] = [
-  {
-    icon: "compass",
-    title: "길을 떠나는 법",
-    body: <>월드맵에서 마을을 눌러 이동한다. 이동한 날수만큼 하루가 흐르고, <span className="text-amber-300">완성된 건물</span>이 골드를 벌어준다.</>,
-  },
-  {
-    icon: "scroll",
-    title: "소문을 읽는 법",
-    body: <>마을에 도는 소문으로 <span className="text-amber-300">어느 상인이 무엇을 가졌는지</span> 추리한다. 소문은 단서 노트에 자동 기록된다.</>,
-  },
-  {
-    icon: "trade",
-    title: "상인을 설득하는 법",
-    body: <>자연어로 흥정한다. 성향에 맞는 말(아부·논리·대량구매…)로 <span className="text-amber-300">호감도</span>를 올리면 값이 내려간다. 협박은 대개 역효과.</>,
-  },
-  {
-    icon: "hammer",
-    title: "폐허를 복원하는 법",
-    body: <>사 온 자재를 고향 건물에 채우면 완성된다. 완성 건물은 매일 <span className="text-amber-300">골드·자재</span>를 낸다.</>,
-  },
-  {
-    icon: "spellBook",
-    title: "마법의 책을 성장시키는 법",
-    body: <>건물을 지어 경험치를 쌓으면 <span className="text-sky-300">마법의 책</span> 레벨이 올라 상인의 성향·약점·하한가가 드러난다.</>,
-  },
-];
-
-function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onReplayStory: () => void }) {
-  return (
-    <div
-      className="book-backdrop fixed inset-0 z-40 flex items-end justify-center overflow-y-auto bg-black/75 p-0 backdrop-blur-md sm:items-center sm:p-4"
-      onClick={onClose}
-    >
-      <div
-        className="book-open relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-amber-700/50 bg-stone-900 shadow-2xl shadow-black/70 ring-1 ring-amber-900/40 sm:rounded-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(217,164,65,0.12),transparent_60%)]" />
-
-        {/* 표지 헤더 */}
-        <div className="relative shrink-0 border-b border-amber-800/40 bg-gradient-to-b from-amber-950/40 to-transparent px-5 pb-4 pt-5 text-center">
-          <button
-            onClick={onClose}
-            aria-label="닫기"
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-stone-700 text-stone-400 transition hover:border-amber-600/50 hover:text-amber-200"
-          >
-            ✕
-          </button>
-          <GameIcon name="spellBook" className="mx-auto mb-1 h-9 w-9 text-amber-300 drop-shadow-[0_2px_6px_rgba(217,164,65,0.4)]" />
-          <h2 className="font-display text-xl font-bold tracking-wide text-amber-200 [text-shadow:0_2px_8px_rgba(0,0,0,0.6)]">
-            마법의 책
-          </h2>
-          <p className="mt-0.5 text-[11px] tracking-wide text-amber-500/70">초보 후계자를 위한 기록</p>
-        </div>
-
-        <div className="book-ink space-y-2.5 overflow-y-auto px-5 py-4">
-          <p className="mb-1 text-center text-sm leading-6 text-stone-300">
-            폐허가 된 고향을 다시 세우려면 — 상인을 <span className="text-amber-300">찾고</span>, 자재를 <span className="text-amber-300">거래하고</span>, 건물을 <span className="text-amber-300">복원</span>하라.
-          </p>
-          {GUIDE.map((g) => (
-            <div key={g.title} className="flex items-start gap-3 rounded-xl border border-stone-700/70 bg-stone-800/40 px-4 py-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-800/40 bg-amber-950/30">
-                <GameIcon name={g.icon} className="h-5 w-5 text-amber-400" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-stone-100">{g.title}</p>
-                <p className="text-sm leading-6 text-stone-400">{g.body}</p>
-              </div>
-            </div>
-          ))}
-          <div className="pt-1 text-center">
-            <button
-              onClick={onReplayStory}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-700/70 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
-            >
-              <GameIcon name="scroll" className="h-4 w-4" /> 오프닝 다시 보기
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// 하단 푸터의 리소스 배지 (골드·일차·수입). 라벨은 작게, 값은 굵게 강조색으로.
-function ResChip({ label, value, accent, icon }: { label: string; value: string; accent?: string; icon?: GameIconName }) {
-  return (
-    <div className="flex items-center gap-1.5 rounded-md border border-stone-700/60 bg-stone-900/60 px-2.5 py-1 shadow-sm">
-      {icon && <GameIcon name={icon} className={`h-4 w-4 ${accent ?? "text-stone-400"}`} />}
-      <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">{label}</span>
-      <span className={`text-sm font-bold tabular-nums ${accent ?? "text-stone-100"}`}>{value}</span>
     </div>
   );
 }

@@ -127,6 +127,9 @@ export interface DailyNews {
   event: MarketEvent | null; // 이벤트 없으면 평온한 장세
 }
 
+// 아침 뉴스 모달에 그날 정산된 생산량(클라 계산분)을 함께 실어 보여준다.
+export type NewsWithProduction = DailyNews & { produced?: Partial<Record<MaterialId, number>> };
+
 export type HaggleStatus = "ongoing" | "timeup" | "broke" | "closed";
 
 export interface HaggleResult {
