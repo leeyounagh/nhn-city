@@ -87,7 +87,7 @@ export async function POST(request: Request) {
   // LLM 분류 + 연기 (실패 시 키워드 폴백).
   const llm = extractJson<{ category?: string; line?: string }>(
     await askText(
-      haggleSystem(persona, derived.spec),
+      haggleSystem(persona, derived.spec, disposition),
       haggleUser(MATERIAL_NAME[materialId], mat.offer0, utterance),
     ),
   );
