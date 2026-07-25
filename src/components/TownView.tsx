@@ -2,12 +2,12 @@
 // 마을 진입 화면. 오늘 이 마을의 상인 목록과 여기서 들은 소문을 보여준다. 상인을 고르면 흥정 패널이 열린다.
 import { useState } from "react";
 import type { BookLevel, ClueKind, MaterialId, PublicMerchant, Rumor, TownId } from "@/types/game";
-import { MerchantPanel, PORTRAIT_EMOJI } from "@/components/MerchantPanel";
+import { MerchantPanel, PORTRAIT_EMOJI } from "@/components/game/modals/MerchantPanel";
 import { decayedDisposition, type MerchantMemory } from "@/lib/game-state";
 import { TownIsoPreview } from "@/components/TownIsoPreview";
 import { MATERIAL_NAME, TOWN_ICON } from "@/lib/game-data";
-import { MaterialIcon } from "@/components/MaterialIcon";
-import { GameIcon } from "@/components/GameIcon";
+import { MaterialIcon } from "@/shared/icon/MaterialIcon";
+import { GameIcon } from "@/shared/icon/GameIcon";
 
 // 마을 대표 썸네일 (이름 앞 작은 아이콘).
 function TownThumb({ townId }: { townId: TownId }) {

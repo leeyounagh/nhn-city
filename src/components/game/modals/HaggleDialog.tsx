@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { HaggleCategory, PublicMerchant } from "@/types/game";
 import type { HaggleState } from "@/lib/game-state";
-import { GameIcon } from "@/components/GameIcon";
+import { GameIcon } from "@/shared/icon/GameIcon";
 
 const CATEGORY_LABEL: Record<HaggleCategory, string> = {
   flattery: "아부",

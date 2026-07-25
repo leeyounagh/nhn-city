@@ -3,7 +3,7 @@
 // 레벨별 해금 + 흥정 카테고리 뜻풀이 + 성향 4종 개념. 2레이어 원칙: 정답 매핑(카테고리↔성향)은 없다.
 import type { BookLevel } from "@/types/game";
 import { BOOK_XP_THRESHOLDS, MAX_BOOK_LEVEL } from "@/lib/game-data";
-import { GameIcon, type GameIconName } from "@/components/GameIcon";
+import { GameIcon, type GameIconName } from "@/shared/icon/GameIcon";
 
 // 레벨별 해금 내용 (Lv1~3).
 const LEVEL_UNLOCKS: { level: BookLevel; title: string; desc: string }[] = [

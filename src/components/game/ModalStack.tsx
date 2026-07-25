@@ -1,9 +1,9 @@
 "use client";
 // 게임의 오버레이 모달 묶음 — 조건부로 뜨는 모든 모달/커버를 한곳에서 렌더한다.
-import { HaggleDialog } from "@/components/HaggleDialog";
-import { ClueNotebook } from "@/components/ClueNotebook";
-import { BookCodex } from "@/components/BookCodex";
-import { InventoryPanel } from "@/components/InventoryPanel";
+import { HaggleDialog } from "@/components/game/modals/HaggleDialog";
+import { ClueNotebook } from "@/components/game/modals/ClueNotebook";
+import { BookCodex } from "@/components/game/modals/BookCodex";
+import { InventoryPanel } from "@/components/game/modals/InventoryPanel";
 import { IntroCutscene } from "@/components/IntroCutscene";
 import { NewsModal } from "@/components/game/modals/NewsModal";
 import { RelationsModal } from "@/components/game/modals/RelationsModal";

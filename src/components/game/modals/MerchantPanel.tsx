@@ -2,8 +2,8 @@
 // 상인 패널. 페르소나 + 책 레벨로 걸러진 정보 + 자재 목록을 보여준다.
 import { useEffect, useState } from "react";
 import type { BookLevel, MaterialId, PublicMerchant } from "@/types/game";
-import { MaterialIcon } from "@/components/MaterialIcon";
-import { GameIcon } from "@/components/GameIcon";
+import { MaterialIcon } from "@/shared/icon/MaterialIcon";
+import { GameIcon } from "@/shared/icon/GameIcon";
 import { dispositionRank } from "@/lib/game-state";
 
 // 상인 초상화 — 실제 AI 초상화, 없으면 game-icon 폴백(분홍 이모지 대신).

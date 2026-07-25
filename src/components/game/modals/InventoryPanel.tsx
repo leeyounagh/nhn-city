@@ -1,7 +1,7 @@
 "use client";
-// 창고. 지금까지 사 모은 자재를 티어별로 보여준다. 어디서든 헤더 버튼으로 열어 확인한다.
+// 창고 모달. 사 모은 자재를 티어(기본·가공·희귀)별로 묶어 보여준다. 푸터의 「창고」 버튼으로 어디서든 연다.
 import { MATERIALS } from "@/lib/game-data";
-import { MaterialIcon } from "@/components/MaterialIcon";
+import { MaterialIcon } from "@/shared/icon/MaterialIcon";
 
 const TIER_LABEL: Record<number, string> = { 1: "1티어 (기본)", 2: "2티어 (가공)", 3: "3티어 (희귀)" };
 
