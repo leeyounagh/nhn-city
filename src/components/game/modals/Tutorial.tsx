@@ -1,6 +1,6 @@
 "use client";
 // 도움말 — 세계관 속 "고서"처럼 연출. 카드형 5장 + 오프닝 다시보기.
-import { GameIcon, type GameIconName } from "@/components/GameIcon";
+import { GameIcon, type GameIconName } from "@/shared/icon/GameIcon";
 
 const GUIDE: { icon: GameIconName; title: string; body: React.ReactNode }[] = [
   {

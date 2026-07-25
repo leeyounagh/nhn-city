@@ -1,6 +1,6 @@
 "use client";
 // 아침 시황 뉴스 모달. 이동으로 날이 바뀌면 하루 1회 뜬다. 이벤트·그날 생산량을 함께 보여준다.
-import { GameIcon } from "@/components/GameIcon";
+import { GameIcon } from "@/shared/icon/GameIcon";
 import { MATERIAL_NAME } from "@/lib/game-data";
 import type { MaterialId, NewsWithProduction } from "@/types/game";
 

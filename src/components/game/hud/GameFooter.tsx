@@ -1,6 +1,6 @@
 "use client";
 // 하단 푸터 HUD — 리소스 배지(골드·일차·수입)·마법의 책·이동/하루넘기기·보조 액션 버튼들.
-import { GameIcon } from "@/components/GameIcon";
+import { GameIcon } from "@/shared/icon/GameIcon";
 import { ResChip } from "@/components/game/hud/ResChip";
 import { MAX_BOOK_LEVEL } from "@/lib/game-data";
 import type { GameEngine } from "@/hooks/useGameEngine";

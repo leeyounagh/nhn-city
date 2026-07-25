@@ -1,7 +1,7 @@
 "use client";
 // 관계 명부 모달. 거래하며 쌓은 상인들의 호감도(감쇠 반영)를 한눈에. 어디서나 열람.
 import { useState } from "react";
-import { GameIcon } from "@/components/GameIcon";
+import { GameIcon } from "@/shared/icon/GameIcon";
 import { type MerchantMemory, decayedDisposition, dispositionRank } from "@/lib/game-state";
 
 function RelationAvatar({ file }: { file?: string }) {

@@ -2,7 +2,7 @@
 // 월드맵. 폐허 고향(허브) + 4개 상인 마을 노드. 카드가 아니라 "지역"처럼 — 방사형 길로 연결된 탐험 화면.
 import type { IndustryId, LocationId, TownId } from "@/types/game";
 import { TOWN_BY_ID, TOWN_ICON, travelDays, locationName } from "@/lib/game-data";
-import { GameIcon } from "@/components/GameIcon";
+import { GameIcon } from "@/shared/icon/GameIcon";
 
 // 3×3 격자 배치: 네 모서리에 마을, 중앙에 고향.
 const CELL: Record<LocationId, string> = {

@@ -1,5 +1,5 @@
 // 하단 푸터의 리소스 배지 (골드·일차·수입). 라벨은 작게, 값은 굵게 강조색으로.
-import { GameIcon, type GameIconName } from "@/components/GameIcon";
+import { GameIcon, type GameIconName } from "@/shared/icon/GameIcon";
 
 export function ResChip({ label, value, accent, icon }: { label: string; value: string; accent?: string; icon?: GameIconName }) {
   return (
