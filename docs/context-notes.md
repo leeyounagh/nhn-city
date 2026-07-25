@@ -409,3 +409,22 @@
 - **호출부 배선**: `merchant.ts`(seed), `haggle/route.ts`(seed·turnsLeft), `news.ts`(day), `book-advice/route.ts`(seed). `rumor.ts`는 frag 그대로 전달.
 - **확인 방법**: 폴백은 `ANTHROPIC_API_KEY` 없거나 크레딧 소진 시만 노출됨. 육안 검증 시 키를 비우고 `pnpm dev`. tsc/eslint 그린.
 - **다음에 폴백 늘릴 때**: 배열에 문장만 추가하면 됨(개수 무관, `variant`가 자동 분산). 새 폴백 종류 추가 시 seed/day 같은 결정론 인덱스를 호출부에서 옵셔널로 넘길 것.
+### 상인 정체성 + 영구 호감도 (B안, 2026-07-25 설계 — 구현 진행 중)
+- **결정 경위**: 사용자가 "상인 호감도 유지" 요청. v1은 `world.ts merchantSeed(day,i)`가 날마다 seed를 바꿔 상인이 하루살이 → 호감도 대상이 매일 소멸(호감도는 `HaggleState`에만, 흥정창 닫으면 사라짐). B안(영구 정체성) 채택.
+- **AI 활용 우려 해소**: "AI가 성격 바꾼다"는 건 매일 다른 상인이라 그런 것. B에서 페르소나를 상인 id별 1회 생성 후 캐시(정체성 일관) + 흥정에 호감도·재회 문맥 실어 "단골" 대사 생성 → 활용은 오히려↑. 정적 지름길 아님(feedback_nan2026_ai_utilization 부합).
+- **상인 24명**(전문화 6×4). 재등장 평균 4일(6/24). 18/24 중 24 선택 = 초상화 24장 활용 + 다양성. 나머지 12장 이벤트 상인 예약.
+- **감쇠 −5/일**(재등장 4일이면 −20)로 흥정 상승분 상쇄. 신표는 상인별 1회.
+- **스프린트**: 1)정체성 고정(world/economy) 2)호감도 저장+감쇠(game-state/haggle/Game) 3)페르소나 캐시+단골대사(merchant/api) 4)이벤트상인(후순위). checklist P6.
+- **2레이어 불변**: 판정·수치=코드, 페르소나·대사=AI. 정체성 부여는 seed 고정일 뿐 흥정 로직 무변.
+- **주의(연쇄)**: 소문·추리 축이 `world.merchants`(그날 6명) 기반 → `deriveWorld` 재설계 시 `rumor.ts selectFragments` 연쇄 확인 필수. 문서 반영: 경제모델 §2.4, 기획서 §6.1/§6.3/§8, checklist P6.
+### 소문 추리 복구 — 상인 5일 체류 + 외견 다축 소문 (2026-07-25, 사용자 지적 버그+개선)
+- **버그**: 정체성 도입(24명) 후 "소문 보고 이동하면 상인 없음". 원인 = `travelTo`가 날을 넘겨(`deriveWorld(newDay)`) 도착 시 배치가 바뀜 + 특정 상인 재등장은 25%(6/24)라 거의 못 만남. AI 폴백과 무관한 배치 문제.
+- **A. 5일 체류**(`world.ts`): `deriveWorld`를 `day`가 아니라 `period = floor((day-1)/STAY_DAYS=5)` seed로 → 묶음 안(5일)에선 위치 고정. 최대 이동 3일 < 5라 소문 보고 이동해도 도착 시 그대로. `movingTomorrow = (day % 5 === 0)`("곧 떠난다"). **존재율 6%→62%(2일 이동)**. 한계: period 경계 후반 소문+원거리 이동은 43%(3일). 완벽(100%) 원하면 상인별 슬라이딩 체류(각자 등장일 기준)로 가야 하나 스케줄링 복잡 → 보류.
+- **B. 외견 다축 소문**(`rumor.ts`·`prompt.ts`): `RumorFragment.appearance` 추가(= `merchantIdentity(seed).appearance`). `fallbackRumor`/`describeFragment`가 `frag.appearance || archetypeTitle`로 상인 지칭 → 폴백·LLM 모두 "생김새+위치/품목"으로 특정 가능. 같은 전문화 4명을 외견으로 구분 = AI 없이 추리 성립.
+- **검증**: tsc/eslint 그린. 시뮬(묶음 내 배치 고정·경계 재추첨·존재율 81/62/43%·예전 6%). 문서: 경제모델 §2.4, 기획서 §6.2/§6.6.
+### (업그레이드) 슬라이딩 체류 + 위치 소문 필터 → 존재율 100% (2026-07-25)
+- period(동시 교체) 방식은 존재율 62%에 그치고, day 3~5엔 모든 상인이 "곧 떠남"이라 위치 소문 가뭄 발생. 핵심 통찰: **존재율 100%의 열쇠는 슬라이딩 자체가 아니라 "곧 떠날 상인 위치는 안 흘리는 필터"**. 단 period는 필터를 걸면 위치 소문이 특정 날 0이 되므로, `daysLeft`를 분산시키는 슬라이딩이 필수 짝.
+- **슬라이딩**(`world.ts deriveWorld`): 6슬롯, 슬롯 s는 `id%6===s`인 상인 4명을 `STAY_DAYS=5`일씩 순환. `gen=floor((day-1+s)/STAY)` — offset s로 교체일 어긋냄(하루 ~1.2슬롯 교체). 슬롯 그룹이 배타적이라 하루 6명 항상 유니크. `daysLeft = STAY - ((day-1+s)%STAY)`.
+- **필터**(`rumor.ts selectFragments`): `location` 조각은 `wm.daysLeft > TRAVEL_MAX(3)`일 때만. 없으면 wants→moving→location 순 폴백. 곧 떠날 상인은 `movingTomorrow`(daysLeft===1) 소문.
+- **검증 시뮬**: 하루 6명 유니크·결정론·매일 위치소문 대상 최소 2명(가뭄X)·필터 위치소문 존재율 1/2/3일 **전부 100%**·하루 슬롯 교체 평균 1.20(자연스러움). 문서: 경제모델 §2.4, 기획서 §6.6.
+- WorldMerchant에 `daysLeft` 필드 추가. `movingTomorrow` 의미 = "체류 마지막 날".

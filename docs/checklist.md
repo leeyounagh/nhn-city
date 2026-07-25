@@ -60,6 +60,24 @@
 - [ ] 시연 영상 (소문→추리→이동→거래→건설 3~5분)
 - [ ] 게임 소개서 / AI 활용 기술문서 (★ 2레이어·소문 추리·정보격리·인젝션방어)
 
+## P6. 상인 정체성 + 영구 호감도 (v2 재설계, 2026-07-25~) → 검증: 재방문 호감도 유지·감쇠·페르소나 일관
+- 배경: v1은 상인이 매일 새로 롤돼(`merchantSeed(day,i)`) 호감도 유지 대상이 매일 소멸. 상인에 영구 정체성 부여.
+- **Sprint 1 — 상인 정체성 고정** (world.ts, economy.ts) ✅ 2026-07-25
+  - [x] 영구 상인 24명(전문화 6×4) id별 고정 seed — spec·초상화·성별·외모 불변. `MERCHANTS[]`+`merchantIdentity(seed)`. `deriveMerchant`가 seed로 정체성 조회해 전문화 고정(rng 순서 보존=가격 결정론).
+  - [x] `deriveWorld(day)` = 24명 결정론 셔플 후 6명 + 마을 배정. `WorldMerchant.id` 추가, `merchantSeed(day,i)` 제거.
+  - [x] 초상화 고정 배선(buildPublicMerchant) + `reassignUniquePortraits` 제거(정체성 고정이라 불필요).
+  - [x] 검증: tsc/lint 그린 + 시뮬(결정론 재현·200일 6명 중복없음·재등장 3.99일·등장 편향없음). ⚠️ 브라우저 실제 확인(마을 진입 시 고정 초상화·전문화)은 dev 서버 필요.
+- **Sprint 2 — 호감도 영구 저장 + 감쇠** (game-state.ts, Game.tsx) ✅ 2026-07-25
+  - [x] `GameState.merchantMemory{ [seed]: {disposition, lastDay, tokenTaken} }` (seed=정체성 키)
+  - [x] 흥정 시작 = 저장값 + 감쇠(`decayedDisposition`, -5/일) 시드, 종료(buy·closeHaggle) = 저장
+  - [x] 신표(≥90) 상인별 1회 재수령 차단(`tokenTaken` 시드/저장)
+  - [x] 검증: tsc/lint 그린 + 감쇠 시뮬(당일0·4일-20·장기0클램프·과거일방어). ⚠️ 흥정→닫기→재흥정 유지·감쇠는 dev 서버 플레이로 확인
+- **Sprint 3 — 페르소나 캐시 + 관계 반영 대사** (merchant.ts, api, game-state.ts)
+  - [ ] 페르소나 id별 1회 생성 후 캐시 재사용(정체성 일관)
+  - [ ] 흥정 프롬프트에 호감도·재회 문맥 → 단골 대사(AI 활용↑)
+  - [ ] 검증: 재방문 동일 페르소나, 고호감도 우대 톤
+- **Sprint 4 — 이벤트 상인** (후순위) — 남은 초상화 12장 특수 등장
+
 ## 재활용 자산 (구 빌드에서 그대로)
 - [♻️] economy.ts — 가격·하한·티어·seed 상인·profile·호감도 수식
 - [♻️] LLM 라우트 패턴 + 키워드 폴백 (llm.ts / prompt.ts)

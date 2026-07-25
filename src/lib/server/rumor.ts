@@ -3,7 +3,7 @@
 import "server-only";
 import type { BookLevel, ClueKind, MaterialId, Rumor, TownId } from "@/types/game";
 import { MATERIAL_NAME, TOWN_BY_ID, TOWNS } from "@/lib/game-data";
-import { deriveMerchant, mulberry32 } from "@/lib/server/economy";
+import { deriveMerchant, mulberry32, merchantIdentity } from "@/lib/server/economy";
 import { deriveWorld } from "@/lib/server/world";
 import { askText, extractJson } from "@/lib/server/llm";
 import { rumorSystem, rumorUser, fallbackRumor } from "@/lib/server/prompt";
@@ -18,6 +18,7 @@ export interface RumorFragment {
   source: string; // 정보원 유형
   archetype: string; // 상인 아키타입 (초상화 태그)
   archetypeTitle: string; // 전문화 명칭
+  appearance: string; // 상인 외견 묘사 (AI 없이도 특정 가능하게 하는 단서)
   kind: ClueKind;
   townId: TownId; // 조각이 지목하는 마을 (거짓/오래되면 실제와 다름)
   townName: string;
@@ -28,6 +29,7 @@ export interface RumorFragment {
 }
 
 const SOURCES = ["정보상", "행인", "떠돌이 상인", "주막 주인", "아이"];
+const TRAVEL_MAX = 3; // 마을 간 최대 이동일 (고향↔유리섬). 위치 소문은 남은 체류가 이보다 길 때만 흘린다.
 
 // 책 레벨별로 흘릴 수 있는 조각 종류.
 function allowedKinds(bookLevel: BookLevel): ClueKind[] {
@@ -74,9 +76,16 @@ export function selectFragments(
     usedMerchants.add(wm.seed);
     const d = deriveMerchant(wm.seed);
 
-    // 이 상인이 낼 수 있는 조각 종류만 추림 (wants가 없으면 wants 제외).
-    let candidateKinds = kinds.filter((c) => (c === "wants" ? wm.wants.length > 0 : true));
-    if (candidateKinds.length === 0) candidateKinds = ["location"];
+    // 이 상인이 낼 수 있는 조각 종류만 추림.
+    // 위치(location)는 남은 체류가 최대 이동일(3)보다 길 때만 흘린다 → 소문 보고 가면 항상 있음.
+    let candidateKinds = kinds.filter((c) => {
+      if (c === "wants") return wm.wants.length > 0;
+      if (c === "location") return wm.daysLeft > TRAVEL_MAX;
+      return true;
+    });
+    if (candidateKinds.length === 0) {
+      candidateKinds = wm.wants.length > 0 ? ["wants"] : kinds.includes("moving") ? ["moving"] : ["location"];
+    }
     const kind = pick(rng, candidateKinds);
 
     const reliability: Reliability =
@@ -87,6 +96,7 @@ export function selectFragments(
       source: pick(rng, SOURCES),
       archetype: d.spec.portrait,
       archetypeTitle: d.spec.title,
+      appearance: merchantIdentity(wm.seed)?.appearance ?? "",
       kind,
       townId: wm.townId,
       townName: TOWN_BY_ID[wm.townId].name,

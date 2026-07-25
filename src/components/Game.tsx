@@ -6,6 +6,7 @@ import { BUILDINGS, HAGGLE_TURNS, MATERIAL_NAME, MAX_BOOK_LEVEL, TOWN_BY_ID, tra
 import {
   type GameState,
   type HaggleState,
+  type MerchantMemory,
   initialState,
   bookLevelFromXp,
   dailyIncome,
@@ -13,6 +14,7 @@ import {
   xpToNext,
   checkPlace,
   decayRecentBuys,
+  decayedDisposition,
   homeIcon,
 } from "@/lib/game-state";
 import { WorldMap } from "@/components/WorldMap";
@@ -26,6 +28,19 @@ import { InventoryPanel } from "@/components/InventoryPanel";
 import { IntroCutscene } from "@/components/IntroCutscene";
 
 const INTRO_SEEN_KEY = "lc_intro_seen";
+
+// 흥정 종료 시 그 상인과의 호감도·신표 수령을 기억에 저장한다(seed=정체성 키). 대화 없이 닫으면 유지.
+function rememberMerchant(s: GameState): Record<number, MerchantMemory> {
+  if (!s.merchant || !s.haggle || s.haggle.disposition === undefined) return s.merchantMemory ?? {};
+  return {
+    ...(s.merchantMemory ?? {}),
+    [s.merchant.seed]: {
+      disposition: s.haggle.disposition,
+      lastDay: s.day,
+      tokenTaken: s.haggle.tokenAwarded,
+    },
+  };
+}
 
 export function Game() {
   const [state, setState] = useState<GameState>(initialState);
@@ -185,21 +200,25 @@ export function Game() {
   const startHaggle = useCallback((merchant: PublicMerchant, materialId: MaterialId) => {
     const mat = merchant.materials.find((x) => x.id === materialId);
     if (!mat || mat.locked) return;
-    const haggle: HaggleState = {
-      materialId,
-      materialName: mat.name,
-      offer: mat.offer,
-      currentPrice: mat.offer,
-      disposition: undefined,
-      turnsLeft: HAGGLE_TURNS,
-      qualityApplied: false,
-      tokenAwarded: false,
-      status: "ongoing",
-      log: [{ role: "merchant", text: merchant.greeting }],
-      pending: false,
-      mode: "gold",
-    };
-    setState((s) => ({ ...s, merchant, haggle }));
+    setState((s) => {
+      // 이 상인과 쌓아둔 호감도가 있으면 감쇠 적용 후 이어간다(없으면 서버가 성향별 초기값 시드).
+      const mem = s.merchantMemory?.[merchant.seed];
+      const haggle: HaggleState = {
+        materialId,
+        materialName: mat.name,
+        offer: mat.offer,
+        currentPrice: mat.offer,
+        disposition: mem ? decayedDisposition(mem, s.day) : undefined,
+        turnsLeft: HAGGLE_TURNS,
+        qualityApplied: false,
+        tokenAwarded: mem?.tokenTaken ?? false,
+        status: "ongoing",
+        log: [{ role: "merchant", text: merchant.greeting }],
+        pending: false,
+        mode: "gold",
+      };
+      return { ...s, merchant, haggle };
+    });
   }, []);
 
   // 물물교환 시작. 희귀템(tier3) 1개를 상인이 원하는 물품 N개로 교환. N은 흥정으로 깎이며 첫 턴 후 확정된다.
@@ -208,23 +227,26 @@ export function Game() {
       const mat = merchant.materials.find((x) => x.id === rareId);
       const pay = merchant.wants.find((w) => w.id === payId);
       if (!mat || mat.locked || mat.tier !== 3 || !pay) return;
-      const haggle: HaggleState = {
-        materialId: rareId,
-        materialName: mat.name,
-        offer: 0,
-        currentPrice: 0,
-        disposition: undefined,
-        turnsLeft: HAGGLE_TURNS,
-        qualityApplied: false,
-        tokenAwarded: false,
-        status: "ongoing",
-        log: [{ role: "merchant", text: merchant.greeting }],
-        pending: false,
-        mode: "barter",
-        payMaterialId: payId,
-        payMaterialName: pay.name,
-      };
-      setState((s) => ({ ...s, merchant, haggle }));
+      setState((s) => {
+        const mem = s.merchantMemory?.[merchant.seed];
+        const haggle: HaggleState = {
+          materialId: rareId,
+          materialName: mat.name,
+          offer: 0,
+          currentPrice: 0,
+          disposition: mem ? decayedDisposition(mem, s.day) : undefined,
+          turnsLeft: HAGGLE_TURNS,
+          qualityApplied: false,
+          tokenAwarded: mem?.tokenTaken ?? false,
+          status: "ongoing",
+          log: [{ role: "merchant", text: merchant.greeting }],
+          pending: false,
+          mode: "barter",
+          payMaterialId: payId,
+          payMaterialName: pay.name,
+        };
+        return { ...s, merchant, haggle };
+      });
     },
     [],
   );
@@ -319,13 +341,13 @@ export function Game() {
           [h.materialId]: (s.inventory[h.materialId] ?? 0) + qty,
         };
         msg = `${h.payMaterialName} ${units}개를 내주고 ${h.materialName} ${qty}개를 얻었다.`;
-        return { ...s, inventory, recentBuys, haggle: null };
+        return { ...s, inventory, recentBuys, haggle: null, merchantMemory: rememberMerchant(s) };
       }
       const cost = h.currentPrice * qty;
       if (cost > s.gold) return s;
       const inventory = { ...s.inventory, [h.materialId]: (s.inventory[h.materialId] ?? 0) + qty };
       msg = `${qty}개를 사들였다.`;
-      return { ...s, gold: s.gold - cost, inventory, recentBuys, haggle: null };
+      return { ...s, gold: s.gold - cost, inventory, recentBuys, haggle: null, merchantMemory: rememberMerchant(s) };
     });
     if (msg) setNotice(msg);
   }, []);
@@ -345,7 +367,10 @@ export function Game() {
     if (msg) setNotice(msg);
   }, []);
 
-  const closeHaggle = useCallback(() => setState((s) => ({ ...s, haggle: null })), []);
+  const closeHaggle = useCallback(
+    () => setState((s) => ({ ...s, haggle: null, merchantMemory: rememberMerchant(s) })),
+    [],
+  );
 
   // 빈 타일에 건물 터를 놓는다 (선행·책 게이팅 통과 시). 같은 종류 복수 배치 허용.
   const placeBuilding = useCallback((buildingId: string, x: number, y: number) => {

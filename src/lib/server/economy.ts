@@ -205,25 +205,103 @@ export function getWeaknessHint(profile: ProfileId): string {
   return WEAKNESS_HINT[profile];
 }
 
-// 초상화 풀(Midjourney 사전생성). archetype으로 거르고, mood가 성향과 맞으면 우선 후보.
-// 아키타입당 여러 장을 넣을수록 다양성↑. mood 없는 항목은 항상 후보로 남는다.
-const PORTRAITS: { file: string; archetype: string; mood?: ProfileId }[] = [
-  { file: "woodmonger", archetype: "woodmonger" },
-  { file: "mason", archetype: "mason" },
-  { file: "junker", archetype: "junker" },
-  { file: "glazier", archetype: "glazier" },
-  { file: "draper", archetype: "draper" },
-  { file: "general", archetype: "general" },
-];
+// 초상화 풀(Midjourney 사전생성). archetype당 여러 장(`{archetype}-{n}.png`)을 두어 상인마다 다른 얼굴.
+// 없는 번호의 파일은 렌더 단에서 이모지로 폴백하므로, 이미지를 채우는 만큼 자동으로 반영된다.
+const PORTRAIT_ARCHETYPES = ["woodmonger", "mason", "junker", "glazier", "draper", "general"];
+const PORTRAITS_PER_ARCHETYPE = 6;
+const PORTRAITS: { file: string; archetype: string }[] = PORTRAIT_ARCHETYPES.flatMap((a) =>
+  Array.from({ length: PORTRAITS_PER_ARCHETYPE }, (_, i) => ({ file: `${a}-${i + 1}`, archetype: a })),
+);
 
-// 성향에 맞춰 풀에서 초상화 파일명을 seed 랜덤으로 고른다. 경제 rng와 독립 스트림.
-function pickPortraitFile(archetype: string, profile: ProfileId, seed: number): string {
-  const moodPool = PORTRAITS.filter((p) => p.archetype === archetype && p.mood === profile);
-  const anyPool = PORTRAITS.filter((p) => p.archetype === archetype && p.mood === undefined);
-  const pool = moodPool.length > 0 ? [...moodPool, ...anyPool] : anyPool;
+function portraitPool(archetype: string): string[] {
+  return PORTRAITS.filter((p) => p.archetype === archetype).map((p) => p.file);
+}
+
+// 단건(/api/merchant)용: 풀에서 초상화 파일명을 seed로 고른다. 경제 rng와 독립 스트림.
+function pickPortraitFile(archetype: string, _profile: ProfileId, seed: number): string {
+  const pool = portraitPool(archetype);
   if (pool.length === 0) return archetype; // 폴백: 아키타입 기본 파일명
   const rng = mulberry32((seed ^ 0x9e3779b9) >>> 0);
-  return pool[Math.floor(rng() * pool.length)].file;
+  return pool[Math.floor(rng() * pool.length)];
+}
+
+// ── 영구 상인 정체성 (v2) ────────────────────────────────────────
+// 상인 24명(전문화 6종×4명). 초상화·성별·외모는 미드저니 초상화와 1:1 고정.
+// seed는 id로 결정론 파생 → deriveMerchant가 이 seed로 전문화·초상화를 복원한다.
+// 성별/외모는 페르소나(이름·톤)가 초상화와 어긋나지 않도록 하는 힌트.
+export interface MerchantIdentity {
+  id: number;
+  name: string;
+  seed: number;
+  specId: string;
+  portraitFile: string;
+  gender: "m" | "f";
+  appearance: string;
+}
+
+// 이름은 초상화 성별에 맞춰 고정한다(정체성의 일부). 인사·톤·흥정 대사는 LLM이 연기.
+const MERCHANT_APPEARANCES: { name: string; specId: string; gender: "m" | "f"; appearance: string }[] = [
+  // woodmonger (목재상)
+  { name: "옹이손 가르드", specId: "woodmonger", gender: "m", appearance: "백발에 수염을 기른 노년의 벌목꾼, 도끼를 짊어졌다" },
+  { name: "삼나무 리나", specId: "woodmonger", gender: "f", appearance: "두건을 두른 여성 목재상, 그을린 얼굴" },
+  { name: "톱밥 마야", specId: "woodmonger", gender: "f", appearance: "두건을 쓰고 환히 웃는 여성, 톱밥 자루를 안았다" },
+  { name: "물푸레 이바", specId: "woodmonger", gender: "f", appearance: "청록빛 땋은 머리의 여성 목재상" },
+  // mason (석공상)
+  { name: "화강암 브렌", specId: "mason", gender: "m", appearance: "수염과 다부진 체구의 석공, 큰 망치를 들었다" },
+  { name: "정 든 하롤", specId: "mason", gender: "m", appearance: "짧은 수염의 석공, 망치를 어깨에 걸쳤다" },
+  { name: "끌잡이 오스카", specId: "mason", gender: "m", appearance: "수염 난 석공, 정을 쥐고 돌을 살핀다" },
+  { name: "돌먼지 카일", specId: "mason", gender: "m", appearance: "젊은 석공, 헝클어진 어두운 머리" },
+  // junker (고물상)
+  { name: "넝마꾼 레브", specId: "junker", gender: "m", appearance: "이마에 고글을 올린 고물상, 능글맞은 미소" },
+  { name: "고물장수 핀치", specId: "junker", gender: "m", appearance: "고글과 장신구를 주렁주렁 단 고물상" },
+  { name: "고철 니카", specId: "junker", gender: "f", appearance: "머리를 질끈 묶은 여성 고물상" },
+  { name: "잡동사니 셀라", specId: "junker", gender: "f", appearance: "나른한 눈빛의 여성 고물상" },
+  // glazier (유리세공상)
+  { name: "색유리 엘라", specId: "glazier", gender: "f", appearance: "유리병을 든 여성 유리세공사" },
+  { name: "불집게 요른", specId: "glazier", gender: "m", appearance: "유리병을 매만지는 남성 유리세공사" },
+  { name: "유리알 세라", specId: "glazier", gender: "f", appearance: "스테인드글라스 조각을 든 여성" },
+  { name: "살얼음 코른", specId: "glazier", gender: "m", appearance: "유리 파편을 든 남성, 서늘한 분위기" },
+  // draper (직물잡화상)
+  { name: "비단발 카림", specId: "draper", gender: "m", appearance: "활짝 웃는 남성 직물상, 스카프를 둘렀다" },
+  { name: "실타래 뮤엘", specId: "draper", gender: "m", appearance: "색색의 천을 두른 남성 직물상" },
+  { name: "물레 톤", specId: "draper", gender: "m", appearance: "천을 늘어뜨려 보이는 남성 직물상" },
+  { name: "행상 도티", specId: "draper", gender: "f", appearance: "흰옷의 여성 직물상, 손을 뻗어 권한다" },
+  // general (만물상)
+  { name: "잡화 미나", specId: "general", gender: "f", appearance: "집시풍 차림의 여성 만물상" },
+  { name: "저울눈 하킴", specId: "general", gender: "m", appearance: "여유로운 미소의 남성 만물상" },
+  { name: "봇짐 로사", specId: "general", gender: "f", appearance: "잡화를 두른 여성 만물상" },
+  { name: "만물장수 곰보", specId: "general", gender: "m", appearance: "통통하고 수염 난 남성 만물상, 승리의 손짓" },
+];
+
+function identitySeed(id: number): number {
+  return (Math.imul(id + 1, 2654435761) ^ 0x9e3779b9) >>> 0;
+}
+
+// 전문화별로 초상화 번호(specId-1..4)를 매겨 24명을 확정한다.
+export const MERCHANTS: MerchantIdentity[] = (() => {
+  const counts: Record<string, number> = {};
+  return MERCHANT_APPEARANCES.map((a, id) => {
+    const n = (counts[a.specId] = (counts[a.specId] ?? 0) + 1);
+    return {
+      id,
+      name: a.name,
+      seed: identitySeed(id),
+      specId: a.specId,
+      portraitFile: `${a.specId}-${n}`,
+      gender: a.gender,
+      appearance: a.appearance,
+    };
+  });
+})();
+
+const MERCHANT_BY_SEED = new Map(MERCHANTS.map((m) => [m.seed, m]));
+const SPEC_BY_ID: Record<string, Specialization> = Object.fromEntries(
+  SPECIALIZATIONS.map((s) => [s.id, s]),
+);
+
+// seed로 영구 상인 정체성을 조회 (없으면 undefined = 이벤트/임시 상인).
+export function merchantIdentity(seed: number): MerchantIdentity | undefined {
+  return MERCHANT_BY_SEED.get(seed);
 }
 
 // 결정론 PRNG. 같은 seed면 항상 같은 상인이 나온다.
@@ -272,7 +350,10 @@ export function deriveMerchant(
   day?: number,
 ): DerivedMerchant {
   const rng = mulberry32(seed);
-  const spec = pick(rng, SPECIALIZATIONS);
+  // 영구 상인이면 전문화를 그 정체성으로 고정한다. rng 소비 순서는 그대로 둬(가격 결정론 유지).
+  const rolledSpec = pick(rng, SPECIALIZATIONS);
+  const identity = MERCHANT_BY_SEED.get(seed);
+  const spec = identity ? SPEC_BY_ID[identity.specId] : rolledSpec;
   const profile = pick(rng, PROFILES);
   const materials: DerivedMaterial[] = spec.materials.map((id) => {
     const p = PRICES[id];
@@ -380,7 +461,7 @@ export function buildPublicMerchant(
     name: persona.name,
     title: m.spec.title,
     portrait: m.spec.portrait,
-    portraitFile: pickPortraitFile(m.spec.portrait, m.profile, m.seed),
+    portraitFile: MERCHANT_BY_SEED.get(m.seed)?.portraitFile ?? pickPortraitFile(m.spec.portrait, m.profile, m.seed),
     appearance: persona.appearance,
     greeting: persona.greeting,
     personalityTone: persona.personalityTone,

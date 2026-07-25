@@ -65,6 +65,21 @@ export interface GameState {
   clues: Rumor[]; // 오늘 수집한 소문 (날이 바뀌면 비움)
   recentBuys: Partial<Record<MaterialId, number>>; // 자재별 최근 구매량 (품귀 배수 산정, 이동으로 감쇠)
   sellPrices: Partial<Record<MaterialId, number>>; // 현재 마을의 자재별 판매가 (마을 진입 시 서버가 채움, home이면 빈값)
+  merchantMemory: Record<number, MerchantMemory>; // 상인 seed(정체성) → 누적 호감도·신표 수령 (흥정을 넘어 유지)
+}
+
+// 상인과 쌓은 관계의 지속 기억. 흥정이 끝나도 남고, 안 만나면 호감도가 식는다.
+export interface MerchantMemory {
+  disposition: number; // 마지막 흥정 종료 시 호감도
+  lastDay: number; // 그때의 day (감쇠 계산 기준)
+  tokenTaken: boolean; // 「상인의 신표」를 이미 받았는지 (상인별 1회)
+}
+
+// 호감도는 안 만난 날마다 식는다. 재등장 평균 4일 기준 하루 -5 (4일이면 -20으로 흥정 상승분 상쇄).
+export const DISPOSITION_DECAY_PER_DAY = 5;
+export function decayedDisposition(mem: MerchantMemory, currentDay: number): number {
+  const days = Math.max(0, currentDay - mem.lastDay);
+  return Math.max(0, mem.disposition - days * DISPOSITION_DECAY_PER_DAY);
 }
 
 export function initialState(): GameState {
@@ -81,6 +96,7 @@ export function initialState(): GameState {
     clues: [],
     recentBuys: {},
     sellPrices: {},
+    merchantMemory: {},
   };
 }
 

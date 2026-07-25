@@ -33,5 +33,6 @@ export async function POST(request: Request) {
     generateRumors(day, town, bookLevel),
   ]);
 
+  // 상인 초상화는 영구 정체성으로 고정되므로(v2) 마을 내 중복 재배정이 필요 없다.
   return NextResponse.json({ merchants, rumors, sellPrices: allSellPrices(day, town) });
 }

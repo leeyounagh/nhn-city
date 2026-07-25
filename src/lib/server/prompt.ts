@@ -344,7 +344,9 @@ export function rumorSystem(): string {
 
 // 조각을 사람이 읽을 수 있는 사실 나열로 감싼다. 명령형이 아니라 사실 서술만.
 function describeFragment(frag: RumorFragment): string {
-  const lines = [`정보원: ${frag.source}`, `상인: ${frag.archetypeTitle}`];
+  // 외견을 함께 흘려 AI가 소문에 "생김새"를 녹이게 한다(같은 전문화 여럿을 특정하는 단서).
+  const who = frag.appearance || frag.archetypeTitle;
+  const lines = [`정보원: ${frag.source}`, `상인: ${who}`];
   if (frag.kind === "location") {
     lines.push(`사실: 그 상인은 ${frag.townName}에 있다.`);
   } else if (frag.kind === "wants") {
@@ -397,7 +399,8 @@ const FALLBACK_RUMOR_STAYING: ((title: string, town: string) => string)[] = [
 ];
 
 export function fallbackRumor(frag: RumorFragment): string {
-  const t = frag.archetypeTitle;
+  // 외견이 있으면 그걸로 상인을 지칭해 특정 가능하게(폴백도 "생김새+위치/품목"으로 추리됨).
+  const t = frag.appearance || frag.archetypeTitle;
   const town = frag.townName;
   if (frag.kind === "location") {
     return variant(FALLBACK_RUMOR_LOCATION, frag.merchantSeed)(t, town);

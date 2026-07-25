@@ -2,7 +2,7 @@
 // /api/merchant(단건)와 /api/town(마을 상인 목록)이 공유한다.
 import "server-only";
 import type { BookLevel, MaterialId, PublicMerchant, TownId } from "@/types/game";
-import { deriveMerchant, buildPublicMerchant } from "@/lib/server/economy";
+import { deriveMerchant, buildPublicMerchant, merchantIdentity } from "@/lib/server/economy";
 import { askText, extractJson } from "@/lib/server/llm";
 import { personaSystem, personaUser, fallbackPersona, type Persona } from "@/lib/server/prompt";
 
@@ -19,9 +19,11 @@ export async function generatePublicMerchant(
     await askText(personaSystem(), personaUser(derived.spec)),
   );
   const fb = fallbackPersona(derived.spec, seed);
+  // 영구 상인은 이름·외모를 정체성으로 고정(초상화와 매칭). 인사·톤은 LLM(없으면 폴백)이 연기.
+  const identity = merchantIdentity(seed);
   const persona: Persona = {
-    name: llm?.name ?? fb.name,
-    appearance: llm?.appearance ?? fb.appearance,
+    name: identity?.name ?? llm?.name ?? fb.name,
+    appearance: identity?.appearance ?? llm?.appearance ?? fb.appearance,
     greeting: llm?.greeting ?? fb.greeting,
     personalityTone: llm?.personalityTone ?? fb.personalityTone,
   };
