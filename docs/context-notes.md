@@ -434,3 +434,9 @@
 - **신선도 노출**: `Rumor.stale`(레벨 무관) 추가 → ClueNotebook·TownView에 "오래된 소식" 뱃지(amber). 기존 `suspect`(원함/이동 진위, 책Lv3)와 별개. 위치는 신선도 공개, 원함/이동은 진위 숨김(추리 유지).
 - **문구**: `FALLBACK_RUMOR_LOCATION_STALE` 추가("얼마 전 ~에 있었다는데 지금도 있을지…"), `describeFragment`도 stale 뉘앙스 전달. solid는 "요새/지금 ~에".
 - 설계 선택 B("위치 신선도"): 사용자와 A(위치 항상 진짜)/B(신선도)/C(교차검증) 중 B 채택. 검증: tsc/lint 그린 + canBarter 전문화×레벨 시뮬. 문서: 경제모델 §2.4.
+### IsoCityMap 리팩토링 — 카메라 훅 + UI 조각 분리 (2026-07-25, 순수 리팩토링)
+- **동기**: 814줄에 아이소 렌더+팔레트+카메라(팬/줌/드래그)가 뒤엉킴. Game.tsx 리팩토링(로직 훅 + UI 조각)과 동일 패턴 적용. 사용자 승인 = 풀 분리(핸드오프 축약 아님).
+- **분리**: `components/city/` 신규 — `useIsoCamera.ts`(pan/scale/viewport 상태 + 뷰포트 실측·초기 중앙정렬·팬 드래그 effect + zoomTo·startPan·worldToScreen·screenToTile·visibleTileRange 컬링), `BuildingPalette.tsx`(+PaletteCard), `PlacementPanel.tsx`, `InventoryStrip.tsx`(+ZoomBtn), `sprite.ts`(buildingSprite 공유). IsoCityMap 814→423줄, 게임 액션(드래그드롭·렌더 루프·선택/이동 상태)만 남김.
+- **함정 1 — React Compiler immutability**: 카메라의 `didPanRef`를 훅 밖 onClick에서 `.current=false`로 리셋하니 `react-hooks/immutability`(훅 반환값 변형 금지) + "modify after render" 에러. → 변형을 훅 안으로: `consumePanClick()`(플래그 검사+소비, boolean 반환) 메서드를 노출하고 소비처는 `if (consumePanClick()) return`. didPanRef는 훅 내부에만.
+- **함정 2 — effect 재구독**: 드래그드롭 effect가 원래 deps `[scale, pan, ...]`로 pan/scale 변경 시만 재구독. `screenToTile`을 그냥 반환하면 매 렌더 새 함수 → 매 렌더 재구독. → `screenToTile`을 `useCallback([pan, scale])`로 안정화하고 effect deps에 그것만. 원래 동작(팬/줌 시에만 재구독) 보존.
+- **검증**: tsc/eslint 그린(남은 6개는 의도된 `<img>` 경고). ⚠️ 동작 불변은 dev 스모크 필요(팬·줌·건물 드래그배치·자재투입·이동·회전·삭제·카테고리 탭). `BUILDING_ICON`(이모지 시대 데드 export)은 Surgical 원칙상 미삭제 유지.

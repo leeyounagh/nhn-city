@@ -3,17 +3,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MaterialId } from "@/types/game";
 import { BUILDINGS, MATERIAL_NAME, BUILDING_RENDER_SCALE } from "@/lib/game-data";
-import { MaterialIcon } from "@/components/MaterialIcon";
-import { GameIcon } from "@/components/GameIcon";
+import { GameIcon } from "@/shared/icon/GameIcon";
 import {
   type GameState,
   type Placement,
   checkPlace,
   checkPlacement,
-  canDeposit,
-  hasBlueprint,
   homeIcon,
 } from "@/lib/game-state";
+import { buildingSprite } from "@/components/city/sprite";
+import { TW, TH, DRAG_THRESHOLD, useIsoCamera } from "@/components/city/useIsoCamera";
+import { BuildingPalette } from "@/components/city/BuildingPalette";
+import { PlacementPanel } from "@/components/city/PlacementPanel";
+import { InventoryStrip, ZoomBtn } from "@/components/city/InventoryStrip";
 
 export const BUILDING_ICON: Record<string, string> = {
   hut: "🛖",
@@ -32,20 +34,7 @@ export const BUILDING_ICON: Record<string, string> = {
   cathedral: "⛪",
 };
 
-const TW = 72; // 타일 폭 (기준 배율 1)
-const TH = 36; // 타일 높이
-const DRAG_THRESHOLD = 6; // px, 이 이상 움직여야 드래그로 간주 (탭과 구분)
 const BUILDING_SPRITE_SCALE = 2.3; // 건물 스프라이트 폭 = 타일폭 × 이 값 (타일 위로 솟는 하이레졸 스프라이트)
-
-// 건물 스프라이트 경로. (Isometric Realm - Medieval by JP Cummins)
-function buildingSprite(id: string): string {
-  return `/buildings/${id}.png`;
-}
-
-// 타일(x,y) → 월드 픽셀 (배율·카메라 적용 전). 무한 평면이라 경계 보정(OFFSET) 없음.
-function worldPos(x: number, y: number): { wx: number; wy: number } {
-  return { wx: (x - y) * (TW / 2), wy: (x + y) * (TH / 2) };
-}
 
 type DragState = { kind: "building" | "material"; id: string; cx: number; cy: number };
 type DragRef = { kind: "building" | "material"; id: string; startX: number; startY: number; moved: boolean };
@@ -68,64 +57,14 @@ export function IsoCityMap({
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
   const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null); // 이동 모드: 옮기는 중인 건물 id
-  const [scale, setScale] = useState(1.2); // 타일 배율 (줌)
-  const [pan, setPan] = useState({ x: 0, y: 0 }); // 카메라 오프셋(화면 px). 드래그로 이동, 사방 무한
-  const [viewport, setViewport] = useState({ w: 0, h: 0 });
   const [drag, setDrag] = useState<DragState | null>(null);
 
+  const { scale, viewport, boardAreaRef, zoomTo, startPan, consumePanClick, worldToScreen, screenToTile, visibleTileRange } =
+    useIsoCamera();
   const dragRef = useRef<DragRef | null>(null);
   const didDragRef = useRef(false);
-  const boardAreaRef = useRef<HTMLDivElement>(null);
-  const panRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
-  const panMovedRef = useRef(false);
-  const didPanRef = useRef(false); // 팬 뒤 따라오는 타일 click(배치/선택) 억제용
-  const panInitRef = useRef(false);
   // 건물 팔레트 마우스 드래그 스크롤 상태.
   const scrollDragRef = useRef<{ startX: number; startY: number; startScroll: number; el: HTMLElement; decided: boolean; scrolling: boolean } | null>(null);
-
-  // 보드 뷰포트 실측. 가시 타일 계산·카메라 중앙정렬에 쓴다.
-  useEffect(() => {
-    const el = boardAreaRef.current;
-    if (!el) return;
-    const measure = () => setViewport({ w: el.clientWidth, h: el.clientHeight });
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  // 최초 측정 시 원점 타일(0,0)을 뷰포트 중앙에 오도록 카메라를 놓는다 (1회).
-  useEffect(() => {
-    if (!panInitRef.current && viewport.w > 0 && viewport.h > 0) {
-      panInitRef.current = true;
-      setPan({ x: viewport.w / 2, y: viewport.h / 2 });
-    }
-  }, [viewport]);
-
-  // 마우스로 보드 배경을 끌면 카메라(pan)를 그 방향으로 옮긴다 → 타일 평면이 드래그 방향으로 밀린다.
-  // 터치/펜은 처리하지 않는다(이 데모는 데스크톱 기준).
-  useEffect(() => {
-    function onMove(e: PointerEvent) {
-      const p = panRef.current;
-      if (!p) return;
-      const dx = e.clientX - p.startX;
-      const dy = e.clientY - p.startY;
-      if (!panMovedRef.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-      panMovedRef.current = true;
-      didPanRef.current = true;
-      setPan({ x: p.panX + dx, y: p.panY + dy });
-    }
-    function onUp() {
-      panRef.current = null;
-      panMovedRef.current = false;
-    }
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-  }, []);
 
   // 건물 팔레트 마우스 좌우 드래그 스크롤. 가로 드래그=스크롤, 세로 드래그=배치에 양보. 터치는 네이티브 스크롤.
   useEffect(() => {
@@ -159,35 +98,15 @@ export function IsoCityMap({
     };
   }, []);
 
-  // 줌: 뷰포트 중앙을 기준으로 확대/축소 (중앙 월드점 고정).
-  const zoomTo = (nz: number) => {
-    const cx = viewport.w / 2;
-    const cy = viewport.h / 2;
-    const wxc = (cx - pan.x) / scale;
-    const wyc = (cy - pan.y) / scale;
-    setPan({ x: cx - wxc * nz, y: cy - wyc * nz });
-    setScale(nz);
-  };
-
   const occupancy = useMemo(() => {
     const map = new Map<string, Placement>();
     for (const p of state.placements) map.set(`${p.x},${p.y}`, p);
     return map;
   }, [state.placements]);
 
-  // 화면 좌표 → 타일 (아이소 역변환, 카메라·배율 보정). 무한 평면이라 경계 검사 없음.
-  // 드래그 드롭에서 최신 pan/scale/placements가 필요하므로 effect 안에 재구성한다.
+  // 건물/자재 드래그드롭. 드롭 지점을 타일로 역변환해 배치·투입한다.
+  // 카메라(pan/scale)가 바뀌면 screenToTile이 갱신되어 effect가 재구독된다.
   useEffect(() => {
-    function toTile(cx: number, cy: number): { x: number; y: number } | null {
-      const el = boardAreaRef.current;
-      if (!el) return null;
-      const rect = el.getBoundingClientRect();
-      const wx = (cx - rect.left - pan.x) / scale;
-      const wy = (cy - rect.top - pan.y) / scale;
-      const a = wx / (TW / 2); // x - y
-      const b = wy / (TH / 2); // x + y
-      return { x: Math.round((a + b) / 2), y: Math.round((b - a) / 2) };
-    }
     function onMove(e: PointerEvent) {
       const d = dragRef.current;
       if (!d) return;
@@ -203,14 +122,19 @@ export function IsoCityMap({
         return;
       }
       didDragRef.current = true; // 뒤따르는 click(선택 토글) 억제용
-      const t = toTile(e.clientX, e.clientY);
-      if (t) {
-        if (d.kind === "building") {
-          onPlace(d.id, t.x, t.y);
-        } else {
-          const pl = state.placements.find((p) => p.x === t.x && p.y === t.y && !p.built);
-          if (pl) onDeposit(pl.id, d.id as MaterialId);
+      if (d.kind === "building") {
+        const t = screenToTile(e.clientX, e.clientY);
+        if (t) onPlace(d.id, t.x, t.y);
+      } else {
+        // 자재: 커서 아래 건물 스프라이트를 먼저 히트테스트한다. 건물 그림이 베이스 타일 위로
+        // 솟아 그려져서 타일 좌표만으론 빗나가므로, 보이는 건물에 놓으면 그 건물에 투입한다.
+        const hitId = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-pid]")?.getAttribute("data-pid");
+        let target = hitId ? state.placements.find((p) => p.id === hitId && !p.built) ?? null : null;
+        if (!target) {
+          const t = screenToTile(e.clientX, e.clientY);
+          if (t) target = state.placements.find((p) => p.x === t.x && p.y === t.y && !p.built) ?? null;
         }
+        if (target) onDeposit(target.id, d.id as MaterialId);
       }
       setDrag(null);
     }
@@ -220,7 +144,7 @@ export function IsoCityMap({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [onPlace, onDeposit, scale, pan, state.placements]);
+  }, [onPlace, onDeposit, state.placements, screenToTile]);
 
   const selectedPlacement = state.placements.find((p) => p.id === selectedPlacementId) ?? null;
   const inv = Object.entries(state.inventory).filter(([, n]) => n > 0);
@@ -263,32 +187,11 @@ export function IsoCityMap({
   const tileW = TW * scale;
   const tileH = TH * scale;
   if (viewport.w > 0 && viewport.h > 0) {
-    // 화면 px → 타일 좌표 (역변환). 뷰포트 네 모서리로 렌더 범위를 잡는다.
-    const tileAtPx = (sx: number, sy: number) => {
-      const wx = (sx - pan.x) / scale;
-      const wy = (sy - pan.y) / scale;
-      const a = wx / (TW / 2);
-      const b = wy / (TH / 2);
-      return { tx: (a + b) / 2, ty: (b - a) / 2 };
-    };
-    const corners = [
-      tileAtPx(0, 0),
-      tileAtPx(viewport.w, 0),
-      tileAtPx(0, viewport.h),
-      tileAtPx(viewport.w, viewport.h),
-    ];
-    const txs = corners.map((c) => c.tx);
-    const tys = corners.map((c) => c.ty);
-    const txMin = Math.floor(Math.min(...txs)) - 1;
-    const txMax = Math.ceil(Math.max(...txs)) + 1;
-    const tyMin = Math.floor(Math.min(...tys)) - 1;
-    const tyMax = Math.ceil(Math.max(...tys)) + 1;
+    const { txMin, txMax, tyMin, tyMax } = visibleTileRange();
 
     for (let ty = tyMin; ty <= tyMax; ty++) {
       for (let tx = txMin; tx <= txMax; tx++) {
-        const { wx, wy } = worldPos(tx, ty);
-        const left = wx * scale + pan.x;
-        const top = wy * scale + pan.y;
+        const { left, top } = worldToScreen(tx, ty);
         // 화면 밖 타일은 컬링 (스프라이트는 위로 tileH 솟으니 상단 여유를 더 준다)
         if (left < -tileW || left > viewport.w + tileW || top < -tileH * 3 || top > viewport.h + tileH) {
           continue;
@@ -301,10 +204,7 @@ export function IsoCityMap({
             key={`t${key}`}
             type="button"
             onClick={() => {
-              if (didPanRef.current) {
-                didPanRef.current = false;
-                return; // 팬 뒤 따라오는 click은 무시
-              }
+              if (consumePanClick()) return; // 팬 뒤 따라오는 click은 무시
               if (movingId) {
                 if (!p) {
                   onMove(movingId, tx, ty); // 빈 타일 → 이동
@@ -393,11 +293,9 @@ export function IsoCityMap({
             <button
               key={`s${p.id}`}
               type="button"
+              data-pid={p.id} // 자재 드래그 드롭 히트테스트용 (elementFromPoint로 이 건물을 특정)
               onClick={() => {
-                if (didPanRef.current) {
-                  didPanRef.current = false;
-                  return;
-                }
+                if (consumePanClick()) return;
                 setSelectedPlacementId(p.id);
                 setSelectedBuilding(null);
               }}
@@ -474,12 +372,7 @@ export function IsoCityMap({
       {/* 아이소 보드 — 무한 평면. 배경을 마우스로 끌면 카메라가 그 방향으로 이동(타일이 밀림) */}
       <div
         ref={boardAreaRef}
-        onPointerDown={(e) => {
-          if (e.pointerType !== "mouse") return;
-          didPanRef.current = false;
-          panMovedRef.current = false;
-          panRef.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
-        }}
+        onPointerDown={startPan}
         className="relative isolate mb-2 min-h-0 flex-1 cursor-grab touch-none overflow-hidden rounded border border-stone-700 bg-stone-950/40 shadow-[inset_0_0_50px_rgba(0,0,0,0.55)] ring-1 ring-amber-900/20 active:cursor-grabbing"
       >
         {tiles}
@@ -532,283 +425,5 @@ export function IsoCityMap({
         </div>
       )}
     </section>
-  );
-}
-
-function InventoryStrip({
-  inv,
-  onChipPointerDown,
-}: {
-  inv: [string, number][];
-  onChipPointerDown: (e: React.PointerEvent, materialId: string) => void;
-}) {
-  return (
-    <div className="mb-2 shrink-0 rounded-lg border border-stone-700/50 bg-stone-900/40 px-2.5 py-1.5">
-      <p className="mb-1 text-xs font-semibold text-stone-300">
-        <GameIcon name="chest" className="mr-1 inline-block h-4 w-4 align-text-bottom text-amber-400/80" /> 창고 <span className="font-normal text-stone-500">— 자재를 건물로 끌어다 채운다</span>
-      </p>
-      <div className="flex flex-wrap gap-1.5">
-        {inv.length > 0 ? (
-          inv.map(([id, n]) => (
-            <span
-              key={id}
-              onPointerDown={(e) => onChipPointerDown(e, id)}
-              className="cursor-grab touch-none select-none rounded bg-stone-800 px-2 py-0.5 text-xs text-stone-200 active:cursor-grabbing"
-            >
-              <MaterialIcon id={id} className="mr-0.5 h-3.5 w-3.5" />{MATERIAL_NAME[id]} <b className="tabular-nums text-amber-300">{n}</b>
-            </span>
-          ))
-        ) : (
-          <span className="rounded-md border border-dashed border-stone-700 px-2.5 py-1 text-xs text-stone-500">창고가 비었다 — 마을에서 자재를 사 오라.</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ZoomBtn({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="h-7 w-7 rounded border border-stone-600 text-sm text-stone-300 transition hover:bg-stone-800"
-    >
-      {label}
-    </button>
-  );
-}
-
-function BuildingPalette({
-  state,
-  selectedBuilding,
-  onCardPointerDown,
-  onCardClick,
-  onStripPointerDown,
-}: {
-  state: GameState;
-  selectedBuilding: string | null;
-  onCardPointerDown: (e: React.PointerEvent, buildingId: string) => void;
-  onCardClick: (buildingId: string) => void;
-  onStripPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
-}) {
-  const unlocked = hasBlueprint(state.inventory);
-  const [tab, setTab] = useState<string>("core");
-  // 탭별 건물 목록 (category 없으면 core). deco 탭은 「설계도」 해금 시만.
-  const listFor = (cat: string) =>
-    cat === "deco"
-      ? BUILDINGS.filter((b) => b.deco)
-      : BUILDINGS.filter((b) => !b.deco && (b.category ?? "core") === cat);
-  const TABS: { key: string; label: string }[] = [
-    { key: "core", label: "도시" },
-    { key: "commerce", label: "상업" },
-    { key: "tower", label: "타워" },
-    { key: "church", label: "교회" },
-    { key: "castle", label: "성" },
-    ...(unlocked ? [{ key: "deco", label: "장식" }] : []),
-  ];
-  const cards = (list: typeof BUILDINGS) =>
-    list.map((b) => (
-      <PaletteCard
-        key={b.id}
-        b={b}
-        state={state}
-        selected={selectedBuilding === b.id}
-        onCardPointerDown={onCardPointerDown}
-        onCardClick={onCardClick}
-      />
-    ));
-  return (
-    <div className="shrink-0 space-y-1.5">
-      <p className="flex items-center gap-1.5 text-xs font-semibold text-stone-300">
-        <GameIcon name="hammer" className="h-4 w-4 text-amber-400/80" /> 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭
-      </p>
-      {/* 건물 스크롤 (선택된 카테고리) */}
-      <div onPointerDown={onStripPointerDown} className="flex min-h-[96px] cursor-grab gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing">
-        {cards(listFor(tab))}
-      </div>
-      {/* 하단 카테고리 탭 */}
-      <div className="flex flex-wrap gap-1 border-t border-stone-800 pt-1.5">
-        {TABS.map((t) => {
-          const active = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                active
-                  ? "bg-amber-500/20 text-amber-200 ring-1 ring-amber-500/50"
-                  : "bg-stone-800/60 text-stone-400 hover:text-stone-200"
-              }`}
-            >
-              {t.label}
-              <span className="ml-1 opacity-60">{listFor(t.key).length}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function PaletteCard({
-  b,
-  state,
-  selected,
-  onCardPointerDown,
-  onCardClick,
-}: {
-  b: (typeof BUILDINGS)[number];
-  state: GameState;
-  selected: boolean;
-  onCardPointerDown: (e: React.PointerEvent, buildingId: string) => void;
-  onCardClick: (buildingId: string) => void;
-}) {
-  const c = checkPlace(b.id, state);
-  return (
-    <button
-      type="button"
-      disabled={!c.canPlace}
-      onPointerDown={(e) => onCardPointerDown(e, b.id)}
-      onClick={() => onCardClick(b.id)}
-      className={`flex min-w-[92px] shrink-0 touch-none select-none flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition ${
-        selected
-          ? "border-amber-500 bg-amber-500/15"
-          : "border-stone-700/60 bg-stone-900/40 enabled:cursor-grab enabled:hover:border-amber-600/60 enabled:active:cursor-grabbing"
-      } disabled:cursor-not-allowed disabled:opacity-40`}
-      title={
-        !c.prereqMet
-          ? `선행 필요: ${c.missingPrereq.map((p) => BUILDINGS.find((x) => x.id === p)?.name).join(", ")}`
-          : !c.bookMet
-            ? `마법의 책 Lv.${b.minBook} 필요`
-            : b.name
-      }
-    >
-      <img src={buildingSprite(b.id)} alt="" draggable={false} className="pointer-events-none h-12 w-12 select-none object-contain" />
-      <span className="text-xs font-semibold text-stone-100">{b.name}</span>
-      {b.income > 0 && <span className="text-[10px] text-emerald-300">+{b.income}/day</span>}
-      {b.produces && (
-        <span className="flex items-center gap-1 text-[10px] text-sky-300">
-          <GameIcon name="factory" className="h-3 w-3 shrink-0" /> {(Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => `${MATERIAL_NAME[id]}+${n}`).join(" ")}
-        </span>
-      )}
-      {!b.deco && !c.canPlace && (
-        <span className="text-[10px] text-rose-400">{!c.prereqMet ? "선행 필요" : `책 Lv.${b.minBook}`}</span>
-      )}
-    </button>
-  );
-}
-
-function PlacementPanel({
-  placement,
-  state,
-  onDeposit,
-  onReclaim,
-  onRotate,
-  onStartMove,
-  onClose,
-}: {
-  placement: Placement;
-  state: GameState;
-  onDeposit: (placementId: string, materialId: MaterialId) => void;
-  onReclaim: (placementId: string) => void;
-  onRotate: (placementId: string) => void;
-  onStartMove: (placementId: string) => void;
-  onClose: () => void;
-}) {
-  const b = BUILDINGS.find((x) => x.id === placement.buildingId)!;
-  const chk = checkPlacement(placement);
-
-  return (
-    <div
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-20 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-lg border border-amber-700/50 bg-stone-900 p-4 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 font-semibold text-stone-100">
-            <img
-              src={buildingSprite(b.id)}
-              alt=""
-              draggable={false}
-              style={{ transform: placement.flipped ? "scaleX(-1)" : undefined }}
-              className="h-10 w-10 object-contain"
-            />
-            {b.name}
-            {b.income > 0 && <span className="text-xs text-emerald-300">+{b.income}/day</span>}
-          </h3>
-          <button onClick={onClose} aria-label="닫기" className="text-stone-400 hover:text-stone-200">
-            ✕
-          </button>
-        </div>
-
-        {b.deco ? (
-          <p className="text-sm text-stone-300">장식물 — 아래 버튼으로 이동·회전·삭제할 수 있다.</p>
-        ) : placement.built ? (
-          <p className="text-sm font-medium text-emerald-400">
-            완성됨 — 매일 골드 수입
-            {b.produces
-              ? ` + ${(Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => `${MATERIAL_NAME[id]} ${n}`).join(", ")} 생산`
-              : ""}
-            을(를) 낸다.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-1.5">
-            {chk.slots.map((s) => {
-              const have = state.inventory[s.id] ?? 0;
-              const done = s.have >= s.need;
-              const depositable = canDeposit(placement, s.id, state);
-              return (
-                <li
-                  key={s.id}
-                  className="flex items-center justify-between gap-2 rounded bg-stone-800/60 px-2 py-1.5"
-                >
-                  <span className={`flex items-center gap-1 text-xs ${done ? "text-emerald-300" : "text-stone-200"}`}>
-                    <MaterialIcon id={s.id} className="h-4 w-4" />{MATERIAL_NAME[s.id]} <span className="tabular-nums">{s.have}/{s.need}</span>
-                    <span className="ml-1.5 text-[10px] text-stone-500">보유 {have}</span>
-                  </span>
-                  {done ? (
-                    <span className="text-[11px] text-emerald-400">충족</span>
-                  ) : (
-                    <button
-                      onClick={() => onDeposit(placement.id, s.id)}
-                      disabled={!depositable}
-                      className="rounded bg-amber-600 px-2 py-0.5 text-[11px] font-semibold text-stone-950 transition enabled:hover:bg-amber-500 disabled:opacity-40"
-                    >
-                      투입 +1
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-
-        {/* 이동 · 회전 · 삭제 */}
-        <div className="mt-4 flex gap-2 border-t border-stone-700/60 pt-3">
-          <button
-            onClick={() => onStartMove(placement.id)}
-            className="flex flex-1 items-center justify-center gap-1 rounded border border-sky-700/60 bg-sky-950/40 px-2 py-1.5 text-xs font-semibold text-sky-200 transition hover:bg-sky-900/50"
-          >
-            <GameIcon name="handTruck" className="h-4 w-4" /> 이동
-          </button>
-          <button
-            onClick={() => onRotate(placement.id)}
-            className="flex flex-1 items-center justify-center gap-1 rounded border border-stone-600 bg-stone-800/50 px-2 py-1.5 text-xs font-semibold text-stone-200 transition hover:bg-stone-700"
-          >
-            <GameIcon name="clockwiseRotation" className="h-4 w-4" /> 회전
-          </button>
-          <button
-            onClick={() => onReclaim(placement.id)}
-            className="flex flex-1 items-center justify-center gap-1 rounded border border-rose-800/60 bg-rose-950/40 px-2 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50"
-          >
-            <GameIcon name="trashCan" className="h-4 w-4" /> 삭제
-          </button>
-        </div>
-        <p className="mt-2 text-[11px] text-stone-500">삭제하면 투입·소모한 자재를 전부 돌려받는다.</p>
-      </div>
-    </div>
   );
 }
