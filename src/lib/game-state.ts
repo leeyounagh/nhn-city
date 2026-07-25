@@ -69,10 +69,14 @@ export interface GameState {
 }
 
 // 상인과 쌓은 관계의 지속 기억. 흥정이 끝나도 남고, 안 만나면 호감도가 식는다.
+// 이름·초상화·전문화도 저장해 관계 명부(클라)가 economy(server-only) 없이 상인을 그린다.
 export interface MerchantMemory {
   disposition: number; // 마지막 흥정 종료 시 호감도
   lastDay: number; // 그때의 day (감쇠 계산 기준)
   tokenTaken: boolean; // 「상인의 신표」를 이미 받았는지 (상인별 1회)
+  name: string; // 명부 표시용
+  title: string; // 전문화 명칭
+  portraitFile?: string; // 초상화 파일명
 }
 
 // 호감도는 안 만난 날마다 식는다. 재등장 평균 4일 기준 하루 -5 (4일이면 -20으로 흥정 상승분 상쇄).
@@ -80,6 +84,15 @@ export const DISPOSITION_DECAY_PER_DAY = 5;
 export function decayedDisposition(mem: MerchantMemory, currentDay: number): number {
   const days = Math.max(0, currentDay - mem.lastDay);
   return Math.max(0, mem.disposition - days * DISPOSITION_DECAY_PER_DAY);
+}
+
+// 호감도 → 관계 등급(세계관 톤 명칭 + 색). 흥정창 게이지와 별개로 "관계"를 한 단어로.
+export function dispositionRank(d: number): { label: string; tone: string } {
+  if (d >= 75) return { label: "각별한 단골", tone: "text-amber-300 border-amber-500/50" };
+  if (d >= 50) return { label: "단골", tone: "text-amber-400/90 border-amber-700/40" };
+  if (d >= 25) return { label: "안면 튼 사이", tone: "text-stone-200 border-stone-600" };
+  if (d > 0) return { label: "낯선 얼굴", tone: "text-stone-400 border-stone-700" };
+  return { label: "초면", tone: "text-stone-500 border-stone-800" };
 }
 
 export function initialState(): GameState {

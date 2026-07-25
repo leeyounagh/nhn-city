@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { BookLevel, MaterialId, PublicMerchant } from "@/types/game";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { GameIcon } from "@/components/GameIcon";
+import { dispositionRank } from "@/lib/game-state";
 
 // 상인 초상화 — 실제 AI 초상화, 없으면 game-icon 폴백(분홍 이모지 대신).
 function MerchantPortrait({ merchant }: { merchant: PublicMerchant }) {
@@ -38,6 +39,8 @@ export function MerchantPanel({
   merchant,
   bookLevel,
   busy,
+  disposition,
+  tokenTaken,
   onHaggle,
   onBarter,
   onClose,
@@ -45,6 +48,8 @@ export function MerchantPanel({
   merchant: PublicMerchant | null;
   bookLevel: BookLevel;
   busy: boolean;
+  disposition?: number; // 감쇠 적용된 현재 호감도 (기록 없으면 undefined = 초면)
+  tokenTaken?: boolean; // 이 상인에게 신표를 이미 받았는지
   onHaggle: (id: MaterialId) => void;
   onBarter?: (rareId: MaterialId, payId: MaterialId) => void;
   onClose?: () => void;
@@ -54,6 +59,8 @@ export function MerchantPanel({
   const [advice, setAdvice] = useState<string | null>(null);
   const [adviceLoading, setAdviceLoading] = useState(false);
   const seed = merchant?.seed;
+  // 상인/책레벨이 바뀌면 이전 조언을 지우고 새로 fetch한다(외부 HTTP 동기화 — 파생상태 오용 아님).
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (seed === undefined || bookLevel < 2) {
       setAdvice(null);
@@ -79,6 +86,7 @@ export function MerchantPanel({
       cancelled = true;
     };
   }, [seed, bookLevel]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!merchant) {
     return (
@@ -103,6 +111,20 @@ export function MerchantPanel({
               <span className="shrink-0 rounded-full border border-stone-700 bg-stone-800 px-2 py-0.5 text-[11px] text-stone-400">{merchant.title}</span>
             </div>
             <p className="mt-0.5 truncate text-sm text-stone-400">{merchant.appearance}</p>
+            {disposition !== undefined && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span
+                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${dispositionRank(disposition).tone}`}
+                >
+                  {dispositionRank(disposition).label} · 호감도 {disposition}
+                </span>
+                {tokenTaken && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-800/50 bg-sky-950/30 px-2 py-0.5 text-[11px] text-sky-300">
+                    <GameIcon name="spellBook" className="h-3 w-3" /> 신표 받음
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
         {onClose && (

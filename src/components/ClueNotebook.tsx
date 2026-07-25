@@ -74,6 +74,11 @@ function ClueRow({ rumor: r }: { rumor: Rumor }) {
         {r.materialName && (
           <span className="text-xs text-emerald-400">· {r.materialName}</span>
         )}
+        {r.stale && (
+          <span className="rounded border border-amber-700/60 px-1.5 py-0.5 text-[11px] text-amber-400/90">
+            오래된 소식
+          </span>
+        )}
         {r.suspect && (
           <span className="rounded border border-rose-700/60 px-1.5 py-0.5 text-[11px] text-rose-300">
             의심스러움

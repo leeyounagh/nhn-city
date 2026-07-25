@@ -72,6 +72,7 @@ export interface Rumor {
   materialName?: string;
   kind: ClueKind;
   suspect?: boolean; // 책 Lv3에서만: 오래됐거나 거짓일 수 있다는 표시
+  stale?: boolean; // 위치 소문이 "오래된 소식"(상인이 이미 이동했을 수 있음) — 레벨 무관 표시
 }
 
 export type HaggleCategory =

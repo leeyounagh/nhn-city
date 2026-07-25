@@ -348,7 +348,11 @@ function describeFragment(frag: RumorFragment): string {
   const who = frag.appearance || frag.archetypeTitle;
   const lines = [`정보원: ${frag.source}`, `상인: ${who}`];
   if (frag.kind === "location") {
-    lines.push(`사실: 그 상인은 ${frag.townName}에 있다.`);
+    lines.push(
+      frag.reliability === "stale"
+        ? `사실: 얼마 전 그 상인을 ${frag.townName}에서 봤다는 오래된 소식(이미 옮겼을 수 있다).`
+        : `사실: 그 상인은 지금 ${frag.townName}에 있다.`,
+    );
   } else if (frag.kind === "wants") {
     lines.push(`사실: 그 상인은 ${frag.townName}에서 ${frag.materialName}을(를) 구하려 한다.`);
   } else {
@@ -373,11 +377,18 @@ export function rumorUser(frag: RumorFragment): string {
 // 크레딧 없을 때 조각을 템플릿 문장으로 옮긴다. merchantSeed로 변형을 골라 소문마다 말투가 다르다.
 const FALLBACK_RUMOR_LOCATION: ((title: string, town: string) => string)[] = [
   (t, town) => `그 ${t}, 요새 ${town}에 자리를 텄다더군.`,
-  (t, town) => `${town} 저잣거리에서 ${t}을(를) 봤다는 사람이 있어.`,
-  (t, town) => `듣자 하니 ${t}이(가) ${town} 어귀에 수레를 풀었다지.`,
-  (t, town) => `${t} 말인가? ${town} 쪽에 눌러앉았다는 소문이야.`,
+  (t, town) => `방금 ${town} 저잣거리에서 ${t}을(를) 봤다는 사람이 있어.`,
+  (t, town) => `듣자 하니 ${t}이(가) 지금 ${town} 어귀에 수레를 풀었다지.`,
+  (t, town) => `${t} 말인가? 요즘 ${town}에 눌러앉았다는 소문이야.`,
   (t, town) => `요 며칠 ${town}에 ${t}이(가) 드나든다더라.`,
-  (t, town) => `${town}에 가면 그 ${t}을(를) 만날 수 있을 거요.`,
+  (t, town) => `${town}에 가면 지금 그 ${t}을(를) 만날 수 있을 거요.`,
+];
+// 오래된 소식 — 상인은 5일마다 옮겨 다니니 이미 떠났을 수 있다(신선도로 판단하게).
+const FALLBACK_RUMOR_LOCATION_STALE: ((title: string, town: string) => string)[] = [
+  (t, town) => `얼마 전엔 ${t}이(가) ${town}에 있었다는데, 지금도 있을지는 모르겠군.`,
+  (t, town) => `${town}에서 ${t}을(를) 봤다는 건 며칠 지난 소식이야.`,
+  (t, town) => `${t}? 한동안 ${town}에 있었다지. 벌써 떴을지도 모르고.`,
+  (t, town) => `옛말에 ${t}이(가) ${town}에 들렀다더라만, 오래된 얘기지.`,
 ];
 const FALLBACK_RUMOR_WANTS: ((title: string, town: string, mat: string) => string)[] = [
   (t, town, m) => `${town}의 ${t}이(가) ${m}을(를) 애타게 찾는다던데.`,
@@ -403,7 +414,8 @@ export function fallbackRumor(frag: RumorFragment): string {
   const t = frag.appearance || frag.archetypeTitle;
   const town = frag.townName;
   if (frag.kind === "location") {
-    return variant(FALLBACK_RUMOR_LOCATION, frag.merchantSeed)(t, town);
+    const pool = frag.reliability === "stale" ? FALLBACK_RUMOR_LOCATION_STALE : FALLBACK_RUMOR_LOCATION;
+    return variant(pool, frag.merchantSeed)(t, town);
   }
   if (frag.kind === "wants") {
     return variant(FALLBACK_RUMOR_WANTS, frag.merchantSeed)(t, town, frag.materialName ?? "무언가");

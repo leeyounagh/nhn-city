@@ -31,6 +31,13 @@ export interface RumorFragment {
 const SOURCES = ["정보상", "행인", "떠돌이 상인", "주막 주인", "아이"];
 const TRAVEL_MAX = 3; // 마을 간 최대 이동일 (고향↔유리섬). 위치 소문은 남은 체류가 이보다 길 때만 흘린다.
 
+// 이 상인과 물물교환이 가능한지 — 잠금 안 된 tier3(marble·bronze·stainedglass, relic은 책Lv3)을 팔아야 wants가 의미 있다.
+function canBarter(materials: { id: MaterialId; tier: number }[], bookLevel: BookLevel): boolean {
+  return materials.some(
+    (m) => m.tier === 3 && !((m.id === "relic" || m.id === "blueprint") && bookLevel < 3),
+  );
+}
+
 // 책 레벨별로 흘릴 수 있는 조각 종류.
 function allowedKinds(bookLevel: BookLevel): ClueKind[] {
   if (bookLevel >= 3) return ["location", "wants", "moving"];
@@ -77,19 +84,24 @@ export function selectFragments(
     const d = deriveMerchant(wm.seed);
 
     // 이 상인이 낼 수 있는 조각 종류만 추림.
-    // 위치(location)는 남은 체류가 최대 이동일(3)보다 길 때만 흘린다 → 소문 보고 가면 항상 있음.
+    // - 위치(location): 남은 체류가 최대 이동일(3)보다 길 때만 → 최신 소문 보고 가면 항상 있음.
+    // - 원함(wants): 실제로 물물교환이 가능한 상인만 → 원하는 물품 줄 방법이 있음.
+    const barterOk = canBarter(d.materials, bookLevel);
     let candidateKinds = kinds.filter((c) => {
-      if (c === "wants") return wm.wants.length > 0;
+      if (c === "wants") return wm.wants.length > 0 && barterOk;
       if (c === "location") return wm.daysLeft > TRAVEL_MAX;
       return true;
     });
     if (candidateKinds.length === 0) {
-      candidateKinds = wm.wants.length > 0 ? ["wants"] : kinds.includes("moving") ? ["moving"] : ["location"];
+      candidateKinds = kinds.includes("moving") ? ["moving"] : ["location"];
     }
     const kind = pick(rng, candidateKinds);
 
-    const reliability: Reliability =
+    let reliability: Reliability =
       rng() < badChance ? (rng() < 0.5 ? "stale" : "false") : "solid";
+    // 위치 소문은 순수 거짓이 없다 — 최신(solid)이거나 "오래된 소식"(stale, 이웃 마을 지목)뿐.
+    // 상인은 5일마다 옮겨 다니므로 오래된 위치 소문은 이미 이동했을 수 있다(플레이어가 신선도로 판단).
+    if (kind === "location" && reliability === "false") reliability = "stale";
 
     const frag: RumorFragment = {
       merchantSeed: wm.seed,
@@ -164,6 +176,8 @@ export async function generateRumors(
       }
       // 책 Lv3: 거짓·오래된 조각을 "의심스러움"으로 표시해 판별을 돕는다.
       if (bookLevel >= 3 && frag.reliability !== "solid") rumor.suspect = true;
+      // 위치 소문의 신선도는 레벨 무관 공개 — "오래된 소식"이면 이미 이동했을 수 있다.
+      if (frag.kind === "location" && frag.reliability === "stale") rumor.stale = true;
       return rumor;
     }),
   );

@@ -428,3 +428,9 @@
 - **필터**(`rumor.ts selectFragments`): `location` 조각은 `wm.daysLeft > TRAVEL_MAX(3)`일 때만. 없으면 wants→moving→location 순 폴백. 곧 떠날 상인은 `movingTomorrow`(daysLeft===1) 소문.
 - **검증 시뮬**: 하루 6명 유니크·결정론·매일 위치소문 대상 최소 2명(가뭄X)·필터 위치소문 존재율 1/2/3일 **전부 100%**·하루 슬롯 교체 평균 1.20(자연스러움). 문서: 경제모델 §2.4, 기획서 §6.6.
 - WorldMerchant에 `daysLeft` 필드 추가. `movingTomorrow` 의미 = "체류 마지막 날".
+### 소문 정합성 수정 — 위치 신선도 + wants 물물교환 필터 (2026-07-25, 사용자 지적)
+- **버그A(위치 헛걸음)**: 위치 소문이 40%(책Lv1) 확률로 `false`(딴 마을 지목)라 가면 없음. 특히 Lv1은 소문이 전부 `location`이라 절반이 헛걸음 = 순수 도박. → **위치 소문에서 `false` 제거**(kind==="location" && reliability==="false" → "stale"로 강등). 이제 위치는 `solid`(최신·100% 존재) 또는 `stale`(이웃 지목·"오래된 소식" 표시)뿐. 상인이 5일마다 옮기는 슬라이딩과 서사가 맞물림.
+- **버그B(원함인데 교환 불가)**: `wants` 소문은 물물교환 유도인데, tier3 없는 상인(woodmonger/draper/general)이나 relic만 있고 책Lv3 미만인 junker는 교환 불가. → `canBarter(materials, bookLevel)`로 **잠금 안 된 tier3 보유 상인만 wants 소문**. 결과: Lv1/2 = mason·glazier, Lv3 = +junker.
+- **신선도 노출**: `Rumor.stale`(레벨 무관) 추가 → ClueNotebook·TownView에 "오래된 소식" 뱃지(amber). 기존 `suspect`(원함/이동 진위, 책Lv3)와 별개. 위치는 신선도 공개, 원함/이동은 진위 숨김(추리 유지).
+- **문구**: `FALLBACK_RUMOR_LOCATION_STALE` 추가("얼마 전 ~에 있었다는데 지금도 있을지…"), `describeFragment`도 stale 뉘앙스 전달. solid는 "요새/지금 ~에".
+- 설계 선택 B("위치 신선도"): 사용자와 A(위치 항상 진짜)/B(신선도)/C(교차검증) 중 B 채택. 검증: tsc/lint 그린 + canBarter 전문화×레벨 시뮬. 문서: 경제모델 §2.4.

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { BookLevel, ClueKind, MaterialId, PublicMerchant, Rumor, TownId } from "@/types/game";
 import { MerchantPanel, PORTRAIT_EMOJI } from "@/components/MerchantPanel";
+import { decayedDisposition, type MerchantMemory } from "@/lib/game-state";
 import { TownIsoPreview } from "@/components/TownIsoPreview";
 import { MATERIAL_NAME, TOWN_ICON } from "@/lib/game-data";
 import { MaterialIcon } from "@/components/MaterialIcon";
@@ -68,6 +69,8 @@ export function TownView({
   onHaggle,
   onBarter,
   onSell,
+  merchantMemory,
+  day,
 }: {
   townId: TownId;
   townName: string;
@@ -81,6 +84,8 @@ export function TownView({
   onHaggle: (merchant: PublicMerchant, materialId: MaterialId) => void;
   onBarter: (merchant: PublicMerchant, rareId: MaterialId, payId: MaterialId) => void;
   onSell: (materialId: MaterialId, qty: number) => void;
+  merchantMemory: Record<number, MerchantMemory>;
+  day: number;
 }) {
   const [selected, setSelected] = useState<PublicMerchant | null>(null);
   // 팔 수 있는 자재만 (신표 등 판매가 없는 특수 아이템 제외).
@@ -155,6 +160,11 @@ export function TownView({
                   </span>
                   <span className="text-xs text-stone-400">{r.archetypeTitle}</span>
                   {r.materialName && <span className="text-xs text-emerald-400">· {r.materialName}</span>}
+                  {r.stale && (
+                    <span className="rounded border border-amber-700/60 px-1.5 py-0.5 text-[11px] text-amber-400/90">
+                      오래된 소식
+                    </span>
+                  )}
                   {r.suspect && (
                     <span className="rounded border border-rose-700/60 px-1.5 py-0.5 text-[11px] text-rose-300">
                       의심스러움
@@ -212,6 +222,12 @@ export function TownView({
             merchant={selected}
             bookLevel={bookLevel}
             busy={busy}
+            disposition={
+              merchantMemory[selected.seed]
+                ? decayedDisposition(merchantMemory[selected.seed], day)
+                : undefined
+            }
+            tokenTaken={merchantMemory[selected.seed]?.tokenTaken}
             onClose={() => setSelected(null)}
             onHaggle={(id) => {
               const m = selected;
