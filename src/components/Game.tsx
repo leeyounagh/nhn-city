@@ -30,6 +30,9 @@ import { IntroCutscene } from "@/components/IntroCutscene";
 
 const INTRO_SEEN_KEY = "lc_intro_seen";
 
+// 아침 뉴스 모달에 그날 정산된 생산량을 함께 실어 보여준다(클라 계산분).
+type NewsWithProduction = DailyNews & { produced?: Partial<Record<MaterialId, number>> };
+
 // 흥정 종료 시 그 상인과의 호감도·신표 수령을 기억에 저장한다(seed=정체성 키). 대화 없이 닫으면 유지.
 function rememberMerchant(s: GameState): Record<number, MerchantMemory> {
   if (!s.merchant || !s.haggle || s.haggle.disposition === undefined) return s.merchantMemory ?? {};
@@ -58,7 +61,7 @@ export function Game() {
   const [showRelations, setShowRelations] = useState(false);
   // null = 판정 전(첫 프레임) · true = 재생 · false = 종료. 판정 전엔 검은 커버로 게임 노출을 막는다.
   const [showIntro, setShowIntro] = useState<boolean | null>(null);
-  const [news, setNews] = useState<DailyNews | null>(null); // 오늘 아침 시황 (모달)
+  const [news, setNews] = useState<NewsWithProduction | null>(null); // 오늘 아침 시황 (모달)
   const [lastNewsDay, setLastNewsDay] = useState(1); // 뉴스를 마지막으로 띄운 날 (하루 1회)
 
   // 세션에 한 번만 자동 재생 (새로고침 반복 방지). sessionStorage는 SSR에 없어 마운트 후 읽는다.
@@ -121,7 +124,14 @@ export function Game() {
           body: JSON.stringify({ day: newDay }),
         })
           .then((r) => r.json())
-          .then((n: DailyNews) => setNews(n))
+          .then((n: DailyNews) =>
+            setNews({
+              ...n,
+              produced: prodEntries.length
+                ? Object.fromEntries(prodEntries.map(([id, n2]) => [id, n2 * days]))
+                : undefined,
+            }),
+          )
           .catch(() => {});
       }
       if (dest === "home") {
@@ -197,7 +207,9 @@ export function Game() {
         body: JSON.stringify({ day: newDay }),
       })
         .then((r) => r.json())
-        .then((n: DailyNews) => setNews(n))
+        .then((n: DailyNews) =>
+          setNews({ ...n, produced: prodEntries.length ? produced : undefined }),
+        )
         .catch(() => {});
     }
   }, [state.day, state.placements, busy, lastNewsDay]);
@@ -734,8 +746,9 @@ function RelationsModal({
 }
 
 // 아침 시황 뉴스 모달. 이동으로 날이 바뀌면 하루 1회 뜬다. 이벤트가 있으면 폭락 마을·물품을 보여준다.
-function NewsModal({ news, onClose }: { news: DailyNews; onClose: () => void }) {
+function NewsModal({ news, onClose }: { news: NewsWithProduction; onClose: () => void }) {
   const ev = news.event;
+  const prod = news.produced ? (Object.entries(news.produced) as [MaterialId, number][]) : [];
   return (
     <div
       className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-24 backdrop-blur-sm"
@@ -764,6 +777,20 @@ function NewsModal({ news, onClose }: { news: DailyNews; onClose: () => void }) 
           </div>
         ) : (
           <p className="text-sm text-stone-400">특별한 사건은 없다. 장세가 잔잔하다.</p>
+        )}
+        {prod.length > 0 && (
+          <div className="mt-2 rounded border border-sky-800/50 bg-sky-950/30 px-3 py-2">
+            <p className="flex items-center gap-1.5 text-sm text-sky-300">
+              <GameIcon name="factory" className="h-4 w-4" /> 오늘의 생산
+            </p>
+            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-stone-200">
+              {prod.map(([id, n]) => (
+                <span key={id}>
+                  {MATERIAL_NAME[id]} <span className="font-semibold text-emerald-300">+{n}</span>
+                </span>
+              ))}
+            </p>
+          </div>
         )}
       </div>
     </div>
