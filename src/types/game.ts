@@ -53,7 +53,10 @@ export interface BuildingDef {
   produces?: Partial<Record<MaterialId, number>>; // 완성 시 매일 생산하는 자재(고정 산출). 상위 건물일수록 상위 티어.
   deco?: boolean; // 장식물 — 「대건축가의 설계도」 보유 시 해금. 자재 불필요·즉시완공·수입0.
   flat?: boolean; // 바닥 장식 — 타일 지면으로 렌더(위로 솟지 않음).
+  category?: BuildingCategory; // 건설 팔레트 탭 분류 (없으면 core, 장식은 deco 필드로 별도 탭).
 }
+
+export type BuildingCategory = "core" | "commerce" | "tower" | "church" | "castle";
 
 export type BookLevel = 1 | 2 | 3;
 

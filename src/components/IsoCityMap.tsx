@@ -591,9 +591,21 @@ function BuildingPalette({
   onCardClick: (buildingId: string) => void;
   onStripPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
 }) {
-  const normal = BUILDINGS.filter((b) => !b.deco);
-  const deco = BUILDINGS.filter((b) => b.deco);
   const unlocked = hasBlueprint(state.inventory);
+  const [tab, setTab] = useState<string>("core");
+  // 탭별 건물 목록 (category 없으면 core). deco 탭은 「설계도」 해금 시만.
+  const listFor = (cat: string) =>
+    cat === "deco"
+      ? BUILDINGS.filter((b) => b.deco)
+      : BUILDINGS.filter((b) => !b.deco && (b.category ?? "core") === cat);
+  const TABS: { key: string; label: string }[] = [
+    { key: "core", label: "도시" },
+    { key: "commerce", label: "상업" },
+    { key: "tower", label: "타워" },
+    { key: "church", label: "교회" },
+    { key: "castle", label: "성" },
+    ...(unlocked ? [{ key: "deco", label: "장식" }] : []),
+  ];
   const cards = (list: typeof BUILDINGS) =>
     list.map((b) => (
       <PaletteCard
@@ -607,18 +619,33 @@ function BuildingPalette({
     ));
   return (
     <div className="shrink-0 space-y-1.5">
-      <div>
-        <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-stone-300"><GameIcon name="hammer" className="h-4 w-4 text-amber-400/80" /> 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭</p>
-        <div onPointerDown={onStripPointerDown} className="flex cursor-grab gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing">{cards(normal)}</div>
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-stone-300">
+        <GameIcon name="hammer" className="h-4 w-4 text-amber-400/80" /> 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭
+      </p>
+      {/* 건물 스크롤 (선택된 카테고리) */}
+      <div onPointerDown={onStripPointerDown} className="flex min-h-[96px] cursor-grab gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing">
+        {cards(listFor(tab))}
       </div>
-      {unlocked && (
-        <div>
-          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-amber-300">
-            <GameIcon name="paintBrush" className="h-4 w-4" /> 장식 <span className="font-normal text-stone-400">— 「대건축가의 설계도」로 해금. 바닥·성벽을 자유롭게</span>
-          </p>
-          <div onPointerDown={onStripPointerDown} className="flex cursor-grab gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing">{cards(deco)}</div>
-        </div>
-      )}
+      {/* 하단 카테고리 탭 */}
+      <div className="flex flex-wrap gap-1 border-t border-stone-800 pt-1.5">
+        {TABS.map((t) => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                active
+                  ? "bg-amber-500/20 text-amber-200 ring-1 ring-amber-500/50"
+                  : "bg-stone-800/60 text-stone-400 hover:text-stone-200"
+              }`}
+            >
+              {t.label}
+              <span className="ml-1 opacity-60">{listFor(t.key).length}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
