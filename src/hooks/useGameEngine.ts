@@ -510,3 +510,6 @@ export function useGameEngine() {
     rotateBuilding,
   };
 }
+
+// 엔진 훅의 반환 전체 — 렌더 조각(GameFooter·ModalStack)에 통째로 넘겨 props 폭증을 피한다.
+export type GameEngine = ReturnType<typeof useGameEngine>;
