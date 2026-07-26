@@ -44,6 +44,7 @@ export function IsoCityMap({
   state,
   onPlace,
   onDeposit,
+  onDepositMax,
   onReclaim,
   onMove,
   onRotate,
@@ -51,6 +52,7 @@ export function IsoCityMap({
   state: GameState;
   onPlace: (buildingId: string, x: number, y: number) => void;
   onDeposit: (placementId: string, materialId: MaterialId) => void;
+  onDepositMax: (placementId: string, materialId: MaterialId) => void;
   onReclaim: (placementId: string) => void;
   onMove: (placementId: string, x: number, y: number) => void;
   onRotate: (placementId: string) => void;
@@ -418,6 +420,7 @@ export function IsoCityMap({
           placement={selectedPlacement}
           state={state}
           onDeposit={onDeposit}
+          onDepositMax={onDepositMax}
           onReclaim={(id) => {
             onReclaim(id);
             setSelectedPlacementId(null);

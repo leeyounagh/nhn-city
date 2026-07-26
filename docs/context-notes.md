@@ -484,3 +484,13 @@
 - **요구**: 튜토리얼 건너뛰기 후, 미션 목록에서 진행 중 미션 클릭 시 처음부터 다시 안내.
 - **구현(비파괴)**: 엔진 `restartMission` = `missionDismissed=false` + `acked=new Set()`(read-rumors·news-seen·onboarding-done 초기화 → info 코치 재노출) + 모달 닫기. **게임 상태(골드·건물·day)는 유지** — 현재 상태부터 코치 재개(진행 없으면 자연히 go-buy부터). MissionListModal의 진행 중 행을 버튼화(완료 행은 disable 유지). ModalStack이 `onRestart` 전달.
 - **날짜 로직 우려 해소**: "며칠차라 마을 상인이 다를 텐데?"는 **튜토리얼 자재 보장**이 이미 커버 — 재시작이 day N에 일어나도 미션 활성이면 guarantee가 특산 자재를 보장(day 2~50 무관). 그래서 날짜별 상인 배치 로직은 **안 바꿔도 됨**.
+### 마법의 책 Lv.1 — 자재 시세 그래프 (2026-07-26)
+- **목적**: 책 Lv.1 효과 강화. 자재별 하루평균 시장 시세를 과거 14일 스파크라인으로.
+- **2레이어 안전**: **평균 시장가만** 노출(4마을 평균 base×마을배수×이벤트배수). **하한가·상인 약점·개별 제시가·미래 시세는 노출 안 함** → 흥정 무결성 무관. Lv.2(상인 가격대)·Lv.3(하한가)와 역할 분리(거시 트렌드 vs 미시 상인가).
+- **서버**: `economy.ts avgMarketPrice(day,id)`(품귀·markup·variance 제외 순수 시장가). 라우트 `POST /api/prices {day,days=14}` → `{dayLabels, points:[{id,name,tier,series}]}`. 결정론(같은 day=같은 결과, curl 검증). 신표·설계도 제외(14종).
+- **UI**: `game/modals/PriceChartModal.tsx` — **recharts 3.10.1**(React19 peer 지원, `pnpm add recharts`) 스파크라인 티어별 그리드 + 현재가·등락(▲▼). 대풍작 딥이 보임(예: stone day4 11→10). 값 작아 sparkline domain=[dataMin,dataMax].
+- **통합**: 엔진 `showPriceChart`, ModalStack 렌더, BookCodex Lv.1 행에 「자재 시세 그래프 보기」 버튼(책 닫고 그래프 열기). LEVEL_UNLOCKS Lv.1 문구 갱신.
+- **주의**: recharts 실제 차트 렌더는 브라우저 스모크 필요(Next16 특수버전×React19 런타임). 컴파일·API·tsc/eslint는 그린.
+### 마법의 책 Lv.1 — 건물 도감 (2026-07-26)
+- 시세 그래프에 이어 Lv.1 효과 하나 더. `BuildingCodexModal.tsx` — 전 건물(비deco) 카테고리별(도시·상업·타워·교회·성채)로 **완공 효과(매일 골드·자재 생산·경험치)** + 필요 자재·선행·책Lv를 한눈에. 클라 데이터(BUILDINGS)라 서버 불필요.
+- 엔진 `showBuildingCodex`, ModalStack 렌더, BookCodex Lv.1 행에 「건물 도감」 버튼(시세 그래프 버튼 옆). Lv.1 문구 갱신.

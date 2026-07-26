@@ -58,6 +58,8 @@ export function useGameEngine() {
   const [missionDismissed, setMissionDismissed] = useState(false); // 튜토리얼 건너뛰기(세션 로컬)
   const [acked, setAcked] = useState<ReadonlySet<string>>(() => new Set()); // [다음]으로 넘긴 정보 단계 id
   const [showMissions, setShowMissions] = useState(false); // 미션 목록 모달
+  const [showPriceChart, setShowPriceChart] = useState(false); // 시세 그래프 모달 (책 Lv.1)
+  const [showBuildingCodex, setShowBuildingCodex] = useState(false); // 건물 도감 모달 (책 Lv.1)
   // null = 판정 전(첫 프레임) · true = 재생 · false = 종료. 판정 전엔 검은 커버로 게임 노출을 막는다.
   const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const [news, setNews] = useState<NewsWithProduction | null>(null); // 오늘 아침 시황 (모달)
@@ -464,6 +466,39 @@ export function useGameEngine() {
     }
   }, []);
 
+  // 부족분과 보유량 중 작은 만큼 그 자재를 한 번에 투입한다. 마지막 슬롯이 차면 완공 처리.
+  const depositMax = useCallback((placementId: string, materialId: MaterialId) => {
+    let finished: (typeof BUILDINGS)[number] | null = null;
+    setState((s) => {
+      const idx = s.placements.findIndex((p) => p.id === placementId);
+      if (idx < 0) return s;
+      const pl = s.placements[idx];
+      if (pl.built) return s;
+      const b = BUILDINGS.find((x) => x.id === pl.buildingId);
+      if (!b) return s;
+      const need = b.requires[materialId] ?? 0;
+      const have = pl.progress[materialId] ?? 0;
+      const qty = Math.min(need - have, s.inventory[materialId] ?? 0);
+      if (qty <= 0) return s;
+
+      const inventory = { ...s.inventory, [materialId]: (s.inventory[materialId] ?? 0) - qty };
+      const progress = { ...pl.progress, [materialId]: have + qty };
+      const complete = (Object.entries(b.requires) as [MaterialId, number][]).every(
+        ([id, n]) => (progress[id] ?? 0) >= n,
+      );
+      const placements = [...s.placements];
+      placements[idx] = { ...pl, progress, built: complete };
+      if (complete) finished = b;
+      return complete
+        ? { ...s, inventory, placements, xp: s.xp + b.xp }
+        : { ...s, inventory, placements };
+    });
+    if (finished) {
+      const b = finished as (typeof BUILDINGS)[number];
+      setNotice(`${b.name}을(를) 완성했다. 경험치 +${b.xp}.`);
+    }
+  }, []);
+
   // 건물을 헐고(완공 여부 무관) 투입·소모한 자재를 전부 인벤토리로 반환 + 타일 반납.
   const reclaim = useCallback((placementId: string) => {
     let name = "";
@@ -535,6 +570,10 @@ export function useGameEngine() {
     setShowMissions,
     openMissions,
     restartMission,
+    showPriceChart,
+    setShowPriceChart,
+    showBuildingCodex,
+    setShowBuildingCodex,
     bookLevel,
     income,
     next,
@@ -549,6 +588,7 @@ export function useGameEngine() {
     closeHaggle,
     placeBuilding,
     deposit,
+    depositMax,
     reclaim,
     moveBuilding,
     rotateBuilding,

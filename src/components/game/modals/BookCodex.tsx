@@ -7,7 +7,7 @@ import { GameIcon, type GameIconName } from "@/shared/icon/GameIcon";
 
 // 레벨별 해금 내용 (Lv1~3).
 const LEVEL_UNLOCKS: { level: BookLevel; title: string; desc: string }[] = [
-  { level: 1, title: "취급 자재", desc: "상인이 무엇을 파는지 볼 수 있다." },
+  { level: 1, title: "취급 자재 · 시세 · 도감", desc: "상인이 무엇을 파는지 보고, 자재 시세 흐름과 건물 도감(완공 효과)을 읽는다." },
   { level: 2, title: "성향 읽기", desc: "상인의 성향을 읽는다 — 무엇에 마음이 움직이는 사람인지 가늠한다." },
   { level: 3, title: "약점 간파", desc: "정확한 약점과 하한가 근사치가 드러난다. 「옛 문명의 부품」·「대건축가의 설계도」도 식별·거래할 수 있다." },
 ];
@@ -45,10 +45,14 @@ function SectionRule({ icon, title }: { icon: GameIconName; title: string }) {
 export function BookCodex({
   bookLevel,
   xp,
+  onShowPrices,
+  onShowBuildings,
   onClose,
 }: {
   bookLevel: BookLevel;
   xp: number;
+  onShowPrices: () => void;
+  onShowBuildings: () => void;
   onClose: () => void;
 }) {
   const isMax = bookLevel >= MAX_BOOK_LEVEL;
@@ -147,6 +151,22 @@ export function BookCodex({
                       <p className="text-xs text-stone-400">
                         {unlocked ? u.desc : "어둠 속에 봉인되어 있다."}
                       </p>
+                      {u.level === 1 && unlocked && (
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          <button
+                            onClick={onShowPrices}
+                            className="inline-flex items-center gap-1 rounded border border-sky-700/50 bg-sky-950/40 px-2 py-1 text-[11px] font-medium text-sky-200 transition hover:bg-sky-900/50"
+                          >
+                            <GameIcon name="spellBook" className="h-3.5 w-3.5" /> 자재 시세 그래프
+                          </button>
+                          <button
+                            onClick={onShowBuildings}
+                            className="inline-flex items-center gap-1 rounded border border-amber-700/50 bg-amber-950/30 px-2 py-1 text-[11px] font-medium text-amber-200 transition hover:bg-amber-900/40"
+                          >
+                            <GameIcon name="hammer" className="h-3.5 w-3.5" /> 건물 도감
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

@@ -21,6 +21,7 @@ export function Game() {
     sell,
     placeBuilding,
     deposit,
+    depositMax,
     reclaim,
     moveBuilding,
     rotateBuilding,
@@ -36,6 +37,7 @@ export function Game() {
             state={state}
             onPlace={placeBuilding}
             onDeposit={deposit}
+            onDepositMax={depositMax}
             onReclaim={reclaim}
             onMove={moveBuilding}
             onRotate={rotateBuilding}

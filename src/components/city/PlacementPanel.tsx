@@ -11,6 +11,7 @@ export function PlacementPanel({
   placement,
   state,
   onDeposit,
+  onDepositMax,
   onReclaim,
   onRotate,
   onStartMove,
@@ -19,6 +20,7 @@ export function PlacementPanel({
   placement: Placement;
   state: GameState;
   onDeposit: (placementId: string, materialId: MaterialId) => void;
+  onDepositMax: (placementId: string, materialId: MaterialId) => void;
   onReclaim: (placementId: string) => void;
   onRotate: (placementId: string) => void;
   onStartMove: (placementId: string) => void;
@@ -128,13 +130,22 @@ export function PlacementPanel({
                   {done ? (
                     <span className="text-[11px] text-emerald-400">충족</span>
                   ) : (
-                    <button
-                      onClick={() => onDeposit(placement.id, s.id)}
-                      disabled={!depositable}
-                      className="rounded bg-amber-600 px-2 py-0.5 text-[11px] font-semibold text-stone-950 transition enabled:hover:bg-amber-500 disabled:opacity-40"
-                    >
-                      투입 +1
-                    </button>
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        onClick={() => onDeposit(placement.id, s.id)}
+                        disabled={!depositable}
+                        className="rounded bg-amber-600 px-2 py-0.5 text-[11px] font-semibold text-stone-950 transition enabled:hover:bg-amber-500 disabled:opacity-40"
+                      >
+                        투입 +1
+                      </button>
+                      <button
+                        onClick={() => onDepositMax(placement.id, s.id)}
+                        disabled={!depositable}
+                        className="rounded border border-amber-600/70 px-2 py-0.5 text-[11px] font-semibold text-amber-300 transition enabled:hover:bg-amber-950/50 disabled:opacity-40"
+                      >
+                        한번에
+                      </button>
+                    </div>
                   )}
                 </li>
               );

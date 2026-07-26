@@ -393,6 +393,16 @@ export function sellPrice(day: number | undefined, townId: TownId | undefined, i
   return Math.max(1, Math.round(PRICES[id].base * mult * SELL_RATE));
 }
 
+// 그 날 자재의 하루평균 시장 시세 (마법의 책 Lv.1 시세 그래프용).
+// 4마을 평균 base × 마을배수 × 이벤트배수. 플레이어 품귀·상인 markup·variance는 제외한 순수 시장가.
+export function avgMarketPrice(day: number, id: MaterialId): number {
+  const sum = TOWN_IDS.reduce(
+    (a, t) => a + PRICES[id].base * townMultiplier(t, id) * eventMultiplier(day, t, id),
+    0,
+  );
+  return Math.round(sum / TOWN_IDS.length);
+}
+
 // 그 마을·날의 전체 자재 판매가 표 (클라 표시용). 신표(token)는 거래 불가라 제외.
 export function allSellPrices(day: number, townId: TownId): Partial<Record<MaterialId, number>> {
   const out: Partial<Record<MaterialId, number>> = {};

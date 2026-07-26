@@ -10,6 +10,8 @@ import { RelationsModal } from "@/components/game/modals/RelationsModal";
 import { WorldMapModal } from "@/components/game/modals/WorldMapModal";
 import { Tutorial } from "@/components/game/modals/Tutorial";
 import { MissionListModal } from "@/components/game/modals/MissionListModal";
+import { PriceChartModal } from "@/components/game/modals/PriceChartModal";
+import { BuildingCodexModal } from "@/components/game/modals/BuildingCodexModal";
 import { homeIcon } from "@/lib/game-state";
 import type { GameEngine } from "@/hooks/useGameEngine";
 
@@ -37,6 +39,10 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
     setShowMissions,
     missionList,
     restartMission,
+    showPriceChart,
+    setShowPriceChart,
+    showBuildingCodex,
+    setShowBuildingCodex,
     showIntro,
     setShowIntro,
     finishIntro,
@@ -88,12 +94,30 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
         />
       )}
 
+      {showBuildingCodex && <BuildingCodexModal onClose={() => setShowBuildingCodex(false)} />}
+
+      {showPriceChart && (
+        <PriceChartModal day={state.day} onClose={() => setShowPriceChart(false)} />
+      )}
+
       {showNotebook && (
         <ClueNotebook clues={state.clues} onClose={() => setShowNotebook(false)} />
       )}
 
       {showBook && (
-        <BookCodex bookLevel={bookLevel} xp={state.xp} onClose={() => setShowBook(false)} />
+        <BookCodex
+          bookLevel={bookLevel}
+          xp={state.xp}
+          onShowPrices={() => {
+            setShowBook(false);
+            setShowPriceChart(true);
+          }}
+          onShowBuildings={() => {
+            setShowBook(false);
+            setShowBuildingCodex(true);
+          }}
+          onClose={() => setShowBook(false)}
+        />
       )}
 
       {showRelations && (
