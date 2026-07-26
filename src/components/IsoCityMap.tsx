@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { MaterialId } from "@/types/game";
 import { BUILDINGS, MATERIAL_NAME, BUILDING_RENDER_SCALE } from "@/lib/game-data";
 import { GameIcon } from "@/shared/icon/GameIcon";
+import { MaterialIcon } from "@/shared/icon/MaterialIcon";
 import {
   type GameState,
   type Placement,
@@ -321,9 +322,29 @@ export function IsoCityMap({
                 } ${p.id === movingId ? "opacity-40" : ""} ${materialTarget ? "drop-shadow-[0_0_6px_rgba(52,211,153,0.9)]" : ""}`}
               />
               {!p.built && (
-                <span className="pointer-events-none absolute bottom-[30%] left-1/2 -translate-x-1/2 rounded bg-stone-950/85 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 shadow">
-                  {pct}%
-                </span>
+                <div className="pointer-events-none absolute bottom-[30%] left-1/2 flex -translate-x-1/2 flex-col items-center gap-0.5">
+                  <span className="rounded bg-stone-950/85 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 shadow">
+                    {pct}%
+                  </span>
+                  {/* 필요 자재 안내: 현재/필요 (예: 0/5). 충족된 자재는 초록. */}
+                  {chk.slots.length > 0 && (
+                    <span className="flex max-w-[130px] flex-wrap justify-center gap-x-1 gap-y-0.5 rounded bg-stone-950/80 px-1 py-0.5 text-[9px] font-medium shadow">
+                      {chk.slots.map((s) => {
+                        const ok = s.have >= s.need;
+                        return (
+                          <span
+                            key={s.id}
+                            className={`inline-flex items-center gap-0.5 whitespace-nowrap tabular-nums ${ok ? "text-emerald-400" : "text-stone-200"}`}
+                            title={MATERIAL_NAME[s.id]}
+                          >
+                            <MaterialIcon id={s.id} className="h-3 w-3" />
+                            {s.have}/{s.need}
+                          </span>
+                        );
+                      })}
+                    </span>
+                  )}
+                </div>
               )}
             </button>,
           );

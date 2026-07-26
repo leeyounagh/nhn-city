@@ -53,19 +53,66 @@ export function PlacementPanel({
           </button>
         </div>
 
+        {/* 이동 · 회전 · 삭제 — 상단 고정: 아래 자재 목록이 완공으로 짧아져도 버튼 위치가 안 바뀌어 삭제 오클릭 방지 */}
+        <div className="mb-1 flex gap-2">
+          <button
+            onClick={() => onStartMove(placement.id)}
+            className="flex flex-1 items-center justify-center gap-1 rounded border border-sky-700/60 bg-sky-950/40 px-2 py-1.5 text-xs font-semibold text-sky-200 transition hover:bg-sky-900/50"
+          >
+            <GameIcon name="handTruck" className="h-4 w-4" /> 이동
+          </button>
+          <button
+            onClick={() => onRotate(placement.id)}
+            className="flex flex-1 items-center justify-center gap-1 rounded border border-stone-600 bg-stone-800/50 px-2 py-1.5 text-xs font-semibold text-stone-200 transition hover:bg-stone-700"
+          >
+            <GameIcon name="clockwiseRotation" className="h-4 w-4" /> 회전
+          </button>
+          <button
+            onClick={() => onReclaim(placement.id)}
+            className="flex flex-1 items-center justify-center gap-1 rounded border border-rose-800/60 bg-rose-950/40 px-2 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50"
+          >
+            <GameIcon name="trashCan" className="h-4 w-4" /> 삭제
+          </button>
+        </div>
+        <p className="mb-3 border-b border-stone-700/60 pb-3 text-[11px] text-stone-500">
+          삭제하면 투입·소모한 자재를 전부 돌려받는다.
+        </p>
+
         {b.deco ? (
-          <p className="text-sm text-stone-300">장식물 — 아래 버튼으로 이동·회전·삭제할 수 있다.</p>
-        ) : placement.built ? (
-          <p className="text-sm font-medium text-emerald-400">
-            완성됨 — 매일 골드 수입
-            {b.produces
-              ? ` + ${(Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => `${MATERIAL_NAME[id]} ${n}`).join(", ")} 생산`
-              : ""}
-            을(를) 낸다.
-          </p>
+          <p className="text-sm text-stone-300">장식물 — 위 버튼으로 이동·회전·삭제할 수 있다.</p>
         ) : (
-          <ul className="flex flex-col gap-1.5">
-            {chk.slots.map((s) => {
+          <>
+            {/* 완공 효과 미리보기 — 구체 수치로. 미완공=완공 시, 완성=매일 내는 효과. */}
+            <div className="mb-3 rounded border border-emerald-800/40 bg-emerald-950/20 px-3 py-2">
+              <p className="mb-1 text-xs font-semibold text-emerald-300">
+                {placement.built ? "매일 내는 효과" : "완공 시 효과"}
+              </p>
+              <ul className="space-y-0.5 text-xs text-stone-200">
+                {b.income > 0 && (
+                  <li>
+                    매일 골드 <b className="tabular-nums text-amber-300">+{b.income}</b> 생산
+                  </li>
+                )}
+                {b.produces &&
+                  (Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => (
+                    <li key={id} className="flex items-center gap-1">
+                      매일 <MaterialIcon id={id} className="h-3.5 w-3.5" />
+                      {MATERIAL_NAME[id]} <b className="tabular-nums text-sky-300">{n}개</b> 생산
+                    </li>
+                  ))}
+                {!placement.built && (
+                  <li className="text-stone-400">
+                    완공 시 경험치 <b className="tabular-nums text-stone-200">+{b.xp}</b>
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            {placement.built ? (
+              <p className="text-sm font-medium text-emerald-400">완성됨 — 위 효과를 매일 낸다.</p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {chk.slots.map((s) => {
               const have = state.inventory[s.id] ?? 0;
               const done = s.have >= s.need;
               const depositable = canDeposit(placement, s.id, state);
@@ -92,31 +139,10 @@ export function PlacementPanel({
                 </li>
               );
             })}
-          </ul>
+              </ul>
+            )}
+          </>
         )}
-
-        {/* 이동 · 회전 · 삭제 */}
-        <div className="mt-4 flex gap-2 border-t border-stone-700/60 pt-3">
-          <button
-            onClick={() => onStartMove(placement.id)}
-            className="flex flex-1 items-center justify-center gap-1 rounded border border-sky-700/60 bg-sky-950/40 px-2 py-1.5 text-xs font-semibold text-sky-200 transition hover:bg-sky-900/50"
-          >
-            <GameIcon name="handTruck" className="h-4 w-4" /> 이동
-          </button>
-          <button
-            onClick={() => onRotate(placement.id)}
-            className="flex flex-1 items-center justify-center gap-1 rounded border border-stone-600 bg-stone-800/50 px-2 py-1.5 text-xs font-semibold text-stone-200 transition hover:bg-stone-700"
-          >
-            <GameIcon name="clockwiseRotation" className="h-4 w-4" /> 회전
-          </button>
-          <button
-            onClick={() => onReclaim(placement.id)}
-            className="flex flex-1 items-center justify-center gap-1 rounded border border-rose-800/60 bg-rose-950/40 px-2 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50"
-          >
-            <GameIcon name="trashCan" className="h-4 w-4" /> 삭제
-          </button>
-        </div>
-        <p className="mt-2 text-[11px] text-stone-500">삭제하면 투입·소모한 자재를 전부 돌려받는다.</p>
       </div>
     </div>
   );
