@@ -294,6 +294,7 @@ export function IsoCityMap({
               key={`s${p.id}`}
               type="button"
               data-pid={p.id} // 자재 드래그 드롭 히트테스트용 (elementFromPoint로 이 건물을 특정)
+              data-coach={p.buildingId === "hut" && !p.built ? "mission-hut" : undefined} // 미션: 오두막 완공 단계 강조
               onClick={() => {
                 if (consumePanClick()) return;
                 setSelectedPlacementId(p.id);

@@ -440,3 +440,47 @@
 - **함정 1 — React Compiler immutability**: 카메라의 `didPanRef`를 훅 밖 onClick에서 `.current=false`로 리셋하니 `react-hooks/immutability`(훅 반환값 변형 금지) + "modify after render" 에러. → 변형을 훅 안으로: `consumePanClick()`(플래그 검사+소비, boolean 반환) 메서드를 노출하고 소비처는 `if (consumePanClick()) return`. didPanRef는 훅 내부에만.
 - **함정 2 — effect 재구독**: 드래그드롭 effect가 원래 deps `[scale, pan, ...]`로 pan/scale 변경 시만 재구독. `screenToTile`을 그냥 반환하면 매 렌더 새 함수 → 매 렌더 재구독. → `screenToTile`을 `useCallback([pan, scale])`로 안정화하고 effect deps에 그것만. 원래 동작(팬/줌 시에만 재구독) 보존.
 - **검증**: tsc/eslint 그린(남은 6개는 의도된 `<img>` 경고). ⚠️ 동작 불변은 dev 스모크 필요(팬·줌·건물 드래그배치·자재투입·이동·회전·삭제·카테고리 탭). `BUILDING_ICON`(이모지 시대 데드 export)은 Surgical 원칙상 미삭제 유지.
+### 미션 시스템 (온보딩) — 스포트라이트 코치마크 (2026-07-26, 확장 가능 설계)
+- **동기**: 첫 사용자가 "오두막 짓기까지" 헤매지 않게 단계별 안내. 사용자 요청 = 단계마다 대상 UI에 z높은 검정 오버레이+화살표+텍스트로 포인트.
+- **핵심 결정 — 진행을 저장하지 않고 파생**: 상태 영속화가 없어(매 로드 새 게임) "처음" ≈ "오두막 미완공". `activeMission(state)`가 `steps.findIndex(!done)`로 현재 단계를 매 렌더 계산 → 스텝 카운터·GameState 스키마 변경 불필요(desync 원천 차단). deriveWorld·checkPlace와 같은 파생 철학.
+- **확장 구조**: `src/lib/missions.ts`에 `MISSIONS[]`(데이터). 새 미션은 항목만 추가. 각 `MissionStep`은 `done(s)`(판정)+`coach`(강조할 data-coach 키)+`label/hint`. 첫 미션 "첫 집 짓기" 5단계(이동→흥정→복귀→배치→완공).
+- **범용 프리미티브 분리**: `src/shared/CoachMark.tsx`는 미션 무지(無知) — `targetSelector`로 대상 rect를 rAF 추적, 4스트립 딤(대상 구멍만 클릭 통과, 바깥 차단)+화살표+말풍선+건너뛰기. 대상 못 찾으면(다른 화면) 중앙 말풍선. 어떤 온보딩에도 재사용.
+- **대상 표식**: 컴포넌트에 `data-coach="…"`만 부여(Surgical, 로직 무변) — 이동버튼(GameFooter)·상인목록ul(TownView)·오두막카드(BuildingPalette, `b.id==='hut'`)·배치된 오두막(IsoCityMap, `hut && !built`).
+- **z 충돌 회피(핵심)**: 코치는 대상 "버튼"만 강조 → 클릭 시 모달(월드맵·흥정 등)이 열리면 코치를 숨긴다(Game.tsx `anyModalOpen` 게이트). 모달 안에서 조작 → 상태 변화 → 단계 진행 → 모달 닫히면 코치 재등장. 덕분에 코치(z-80)와 모달(z-40) 싸움 없음.
+- **함정 — effect 동기 setState**: CoachMark rect 추적에서 `!targetSelector`일 때 즉시 `setBox(null)` 호출이 `react-hooks/set-state-in-effect` 에러. → 첫 측정도 `requestAnimationFrame`으로 미뤄 모든 setState를 rAF 안으로(한 프레임 지연은 무해).
+- **검증**: tsc/eslint 그린 + dev 컴파일 클린. ⚠️ 스포트라이트 추적·단계 진행은 브라우저 스모크 필요.
+- **버그(수정됨)**: 스포트라이트 최상위 `fixed inset-0` 부모가 `pointer-events` 기본 auto라 구멍(대상 버튼)까지 클릭을 삼킴. → 부모 `pointer-events-none`, 막는 건 4스트립(`pointer-events-auto`)만.
+- **확장(섬 안내 + 소문 추리)**: 5→6단계. (a) 나무·돌이 다른 섬(특산: 나무=삼목골, 돌=무쇠고개, 만물상만 둘 다)이라 월드맵에선 `missingHutTown(state)`로 **부족한 자재의 섬 노드**를 동적 강조(`townForMaterial` 특산 역인덱스). (b) `coach`를 `(ctx:{state,worldMapOpen})=>key` 컨텍스트 함수로 확장 → 같은 단계라도 버튼/섬노드/상인 전환. (c) **정보 단계**(`info:true`, done=`acked.has(id)`) 도입 — "우측 소문 읽어 위치 추측"을 말풍선 [다음 ▸]으로 진행(엔진 `acked` Set + `acknowledgeStep`). "상인 자리 매일 바뀜" 안내 포함. (d) Game.tsx 게이트 예외: coach가 `mission-town-*`이면 월드맵 위에 표시(그 외 모달은 여전히 숨김). 표식 추가: WorldMap 노드 `mission-town-{id}`(home 포함), TownView 소문 `mission-rumor`.
+- **버그 3종(수정됨)**: (a) **코치가 상인패널 가림** — MerchantPanel은 TownView 로컬 `selected`(엔진 무신호)라 게이트가 못 숨김. 단 **흥정 시작 직전 setSelected(null)로 닫힘**(HaggleDialog와 비중첩) → 상태 승격 없이 Modal z-50→**z-[90]**(코치 z-80 위)로 올려 코치가 뒤로 가려짐. (b) **뉴스 async pop 깜빡임 + 뉴스 코치 부재** — 뉴스는 travel 후 `/api/news` fetch로 뜸. Game.tsx에서 `engine.news`면 **뉴스 코치 우선**(mission-news 스포트라이트, "확인 후 닫기") 렌더 + step-코치 게이트에서 `!!engine.news` 제거 → 뉴스→소문 순차. NewsModal 패널에 `data-coach="mission-news"`. (c) 맵 스프라이트(z-100000+)는 IsoCityMap `isolate`로 격리돼 코치(z-80)가 정상적으로 덮음(문제 아님).
+- **잔여 깜빡임(소문→뉴스) 수정**: 위 (b)로도 남던 것 — travel 직후 `news`가 아직 null인 async 공백에 read-rumors(소문) 코치가 한 프레임 떴다 뉴스 코치로 바뀜. → 엔진에 `newsPending` 플래그를 fetch 시작 시 **동기적으로 true**, `.finally`에서 false. Game.tsx: `news`면 뉴스코치 / `newsPending`이면 코치 숨김(null) / 아니면 목표 코치. 순서: (없음)→뉴스코치→닫기→목표코치. news 진위 브랜치가 newsPending보다 먼저라 then/finally 순서 무관.
+### 미션: 선형 스텝 → 상태 기계 리졸버 (2026-07-26, 버그 + 플로우 재설계)
+- **버그**: 선형 스텝 + **비단조 done**. `travel` done=`location!=='home'`인데 귀가하면 false로 뒤집혀 `findIndex(!done)`이 1단계로 되돌아감 → 마을↔고향 왕복 시 초반 스텝 재실행. 선형 모델이 되돌릴 수 있는 상태(위치)를 못 버팀.
+- **수정**: `MissionStep[]` + `activeMission(findIndex)` → **`Mission.resolve(state, acked, ctx) => MissionObjective|null`** 상태 기계. 오두막 리졸버는 (위치·인벤·hut.progress)로 "지금 할 일"을 직접 계산: 고향이면 [채우기(toFill>0)→배치(!hut&&held)→더사기(shortfall)], 마을이면 [소문(info)→구매(shortfall)→귀가]. **완료=hut.built → null**. 왕복·부분구매·다회차에 되돌아가지 않음.
+- **자재 회계**: remaining=requires−progress, toFill=min(held,remaining), shortfall=max(0,remaining−held). `go-buy`/`buy` coach는 worldMapOpen이면 부족 자재의 섬(삼목골/무쇠고개), 아니면 이동버튼/상인.
+- **사용자 지정 플로우 재현 확인**(수기 트레이스): 시작→go-buy(삼목골)→뉴스→소문→buy(나무)→귀가→place→fill(나무)→go-buy(무쇠고개)→buy(돌)→return→귀가→fill(돌)→완공. 정확히 일치.
+- 진행 표시(N/M)는 상태 기계라 제거(objective label로 충분). `resolve`에 ctx(worldMapOpen)를 엔진의 `showWorldMap`로 주입. Game.tsx는 `m.objective.{coach,label,hint,info,id}` 사용.
+### 미션 완료 안내 + 미션 목록 모달 + 푸터 버튼 (2026-07-26)
+- **완료 코치**: `activeMission→null`(오두막 완공)이면 Game.tsx에서 **하단 미션 버튼(`mission-list-btn`)을 가리키는 완료 코치**("🎉 첫 미션 완공!") 표시. 조건: `!mission && !missionDismissed && !acked.has('onboarding-done') && !showMissions`. 시작 땐 mission이 non-null이라 오발 없음.
+- **온보딩 종료 신호**: `openMissions()`(엔진) = `setShowMissions(true) + acked.add('onboarding-done')`. 미션 버튼 클릭 = 완료 안내를 본 것 → 완료 코치 종료. 코치가 버튼을 가리키고, 클릭하면 모달 열림+ack(코치-버튼 패턴).
+- **미션 목록 모달**(`game/modals/MissionListModal.tsx`): `missionStatuses(state, acked, ctx)`(missions.ts)로 전 미션 상태 산출 — 진행 중=현재 objective.label, **완료=회색+취소선+"완료 ✓" 뱃지(disable 처리)**. 엔진 `missionList` 노출, ModalStack에서 `showMissions`로 렌더.
+- 푸터 버튼: GameFooter에 `compass` 아이콘 「미션」 버튼(`openMissions`). Game.tsx anyModalOpen에 `showMissions` 추가(목록 열면 목표 코치 숨김).
+- 엔진 신규 노출: `acked`·`missionDismissed`(완료 코치 판정용), `missionList`, `showMissions`/`setShowMissions`, `openMissions`.
+### 미션: 마을에 자재 없을 때 재안내 (2026-07-26, 튜토리얼 신뢰성)
+- **문제**: 코치가 특산 섬(돌→무쇠고개)으로 보내지만, 그날 로스터에 그 자재 파는 상인(석공·만물상)이 없으면 도착해도 못 삼 → "상인과 흥정해 돌을 사라"만 반복돼 막힘. 상인은 매일 자리를 옮김(world.ts 슬라이딩).
+- **핵심**: `PublicMerchant.materials`는 상인 취급 자재라 클라가 `state.townMerchants`로 "이 마을에서 그 자재를 살 수 있나"를 판정 가능(재고 아닌 취급목록이지만 tier1 기본재는 사실상 재고 충분).
+- **수정**: 리졸버 마을 buy 분기에 `sellsHere(mat)=townMerchants.some(pm=>pm.materials.some(v=>v.id===mat&&!v.locked))`. 부족 자재 중 여기서 파는 것만 "사라" 안내; 하나도 없으면 **`buy-elsewhere`**("이 마을엔 X가 없다 — 다른 마을로"), 특산 섬이 현재 마을이면 노드 강조 생략(되돌이 방지)→월드맵 열면 중앙 안내로 다른 섬 선택 유도. 부분 보유(나무만 파는 마을) 시 나무 사고 → 돌은 다른 마을로 자연 순차.
+- 한계: 그날 어느 마을에도 그 자재가 없을 수 있으나(6/24 로스터), 이동/하루넘기기로 날 바뀌면 로스터 갱신. 코치가 "다른 섬 둘러보라"로 막힘은 해소.
+### 미션 코치: 구매 후 안 뜨는 버그 (2026-07-26)
+- **증상**: 마을에서 자재 일부만 사도(예: 나무 3/5) 상인 재강조 안 됨, 다 사도 이동버튼 강조 안 됨. 즉 **구매 후 코치가 완전히 사라짐**.
+- **원인**: `buy` 액션이 `haggle: null`만 하고 `state.merchant`는 안 지움(잔존). HaggleDialog는 `state.haggle && state.merchant`로 렌더돼 닫히지만, Game.tsx 코치 게이트가 `!!state.merchant`(stale)라 구매 후에도 계속 코치를 숨김.
+- **수정**: 게이트 `!!state.merchant` → **`!!state.haggle`**(흥정창 실제 열림 신호). buy/close 시 haggle=null이라 코치 재개. buy 로직은 안 건드림(surgical).
+- 참고: `state.merchant`는 startHaggle/startBarter에서 haggle과 함께 세팅 → haggle 있으면 merchant도 있음. 역은 아님(구매 후 잔존). 그래서 haggle이 정확한 신호.
+### 튜토리얼 자재 보장 (2026-07-26, 근본 신뢰성 해결)
+- **문제 2종**: (1) 코치가 돌 특산 섬(무쇠고개)을 가리켜도 그날 로스터에 돌 상인이 없으면 못 삼(막힘). (2) 그 마을(=돌 특산)에서 `buy-elsewhere`의 다음 목적지가 자기 자신 제외로 `undefined` → 월드맵 열면 `wantsWorldMap=false`로 게이트에 걸려 코치 사라짐.
+- **해결(사용자 제안 채택)**: 튜토리얼(오두막 미완공·미dismiss) 중엔 코치가 가리킨 마을에서 **반드시 살 수 있게 특산 자재 상인을 보장**. 두 증상 동시 해소(코치가 항상 실재+자재 있는 마을을 가리킴).
+- **구현**: (a) `world.ts guaranteeSellers(here, town, materials)` — 자재가 그 마을 특산인데 파는 상인 없으면 그 자재 파는 결정론 seed 1명 추가(중복 id 회피). (b) `/api/town` body에 `guarantee?: MaterialId[]` → 로스터에 적용. (c) `travelTo`가 미션 활성 시 `guarantee:["wood","stone"]` 전송(`missionDismissed` deps 추가). `GameState`·튜토리얼 외 게임플레이 불변.
+- **검증(결정론 API)**: 무쇠고개 돌 없는 날 2~5일 → 보장 시 +1 돌상인(true), 있는 날 6일 → 그대로(중복X). 삼목골 나무 원래 있어 무변. 특산 아닌 자재(nw에 돌) → 추가 안 됨.
+### 미션 리스트에서 튜토리얼 재시작 (2026-07-26)
+- **요구**: 튜토리얼 건너뛰기 후, 미션 목록에서 진행 중 미션 클릭 시 처음부터 다시 안내.
+- **구현(비파괴)**: 엔진 `restartMission` = `missionDismissed=false` + `acked=new Set()`(read-rumors·news-seen·onboarding-done 초기화 → info 코치 재노출) + 모달 닫기. **게임 상태(골드·건물·day)는 유지** — 현재 상태부터 코치 재개(진행 없으면 자연히 go-buy부터). MissionListModal의 진행 중 행을 버튼화(완료 행은 disable 유지). ModalStack이 `onRestart` 전달.
+- **날짜 로직 우려 해소**: "며칠차라 마을 상인이 다를 텐데?"는 **튜토리얼 자재 보장**이 이미 커버 — 재시작이 day N에 일어나도 미션 활성이면 guarantee가 특산 자재를 보장(day 2~50 무관). 그래서 날짜별 상인 배치 로직은 **안 바꿔도 됨**.

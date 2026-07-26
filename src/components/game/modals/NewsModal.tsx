@@ -13,6 +13,7 @@ export function NewsModal({ news, onClose }: { news: NewsWithProduction; onClose
       onClick={onClose}
     >
       <div
+        data-coach="mission-news"
         className="relative w-full max-w-md rounded-lg border border-amber-700/60 bg-stone-900 p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >

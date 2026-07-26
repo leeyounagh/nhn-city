@@ -96,6 +96,7 @@ function PaletteCard({
   return (
     <button
       type="button"
+      data-coach={b.id === "hut" ? "mission-palette-hut" : undefined}
       disabled={!c.canPlace}
       onPointerDown={(e) => onCardPointerDown(e, b.id)}
       onClick={() => onCardClick(b.id)}

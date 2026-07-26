@@ -9,6 +9,7 @@ import { NewsModal } from "@/components/game/modals/NewsModal";
 import { RelationsModal } from "@/components/game/modals/RelationsModal";
 import { WorldMapModal } from "@/components/game/modals/WorldMapModal";
 import { Tutorial } from "@/components/game/modals/Tutorial";
+import { MissionListModal } from "@/components/game/modals/MissionListModal";
 import { homeIcon } from "@/lib/game-state";
 import type { GameEngine } from "@/hooks/useGameEngine";
 
@@ -19,6 +20,7 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
     busy,
     news,
     setNews,
+    acknowledgeStep,
     showTutorial,
     setShowTutorial,
     showWorldMap,
@@ -31,6 +33,10 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
     setShowBook,
     showRelations,
     setShowRelations,
+    showMissions,
+    setShowMissions,
+    missionList,
+    restartMission,
     showIntro,
     setShowIntro,
     finishIntro,
@@ -74,6 +80,14 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
         <InventoryPanel inventory={state.inventory} onClose={() => setShowInventory(false)} />
       )}
 
+      {showMissions && (
+        <MissionListModal
+          missions={missionList}
+          onRestart={restartMission}
+          onClose={() => setShowMissions(false)}
+        />
+      )}
+
       {showNotebook && (
         <ClueNotebook clues={state.clues} onClose={() => setShowNotebook(false)} />
       )}
@@ -89,7 +103,15 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
       {showIntro === null && <div className="fixed inset-0 z-[60] bg-black" />}
       {showIntro === true && <IntroCutscene onFinish={finishIntro} />}
 
-      {news && <NewsModal news={news} onClose={() => setNews(null)} />}
+      {news && (
+        <NewsModal
+          news={news}
+          onClose={() => {
+            setNews(null);
+            acknowledgeStep("news-seen"); // 뉴스 코치는 튜토리얼 중 첫 1회만
+          }}
+        />
+      )}
     </>
   );
 }

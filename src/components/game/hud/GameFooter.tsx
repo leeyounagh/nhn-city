@@ -20,6 +20,7 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
     setShowNotebook,
     setShowRelations,
     setShowTutorial,
+    openMissions,
   } = engine;
   return (
     <footer className="shrink-0 border-t border-amber-900/40 bg-gradient-to-t from-stone-950 via-stone-950/95 to-stone-900/90 shadow-[0_-6px_20px_rgba(0,0,0,0.55)] backdrop-blur">
@@ -48,6 +49,7 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
         <div className="ml-auto flex items-center gap-2">
           {/* 메인 액션 — 색으로 위계. 하루 넘기기(주)=금색, 이동=stone. */}
           <button
+            data-coach="mission-worldmap"
             onClick={() => setShowWorldMap(true)}
             className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-600 bg-stone-800 px-4 text-sm font-medium tracking-wide text-stone-100 transition hover:bg-stone-700"
           >
@@ -75,6 +77,13 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
               <GameIcon name="chest" className="h-4 w-4" /> 창고{invCount > 0 ? ` (${invCount})` : ""}
             </button>
           )}
+          <button
+            data-coach="mission-list-btn"
+            onClick={openMissions}
+            className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
+          >
+            <GameIcon name="compass" className="h-4 w-4" /> 미션
+          </button>
           <button
             onClick={() => setShowNotebook(true)}
             className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"

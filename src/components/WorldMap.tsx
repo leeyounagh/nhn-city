@@ -81,6 +81,7 @@ export function WorldMap({
             <button
               key={id}
               type="button"
+              data-coach={`mission-town-${id}`}
               disabled={here || busy}
               onClick={() => onTravel(id)}
               className={`${CELL[id]} group relative z-10 flex flex-col items-center justify-center gap-1 px-1 py-2 text-center outline-none transition disabled:cursor-default ${

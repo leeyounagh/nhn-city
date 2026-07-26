@@ -25,6 +25,7 @@ import {
   decayRecentBuys,
   decayedDisposition,
 } from "@/lib/game-state";
+import { activeMission, missionStatuses } from "@/lib/missions";
 
 const INTRO_SEEN_KEY = "lc_intro_seen";
 
@@ -54,9 +55,13 @@ export function useGameEngine() {
   const [showInventory, setShowInventory] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
   const [showRelations, setShowRelations] = useState(false);
+  const [missionDismissed, setMissionDismissed] = useState(false); // 튜토리얼 건너뛰기(세션 로컬)
+  const [acked, setAcked] = useState<ReadonlySet<string>>(() => new Set()); // [다음]으로 넘긴 정보 단계 id
+  const [showMissions, setShowMissions] = useState(false); // 미션 목록 모달
   // null = 판정 전(첫 프레임) · true = 재생 · false = 종료. 판정 전엔 검은 커버로 게임 노출을 막는다.
   const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const [news, setNews] = useState<NewsWithProduction | null>(null); // 오늘 아침 시황 (모달)
+  const [newsPending, setNewsPending] = useState(false); // 뉴스 fetch 진행 중 (async 공백에 코치 깜빡임 방지)
   const [lastNewsDay, setLastNewsDay] = useState(1); // 뉴스를 마지막으로 띄운 날 (하루 1회)
 
   // 세션에 한 번만 자동 재생 (새로고침 반복 방지). sessionStorage는 SSR에 없어 마운트 후 읽는다.
@@ -69,6 +74,23 @@ export function useGameEngine() {
   const finishIntro = useCallback(() => {
     sessionStorage.setItem(INTRO_SEEN_KEY, "1");
     setShowIntro(false);
+  }, []);
+
+  const dismissMission = useCallback(() => setMissionDismissed(true), []);
+  const acknowledgeStep = useCallback(
+    (id: string) => setAcked((prev) => new Set(prev).add(id)),
+    [],
+  );
+  // 미션 목록 열기 = 온보딩 완료 안내를 본 것으로 처리(완료 코치 종료).
+  const openMissions = useCallback(() => {
+    setShowMissions(true);
+    setAcked((prev) => new Set(prev).add("onboarding-done"));
+  }, []);
+  // 진행 중 미션을 리스트에서 다시 눌러 튜토리얼 재활성화(건너뛰기 해제 + 안내 기록 초기화). 게임 상태는 유지.
+  const restartMission = useCallback(() => {
+    setMissionDismissed(false);
+    setAcked(new Set());
+    setShowMissions(false);
   }, []);
 
   const bookLevel = bookLevelFromXp(state.xp);
@@ -113,6 +135,7 @@ export function useGameEngine() {
       // 날이 바뀌면 아침 시황 뉴스를 하루 1회 띄운다 (목적지 무관, 논블로킹).
       if (newDay > lastNewsDay) {
         setLastNewsDay(newDay);
+        setNewsPending(true);
         fetch("/api/news", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -127,7 +150,8 @@ export function useGameEngine() {
                 : undefined,
             }),
           )
-          .catch(() => {});
+          .catch(() => {})
+          .finally(() => setNewsPending(false));
       }
       if (dest === "home") {
         setNotice(
@@ -139,11 +163,14 @@ export function useGameEngine() {
       }
       setBusy(true);
       setNotice(`${locationName(dest)}에 도착했다. (${days}일 이동)` + prodMsg);
+      // 튜토리얼(오두막 미완공) 중엔 코치가 가리킨 마을에서 반드시 살 수 있게 특산 자재를 보장한다.
+      const hutBuilt = state.placements.some((p) => p.buildingId === "hut" && p.built);
+      const guarantee = !missionDismissed && !hutBuilt ? (["wood", "stone"] as MaterialId[]) : undefined;
       try {
         const res = await fetch("/api/town", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ day: newDay, town: dest, bookLevel, recentBuys: decayedBuys }),
+          body: JSON.stringify({ day: newDay, town: dest, bookLevel, recentBuys: decayedBuys, guarantee }),
         });
         const data: {
           merchants?: PublicMerchant[];
@@ -162,7 +189,7 @@ export function useGameEngine() {
         setBusy(false);
       }
     },
-    [state.location, state.day, state.placements, state.recentBuys, lastNewsDay, busy, bookLevel],
+    [state.location, state.day, state.placements, state.recentBuys, lastNewsDay, busy, bookLevel, missionDismissed],
   );
 
   // 고향에서 하루를 넘긴다 — 이동 없이도 완성 건물의 수입·생산이 하루치 정산된다.
@@ -196,6 +223,7 @@ export function useGameEngine() {
     // 날이 바뀌면 아침 시황 뉴스를 하루 1회 띄운다.
     if (newDay > lastNewsDay) {
       setLastNewsDay(newDay);
+      setNewsPending(true);
       fetch("/api/news", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -205,7 +233,8 @@ export function useGameEngine() {
         .then((n: DailyNews) =>
           setNews({ ...n, produced: prodEntries.length ? produced : undefined }),
         )
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setNewsPending(false));
     }
   }, [state.day, state.placements, busy, lastNewsDay]);
 
@@ -358,7 +387,7 @@ export function useGameEngine() {
       const cost = h.currentPrice * qty;
       if (cost > s.gold) return s;
       const inventory = { ...s.inventory, [h.materialId]: (s.inventory[h.materialId] ?? 0) + qty };
-      msg = `${qty}개를 사들였다.`;
+      msg = `${h.materialName} ${qty}개를 사들였다.`;
       return { ...s, gold: s.gold - cost, inventory, recentBuys, haggle: null, merchantMemory: rememberMerchant(s) };
     });
     if (msg) setNotice(msg);
@@ -469,6 +498,10 @@ export function useGameEngine() {
 
   const next = xpToNext(state.xp);
   const invCount = Object.values(state.inventory).reduce((a, b) => a + b, 0);
+  const mission = missionDismissed
+    ? null
+    : activeMission(state, acked, { worldMapOpen: showWorldMap }); // 현재 목표(상태에서 계산)
+  const missionList = missionStatuses(state, acked, { worldMapOpen: showWorldMap }); // 목록 모달용
 
   return {
     state,
@@ -490,7 +523,18 @@ export function useGameEngine() {
     setShowIntro,
     news,
     setNews,
+    newsPending,
     finishIntro,
+    mission,
+    dismissMission,
+    acknowledgeStep,
+    acked,
+    missionDismissed,
+    missionList,
+    showMissions,
+    setShowMissions,
+    openMissions,
+    restartMission,
     bookLevel,
     income,
     next,

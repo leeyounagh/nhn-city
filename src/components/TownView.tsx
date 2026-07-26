@@ -120,7 +120,7 @@ export function TownView({
         ) : merchants.length === 0 ? (
           <div className="rounded-lg border border-dashed border-stone-700 py-8 text-center text-sm text-stone-500">오늘 이 마을엔 상인이 없다.</div>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul data-coach="mission-merchant" className="flex flex-col gap-2">
             {merchants.map((m) => (
               <li key={m.seed}>
                 <button
@@ -144,7 +144,7 @@ export function TownView({
       </section>
 
       <div className="flex flex-col gap-4">
-      <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
+      <section data-coach="mission-rumor" className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
         <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-stone-300"><GameIcon name="scroll" className="h-4 w-4 text-amber-400/80" /> 이 마을에 도는 소문</h3>
         {busy ? (
           <p className="py-4 text-center text-xs text-stone-500">귀를 기울이는 중…</p>
@@ -250,7 +250,7 @@ export function TownView({
 function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>

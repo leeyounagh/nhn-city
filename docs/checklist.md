@@ -88,3 +88,14 @@
 - [✂️] MapView 걸어다니는 2×2 맵 → 월드맵으로 대체. MapView.tsx 삭제 완료(2026-07-20).
 - [✂️] HomeView(건물 카드 그리드) → IsoCityMap 아이소메트릭 맵으로 완전 대체. HomeView.tsx 삭제 완료(2026-07-20, P2-6).
 - [✂️] 단일 상인 조우(summonMerchant 단건) → 다중 상인 마을 배치. Game.summonMerchant/spawnedRef/자동등장 effect/「다음 날」버튼 제거(시간은 이동으로 흐름).
+
+## 미션 시스템 (2026-07-25 착수 · 첫 사용자 온보딩)
+
+확장 가능한 데이터 주도 미션 + 범용 스포트라이트 코치마크. 진행은 GameState에서 파생(스텝 저장 X).
+
+- [x] `src/lib/missions.ts` — Mission/MissionStep 타입 + MISSIONS 데이터 + `activeMission(state)`(순수). 첫 미션 "첫 집 짓기" 5단계.
+- [x] 대상 표식 `data-coach` 4곳 — 이동버튼(GameFooter)·상인목록(TownView)·오두막카드(BuildingPalette)·배치된 오두막(IsoCityMap)
+- [x] `src/shared/CoachMark.tsx` — 범용 스포트라이트. 대상 rect 추적(4스트립 딤·대상만 클릭통과)·화살표·말풍선·건너뛰기. 대상 없으면 중앙 말풍선.
+- [x] `useGameEngine.ts` — `mission`(파생)·`missionDismissed`·`dismissMission` 노출. **GameState 불변**
+- [x] `Game.tsx` — CoachMark 렌더(인트로 종료·도움말 닫힘·모달 없음·미dismiss 조건). 모달 열리면 코치 숨김(z 충돌 회피)
+- [x] 검증 — tsc/eslint 그린 + dev 컴파일 클린. ⚠️ 이동→흥정→복귀→배치→완공 스포트라이트 추적은 브라우저 스모크 필요
