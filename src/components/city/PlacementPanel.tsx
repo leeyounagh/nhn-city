@@ -4,7 +4,7 @@ import type { MaterialId } from "@/types/game";
 import { BUILDINGS, MATERIAL_NAME } from "@/lib/game-data";
 import { MaterialIcon } from "@/shared/icon/MaterialIcon";
 import { GameIcon } from "@/shared/icon/GameIcon";
-import { type GameState, type Placement, checkPlacement, canDeposit } from "@/lib/game-state";
+import { type GameState, type Placement, checkPlacement, canDeposit, buildingPop } from "@/lib/game-state";
 import { buildingSprite } from "./sprite";
 
 export function PlacementPanel({
@@ -93,6 +93,11 @@ export function PlacementPanel({
                 {b.income > 0 && (
                   <li>
                     매일 골드 <b className="tabular-nums text-amber-300">+{b.income}</b> 생산
+                  </li>
+                )}
+                {buildingPop(b) > 0 && (
+                  <li>
+                    인구 <b className="tabular-nums text-sky-300">+{buildingPop(b)}</b>
                   </li>
                 )}
                 {b.produces &&

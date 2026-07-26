@@ -11,6 +11,7 @@ import type {
 } from "@/types/game";
 import {
   BUILDINGS,
+  BUILDING_POP,
   BOOK_XP_THRESHOLDS,
   STARTING_GOLD,
   MAX_BOOK_LEVEL,
@@ -171,6 +172,21 @@ export function dailyIncome(placements: Placement[]): number {
     if (!p.built) return sum;
     const b = BUILDINGS.find((x) => x.id === p.buildingId);
     return sum + (b ? b.income : 0);
+  }, 0);
+}
+
+// 건물 하나의 인구 기여. BUILDING_POP 우선, 없으면 수입 기반 추정(income/4). 장식은 0.
+export function buildingPop(b: (typeof BUILDINGS)[number]): number {
+  if (b.deco) return 0;
+  return BUILDING_POP[b.id] ?? Math.max(0, Math.round(b.income / 4));
+}
+
+// 완공 건물의 인구 합.
+export function population(placements: Placement[]): number {
+  return placements.reduce((sum, p) => {
+    if (!p.built) return sum;
+    const b = BUILDINGS.find((x) => x.id === p.buildingId);
+    return b ? sum + buildingPop(b) : sum;
   }, 0);
 }
 

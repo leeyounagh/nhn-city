@@ -206,6 +206,24 @@ export const BUILDINGS: BuildingDef[] = [
   { id: "fence", name: "울타리", requires: {}, income: 0, xp: 0, prereq: [], deco: true },
 ];
 
+// 건물별 인구 기여(주거·규모 반영). 완공 시 인구 증가 → 지인 합류 임계에 사용. 장식·유틸은 0.
+// 없는 id는 수입 기반 추정(income/4)으로 폴백 → 새 건물 추가 시 자동 반영.
+export const BUILDING_POP: Record<string, number> = {
+  hut: 3, well: 0, warehouse: 1, mill: 2, smithy: 2, inn: 8, market: 5, workshop: 3, chapel: 4,
+  wall: 0, watchtower: 1, guildhall: 6, manor: 10, cathedral: 12,
+  // 상업
+  storeshed: 1, stall: 2, produce: 2, pavilion: 3, shop: 3, shop2: 3, tavern: 6,
+  markethall: 3, markethouse: 4, marketbuilding: 5, marketplaza: 5, grandmarket: 6, bazaar: 7,
+  // 타워(방어 — 낮음)
+  tower: 1, belltower: 2, bastion: 1, keeptower: 2,
+  // 교회
+  shrine: 3, church: 5, church_belfry: 6, church_great: 8,
+  // 성채(규모↑)
+  keep_small: 12, keep_stone: 14, keep_square: 15, keep_fort: 16, keep_tower: 18, keep_red: 18,
+  keep_round: 20, keep_garden: 22, keep_hall: 24, keep_manor: 26, keep_spire: 28, keep_grand: 30,
+  keep_royal: 34, keep_citadel: 40,
+};
+
 // 경험치 누적으로 마법의 책이 오르는 임계치
 export const BOOK_XP_THRESHOLDS = [0, 30, 60]; // Lv1=0, Lv2=30, Lv3=60
 

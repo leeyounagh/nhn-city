@@ -9,6 +9,7 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
   const {
     state,
     income,
+    population,
     bookLevel,
     next,
     invCount,
@@ -21,6 +22,8 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
     setShowRelations,
     setShowTutorial,
     openMissions,
+    allies,
+    setShowAllies,
   } = engine;
   return (
     <footer className="shrink-0 border-t border-amber-900/40 bg-gradient-to-t from-stone-950 via-stone-950/95 to-stone-900/90 shadow-[0_-6px_20px_rgba(0,0,0,0.55)] backdrop-blur">
@@ -32,6 +35,7 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
           <ResChip label="골드" value={`${state.gold}`} accent="text-amber-300" icon="coins" />
           <ResChip label="일차" value={`${state.day}일`} />
           <ResChip label="수입" value={`+${income}`} accent="text-emerald-300" icon="income" />
+          <ResChip label="인구" value={`${population}`} accent="text-sky-300" icon="people" />
           <button
             onClick={() => setShowBook(true)}
             className="flex items-center gap-1.5 rounded-md border border-sky-900/50 bg-sky-950/30 px-2.5 py-1 shadow-sm transition hover:border-sky-600/60 hover:bg-sky-900/40"
@@ -89,6 +93,12 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
             className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
           >
             <GameIcon name="scroll" className="h-4 w-4" /> 단서 노트{state.clues.length > 0 ? ` (${state.clues.length})` : ""}
+          </button>
+          <button
+            onClick={() => setShowAllies(true)}
+            className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
+          >
+            <GameIcon name="people" className="h-4 w-4" /> 지인{allies.length > 0 ? ` (${allies.length})` : ""}
           </button>
           <button
             onClick={() => setShowRelations(true)}

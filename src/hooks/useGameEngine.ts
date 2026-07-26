@@ -19,13 +19,23 @@ import {
   initialState,
   bookLevelFromXp,
   dailyIncome,
+  population,
   dailyProduction,
   xpToNext,
   checkPlace,
+  checkPlacement,
   decayRecentBuys,
   decayedDisposition,
 } from "@/lib/game-state";
 import { activeMission, missionStatuses } from "@/lib/missions";
+import {
+  activeAllies,
+  allyBonuses,
+  ALLY_EVENT_CHANCE,
+  ALLY_EVENT_KIND,
+  allyHash,
+  type Ally,
+} from "@/lib/allies";
 
 const INTRO_SEEN_KEY = "lc_intro_seen";
 
@@ -45,6 +55,29 @@ function rememberMerchant(s: GameState): Record<number, MerchantMemory> {
   };
 }
 
+const TIER1: MaterialId[] = ["wood", "stone", "clay", "scrap", "rope"];
+// 미완공 건물이 아직 필요로 하는 tier1 자재 하나 (재료 공수용).
+function neededTier1(s: GameState): MaterialId | null {
+  for (const p of s.placements) {
+    if (p.built) continue;
+    for (const slot of checkPlacement(p).slots) {
+      if (slot.have < slot.need && TIER1.includes(slot.id)) return slot.id;
+    }
+  }
+  return null;
+}
+// 미완공 건물의 아직 안 찬 슬롯 하나 (건설 도움용).
+function unbuiltTarget(s: GameState): { idx: number; materialId: MaterialId } | null {
+  for (let idx = 0; idx < s.placements.length; idx++) {
+    const p = s.placements[idx];
+    if (p.built) continue;
+    const slot = checkPlacement(p).slots.find((sl) => sl.have < sl.need);
+    if (slot) return { idx, materialId: slot.id };
+  }
+  return null;
+}
+type AllyEventView = { ally: Ally; label: string };
+
 export function useGameEngine() {
   const [state, setState] = useState<GameState>(initialState);
   const [notice, setNotice] = useState<string>("퇴직기사와 함께 국보 「마법의 책」을 품고 폐허가 된 고향으로 돌아왔다. 소문을 읽어 상인을 찾고, 거래로 도시를 다시 세워라.");
@@ -60,6 +93,9 @@ export function useGameEngine() {
   const [showMissions, setShowMissions] = useState(false); // 미션 목록 모달
   const [showPriceChart, setShowPriceChart] = useState(false); // 시세 그래프 모달 (책 Lv.1)
   const [showBuildingCodex, setShowBuildingCodex] = useState(false); // 건물 도감 모달 (책 Lv.1)
+  const [alliesSeen, setAlliesSeen] = useState<ReadonlySet<string>>(() => new Set()); // 합류 연출 본 지인
+  const [showAllies, setShowAllies] = useState(false); // 지인 명부 모달
+  const [allyEvent, setAllyEvent] = useState<AllyEventView | null>(null); // 조력 이벤트 모달
   // null = 판정 전(첫 프레임) · true = 재생 · false = 종료. 판정 전엔 검은 커버로 게임 노출을 막는다.
   const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const [news, setNews] = useState<NewsWithProduction | null>(null); // 오늘 아침 시황 (모달)
@@ -97,13 +133,64 @@ export function useGameEngine() {
 
   const bookLevel = bookLevelFromXp(state.xp);
   const income = dailyIncome(state.placements);
+  const pop = population(state.placements); // 완공 건물 인구 합
+  const allies = activeAllies(pop); // 합류한 지인들
+  const pendingAlly = allies.find((a) => !alliesSeen.has(a.id)) ?? null; // 아직 합류 연출 안 본 지인
+  const acknowledgeAlly = useCallback(
+    (id: string) => setAlliesSeen((prev) => new Set(prev).add(id)),
+    [],
+  );
+  const clearAllyEvent = useCallback(() => setAllyEvent(null), []);
+  // 날 경과 시 결정론 확률로 활성 지인 하나가 조력(재료·건설·골드·경험치). 효과 적용 + 모달 표시.
+  const applyAllyEvent = useCallback((newDay: number) => {
+    let view: AllyEventView | null = null;
+    setState((s) => {
+      const active = activeAllies(population(s.placements));
+      if (active.length === 0 || allyHash(newDay, 1) >= ALLY_EVENT_CHANCE) return s;
+      const ally = active[Math.floor(allyHash(newDay, 2) * active.length)];
+      const kind = ALLY_EVENT_KIND[ally.id];
+      if (kind === "gold") {
+        const amt = 20 + Math.floor(allyHash(newDay, 3) * 31); // 20~50
+        view = { ally, label: `거래처를 살펴 ${amt}골드를 벌어다 줬다.` };
+        return { ...s, gold: s.gold + amt };
+      }
+      if (kind === "xp") {
+        const amt = 3 + Math.floor(allyHash(newDay, 3) * 3); // 3~5
+        view = { ally, label: `기록을 도와 경험치 +${amt}.` };
+        return { ...s, xp: s.xp + amt };
+      }
+      if (kind === "material") {
+        const mat = neededTier1(s);
+        if (!mat) return s;
+        const amt = 1 + Math.floor(allyHash(newDay, 3) * 3); // 1~3
+        view = { ally, label: `${MATERIAL_NAME[mat]} ${amt}을(를) 구해왔다.` };
+        return { ...s, inventory: { ...s.inventory, [mat]: (s.inventory[mat] ?? 0) + amt } };
+      }
+      // build: 미완공 건물에 자재 1 무료 투입 (마지막 슬롯이면 완공)
+      const target = unbuiltTarget(s);
+      if (!target) return s;
+      const pl = s.placements[target.idx];
+      const b = BUILDINGS.find((x) => x.id === pl.buildingId);
+      const progress = { ...pl.progress, [target.materialId]: (pl.progress[target.materialId] ?? 0) + 1 };
+      const complete = b
+        ? (Object.entries(b.requires) as [MaterialId, number][]).every(([id, n]) => (progress[id] ?? 0) >= n)
+        : false;
+      const placements = [...s.placements];
+      placements[target.idx] = { ...pl, progress, built: complete };
+      view = { ally, label: `${b?.name ?? "건물"}에 ${MATERIAL_NAME[target.materialId]} 1을(를) 채워줬다.` };
+      return complete ? { ...s, placements, xp: s.xp + (b?.xp ?? 0) } : { ...s, placements };
+    });
+    if (view) setAllyEvent(view);
+  }, []);
 
   // 목적지 노드 선택 → 이동일수만큼 하루가 흐르고(→수입 정산) 그 마을의 상인·소문을 새로 불러온다.
   const travelTo = useCallback(
     async (dest: LocationId) => {
       if (dest === state.location || busy) return;
       const days = travelDays(state.location, dest);
-      const gain = dailyIncome(state.placements) * days;
+      const gain = Math.round(
+        dailyIncome(state.placements) * days * (1 + allyBonuses(pop).incomePct / 100),
+      );
       const newDay = state.day + days;
       // 이동으로 날이 흐르면 최근 구매 기억이 옅어진다(품귀 완화).
       const decayedBuys = decayRecentBuys(state.recentBuys, days);
@@ -134,6 +221,7 @@ export function useGameEngine() {
           sellPrices: {},
         };
       });
+      applyAllyEvent(newDay); // 날 경과 → 지인 조력 이벤트 판정
       // 날이 바뀌면 아침 시황 뉴스를 하루 1회 띄운다 (목적지 무관, 논블로킹).
       if (newDay > lastNewsDay) {
         setLastNewsDay(newDay);
@@ -191,14 +279,14 @@ export function useGameEngine() {
         setBusy(false);
       }
     },
-    [state.location, state.day, state.placements, state.recentBuys, lastNewsDay, busy, bookLevel, missionDismissed],
+    [state.location, state.day, state.placements, state.recentBuys, lastNewsDay, busy, bookLevel, missionDismissed, pop, applyAllyEvent],
   );
 
   // 고향에서 하루를 넘긴다 — 이동 없이도 완성 건물의 수입·생산이 하루치 정산된다.
   const passDay = useCallback(() => {
     if (busy) return;
     const newDay = state.day + 1;
-    const gain = dailyIncome(state.placements);
+    const gain = Math.round(dailyIncome(state.placements) * (1 + allyBonuses(pop).incomePct / 100));
     const produced = dailyProduction(state.placements);
     const prodEntries = Object.entries(produced) as [MaterialId, number][];
     const prodMsg =
@@ -213,7 +301,7 @@ export function useGameEngine() {
       return {
         ...s,
         day: newDay,
-        gold: s.gold + dailyIncome(s.placements),
+        gold: s.gold + gain,
         inventory,
         recentBuys: decayRecentBuys(s.recentBuys, 1),
       };
@@ -222,6 +310,7 @@ export function useGameEngine() {
       (gain > 0 ? `하루가 흘렀다. 완성 건물이 ${gain}골드를 벌었다.` : "하루가 흘렀다. 고요한 하루였다.") +
         prodMsg,
     );
+    applyAllyEvent(newDay); // 날 경과 → 지인 조력 이벤트 판정
     // 날이 바뀌면 아침 시황 뉴스를 하루 1회 띄운다.
     if (newDay > lastNewsDay) {
       setLastNewsDay(newDay);
@@ -238,7 +327,7 @@ export function useGameEngine() {
         .catch(() => {})
         .finally(() => setNewsPending(false));
     }
-  }, [state.day, state.placements, busy, lastNewsDay]);
+  }, [state.day, state.placements, busy, lastNewsDay, pop, applyAllyEvent]);
 
   const startHaggle = useCallback((merchant: PublicMerchant, materialId: MaterialId) => {
     const mat = merchant.materials.find((x) => x.id === materialId);
@@ -457,7 +546,12 @@ export function useGameEngine() {
       placements[idx] = { ...pl, progress, built: complete };
       if (complete) finished = b;
       return complete
-        ? { ...s, inventory, placements, xp: s.xp + b.xp }
+        ? {
+            ...s,
+            inventory,
+            placements,
+            xp: s.xp + Math.round(b.xp * (1 + allyBonuses(population(s.placements)).bookXpPct / 100)),
+          }
         : { ...s, inventory, placements };
     });
     if (finished) {
@@ -490,7 +584,12 @@ export function useGameEngine() {
       placements[idx] = { ...pl, progress, built: complete };
       if (complete) finished = b;
       return complete
-        ? { ...s, inventory, placements, xp: s.xp + b.xp }
+        ? {
+            ...s,
+            inventory,
+            placements,
+            xp: s.xp + Math.round(b.xp * (1 + allyBonuses(population(s.placements)).bookXpPct / 100)),
+          }
         : { ...s, inventory, placements };
     });
     if (finished) {
@@ -576,6 +675,14 @@ export function useGameEngine() {
     setShowBuildingCodex,
     bookLevel,
     income,
+    population: pop,
+    allies,
+    pendingAlly,
+    acknowledgeAlly,
+    showAllies,
+    setShowAllies,
+    allyEvent,
+    clearAllyEvent,
     next,
     invCount,
     travelTo,

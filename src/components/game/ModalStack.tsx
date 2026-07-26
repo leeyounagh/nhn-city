@@ -12,6 +12,9 @@ import { Tutorial } from "@/components/game/modals/Tutorial";
 import { MissionListModal } from "@/components/game/modals/MissionListModal";
 import { PriceChartModal } from "@/components/game/modals/PriceChartModal";
 import { BuildingCodexModal } from "@/components/game/modals/BuildingCodexModal";
+import { AllyArrivalModal } from "@/components/game/modals/AllyArrivalModal";
+import { AllyEventModal } from "@/components/game/modals/AllyEventModal";
+import { AlliesModal } from "@/components/game/modals/AlliesModal";
 import { homeIcon } from "@/lib/game-state";
 import type { GameEngine } from "@/hooks/useGameEngine";
 
@@ -43,6 +46,13 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
     setShowPriceChart,
     showBuildingCodex,
     setShowBuildingCodex,
+    population,
+    pendingAlly,
+    acknowledgeAlly,
+    showAllies,
+    setShowAllies,
+    allyEvent,
+    clearAllyEvent,
     showIntro,
     setShowIntro,
     finishIntro,
@@ -95,6 +105,15 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
       )}
 
       {showBuildingCodex && <BuildingCodexModal onClose={() => setShowBuildingCodex(false)} />}
+
+      {showAllies && <AlliesModal population={population} onClose={() => setShowAllies(false)} />}
+
+      {allyEvent && <AllyEventModal ally={allyEvent.ally} label={allyEvent.label} onClose={clearAllyEvent} />}
+
+      {/* 지인 합류 연출 — 인구 임계를 넘긴 미확인 지인이 있으면(인트로 종료 후). 최상위. */}
+      {pendingAlly && showIntro === false && (
+        <AllyArrivalModal ally={pendingAlly} onWelcome={() => acknowledgeAlly(pendingAlly.id)} />
+      )}
 
       {showPriceChart && (
         <PriceChartModal day={state.day} onClose={() => setShowPriceChart(false)} />

@@ -465,6 +465,25 @@
 - **미션 목록 모달**(`game/modals/MissionListModal.tsx`): `missionStatuses(state, acked, ctx)`(missions.ts)로 전 미션 상태 산출 — 진행 중=현재 objective.label, **완료=회색+취소선+"완료 ✓" 뱃지(disable 처리)**. 엔진 `missionList` 노출, ModalStack에서 `showMissions`로 렌더.
 - 푸터 버튼: GameFooter에 `compass` 아이콘 「미션」 버튼(`openMissions`). Game.tsx anyModalOpen에 `showMissions` 추가(목록 열면 목표 코치 숨김).
 - 엔진 신규 노출: `acked`·`missionDismissed`(완료 코치 판정용), `missionList`, `showMissions`/`setShowMissions`, `openMissions`.
+### 스토리라인 Phase 1 — 인구 시스템 (2026-07-26)
+- **설계 승인**: 혼합 perk(버프+서사) · AI 페르소나 지인 · 간단 모달 합류연출 · Phase 1 먼저. (Phase 2=지인 조력, Phase 3=perk확장+AI대사 미구현)
+- **인구 파생**: `game-state.ts population(placements)` = 완공 건물 인구 합(dailyIncome 패턴). GameState 불변.
+- **인구값**: `game-data.ts BUILDING_POP` 맵(id→pop, 40개 인라인 편집 회피 위해 별도 맵 1곳). 없는 id는 `income/4` 폴백, 장식·유틸 0. 오두막3·여관8·성채12~40 등 주거·규모 반영.
+- **HUD**: GameFooter에 인구 ResChip(icon `people` 신규 — GameIcon에 2인 실루엣 path 추가). 엔진 `population` 노출.
+- **Phase 2 예정**: `allies.ts`(지인 데이터+popThreshold+perk), 합류 모달(초상화+AI대사+효과), 지인 명부, perk 훅(income·bookXp 우선), 합류 1회 트리거(acked 패턴).
+### 스토리라인 Phase 2 — 지인 조력 (2026-07-26)
+- **모달 인구 표기 수정**: PlacementPanel 완공효과에 인구 누락 → `game-state.buildingPop(b)` 분리(population이 이를 사용) + 모달에 「인구 +N」.
+- **지인 데이터**: `src/lib/allies.ts` — ALLIES 4명(이르빈/옛전우 pop30 수입+10%, 돌마루한/대목수 pop90 경험치+20%, 저울눈노아/노상인 pop180 수입+15%, 등불세라/현자 pop300 경험치+25%). `activeAllies(pop)`·`allyBonuses(pop)`(income/bookXp 합산). game-state import 없음(pop 숫자만 받음 → 순환 회피).
+- **perk 적용(엔진)**: income → travelTo·passDay 정산 골드에 `×(1+incomePct/100)`(passDay는 gold도 gain으로 통일). bookXp → deposit·depositMax 완공 xp에 `×(1+bookXpPct/100)`(updater 안에서 `population(s.placements)`).
+- **합류 트리거**: `alliesSeen` Set + `pendingAlly`(activeAllies 중 미확인 첫 지인) + `acknowledgeAlly`. 상태 미영속이라 세션당 인구 도달 시 재생. 여러 임계 동시 돌파 시 한 명씩(환영→다음).
+- **모달**: `AllyArrivalModal`(z-95, 초상화=people 아이콘 폴백, `/api/ally` AI 대사+정적 폴백, perk, [환영]) + `AlliesModal`(명부, 합류/잠금). 푸터 「지인 (N)」 버튼.
+- **AI(2레이어)**: `/api/ally`가 역할·외형으로 합류 인사 생성(askText), 키 없으면 `ally.greeting` 폴백. 수치·임계는 코드.
+- 검증: tsc/eslint 그린, /api/ally 폴백 확인, dev 컴파일 클린. ⚠️ 브라우저: 인구 30 도달 시 합류 모달·perk 체감은 스모크 필요.
+### 지인 초상화 + 조력 이벤트 (2026-07-26)
+- **초상화**: 사용자 제작 4장 → `public/allies/{comrade,builder,merchant,scholar}.png`(Downloads의 builde.png→builder.png 정정). `AllyAvatar.tsx`(img + onError시 people 아이콘 폴백)로 합류·명부·이벤트 모달에 연결.
+- **조력 이벤트(4종·날마다 ~25%·결정론)**: 날 경과(travelTo·passDay)마다 `applyAllyEvent(newDay)` — `allyHash(day,salt)` 결정론 확률로 활성 지인 하나가 조력. 지인별: comrade→재료공수(미완공 tier1 1~3 창고에), builder→건설도움(미완공 슬롯 1 무료투입, 완공시 xp), merchant→골드(20~50), scholar→경험치(3~5). 효과는 setState updater 안에서 적용(`neededTier1`/`unbuiltTarget` 헬퍼). 자재 필요 없으면(comrade/builder) no-op.
+- **모달**: `AllyEventModal`(z-85, 초상화+AI deed 대사+효과 라벨+확인). `/api/ally`에 `deed` 파라미터 추가 → 한 일 기반 1문장 생성, 없으면 정적 폴백.
+- **2레이어**: 발생·선택·수치=코드(결정론), 대사=AI/폴백. 엔진 노출 `allyEvent`·`clearAllyEvent`. travelTo/passDay deps에 pop·applyAllyEvent 추가.
 ### 미션: 마을에 자재 없을 때 재안내 (2026-07-26, 튜토리얼 신뢰성)
 - **문제**: 코치가 특산 섬(돌→무쇠고개)으로 보내지만, 그날 로스터에 그 자재 파는 상인(석공·만물상)이 없으면 도착해도 못 삼 → "상인과 흥정해 돌을 사라"만 반복돼 막힘. 상인은 매일 자리를 옮김(world.ts 슬라이딩).
 - **핵심**: `PublicMerchant.materials`는 상인 취급 자재라 클라가 `state.townMerchants`로 "이 마을에서 그 자재를 살 수 있나"를 판정 가능(재고 아닌 취급목록이지만 tier1 기본재는 사실상 재고 충분).
