@@ -2,8 +2,8 @@
 // 상인 seed는 세계 진실에서 결정론적으로 나오므로 흥정(/api/haggle)은 seed로 그대로 이어진다.
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import type { BookLevel, PublicMerchant, TownId } from "@/types/game";
-import { deriveWorld, merchantsInTown } from "@/lib/server/world";
+import type { BookLevel, MaterialId, PublicMerchant, TownId } from "@/types/game";
+import { deriveWorld, merchantsInTown, guaranteeSellers } from "@/lib/server/world";
 import { generatePublicMerchant } from "@/lib/server/merchant";
 import { generateRumors } from "@/lib/server/rumor";
 import { allSellPrices } from "@/lib/server/economy";
@@ -13,6 +13,7 @@ const Body = z.object({
   town: z.enum(["nw", "ne", "sw", "se"]),
   bookLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
   recentBuys: z.record(z.string(), z.number()).optional(), // 자재별 최근 구매량 → 품귀배수
+  guarantee: z.array(z.string()).optional(), // 튜토리얼: 이 마을 특산이면 반드시 파는 상인 배치
 });
 
 export async function POST(request: Request) {
@@ -24,7 +25,9 @@ export async function POST(request: Request) {
   const town = parsed.data.town as TownId;
   const bookLevel = parsed.data.bookLevel as BookLevel;
 
-  const here = merchantsInTown(deriveWorld(day), town);
+  let here = merchantsInTown(deriveWorld(day), town);
+  const guarantee = parsed.data.guarantee as MaterialId[] | undefined;
+  if (guarantee?.length) here = guaranteeSellers(here, town, guarantee);
 
   const [merchants, rumors] = await Promise.all([
     Promise.all(

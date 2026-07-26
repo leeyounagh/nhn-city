@@ -77,3 +77,31 @@ export function deriveWorld(day: number): WorldDay {
 export function merchantsInTown(world: WorldDay, townId: TownId): WorldMerchant[] {
   return world.merchants.filter((m) => m.townId === townId);
 }
+
+// 튜토리얼 자재 보장: 주어진 자재가 이 마을 특산인데 오늘 파는 상인이 없으면, 그 자재를 파는
+// 상인 1명을 로스터에 추가한다(결정론적 seed). 튜토리얼 중 코치가 가리킨 마을에서 반드시 살 수 있게.
+export function guaranteeSellers(
+  here: WorldMerchant[],
+  townId: TownId,
+  materials: MaterialId[],
+): WorldMerchant[] {
+  const special = TOWN_BY_ID[townId].specialMaterials;
+  const sells = (seed: number, mat: MaterialId) =>
+    deriveMerchant(seed).spec.materials.includes(mat);
+  const out = [...here];
+  for (const mat of materials) {
+    if (!special.includes(mat)) continue; // 그 마을 특산 자재만 보장
+    if (out.some((wm) => sells(wm.seed, mat))) continue; // 이미 파는 상인 있음
+    const seller = MERCHANTS.find((m) => !out.some((wm) => wm.id === m.id) && sells(m.seed, mat));
+    if (!seller) continue;
+    out.push({
+      id: seller.id,
+      seed: seller.seed,
+      townId,
+      wants: [],
+      movingTomorrow: false,
+      daysLeft: STAY_DAYS,
+    });
+  }
+  return out;
+}
