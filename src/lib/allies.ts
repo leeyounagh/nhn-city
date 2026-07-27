@@ -1,8 +1,12 @@
 // 지인(조력자) 시스템. 도시 인구가 임계를 넘으면 주인공의 지인이 합류해 조력한다(혼합: 버프 + 서사).
 // 인구·임계·perk = 코드 소유(2레이어). 합류 대사는 정적 폴백 + AI 페르소나(/api/ally)로 연기.
+import type { GameIconName } from "@/shared/icon/GameIcon";
+
 export type AllyPerk =
   | { kind: "income"; pct: number } // 정산 골드 수입 +%
-  | { kind: "bookXp"; pct: number }; // 완공 경험치 +%
+  | { kind: "bookXp"; pct: number } // 완공 경험치 +%
+  | { kind: "haggleStart"; disposition: number } // 흥정 시작 호감도 +N
+  | { kind: "buildRebate"; pct: number }; // 완공 시 투입 자재 +% 환급
 
 export interface Ally {
   id: string;
@@ -31,8 +35,8 @@ export const ALLIES: Ally[] = [
     name: "돌마루 한",
     role: "대목수",
     popThreshold: 90,
-    perk: { kind: "bookXp", pct: 20 },
-    perkLabel: "완공 경험치 +20%",
+    perk: { kind: "buildRebate", pct: 20 },
+    perkLabel: "건설 자재 20% 환급",
     greeting: "이만한 도시라면 내 끌과 대패가 쓸모 있겠군. 건물 하나하나, 더 야무지게 세워주지.",
     appearance: "먼지 묻은 앞치마의 노(老)목수, 어깨에 대패를 걸침",
   },
@@ -41,8 +45,8 @@ export const ALLIES: Ally[] = [
     name: "저울눈 노아",
     role: "노(老)상인",
     popThreshold: 180,
-    perk: { kind: "income", pct: 15 },
-    perkLabel: "골드 수입 +15%",
+    perk: { kind: "haggleStart", disposition: 15 },
+    perkLabel: "흥정 시작 호감도 +15",
     greeting: "소문에 이 폐허가 되살아난다더니 사실이었군. 내 이름을 대게 — 상인들이 자네를 다르게 볼 걸세.",
     appearance: "여유로운 미소의 백발 상인, 손에 낡은 저울",
   },
@@ -59,6 +63,20 @@ export const ALLIES: Ally[] = [
 ];
 
 export const allyById = (id: string): Ally | undefined => ALLIES.find((a) => a.id === id);
+
+// perk 종류별 표시 아이콘(GameIcon). 라벨 옆에 성격을 드러낸다.
+export function perkIcon(perk: AllyPerk): GameIconName {
+  switch (perk.kind) {
+    case "income":
+      return "income";
+    case "bookXp":
+      return "spellBook";
+    case "haggleStart":
+      return "trade";
+    case "buildRebate":
+      return "hammer";
+  }
+}
 
 // 현재 인구에서 합류한 지인들.
 export function activeAllies(pop: number): Ally[] {
@@ -84,12 +102,21 @@ export function allyHash(day: number, salt: number): number {
 }
 
 // 합류한 지인들의 누적 보너스(같은 종류는 합산).
-export function allyBonuses(pop: number): { incomePct: number; bookXpPct: number } {
+export function allyBonuses(pop: number): {
+  incomePct: number;
+  bookXpPct: number;
+  haggleStartBonus: number;
+  buildRebatePct: number;
+} {
   let incomePct = 0;
   let bookXpPct = 0;
+  let haggleStartBonus = 0;
+  let buildRebatePct = 0;
   for (const a of activeAllies(pop)) {
     if (a.perk.kind === "income") incomePct += a.perk.pct;
-    else bookXpPct += a.perk.pct;
+    else if (a.perk.kind === "bookXp") bookXpPct += a.perk.pct;
+    else if (a.perk.kind === "haggleStart") haggleStartBonus += a.perk.disposition;
+    else buildRebatePct += a.perk.pct;
   }
-  return { incomePct, bookXpPct };
+  return { incomePct, bookXpPct, haggleStartBonus, buildRebatePct };
 }

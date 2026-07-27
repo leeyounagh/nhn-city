@@ -55,6 +55,26 @@ function rememberMerchant(s: GameState): Record<number, MerchantMemory> {
   };
 }
 
+// 대목수(지인) perk = 완공 시 투입 자재의 rebatePct%(floor)를 인벤토리로 환급.
+// 플레이어가 실제 투입한 완공(deposit/depositMax)에만 적용 — 조력 이벤트 무상 투입은 돌려줄 원본이 없어 제외.
+function buildRebate(
+  inventory: Record<string, number>,
+  requires: Record<string, number>,
+  rebatePct: number,
+): { inventory: Record<string, number>; total: number } {
+  if (rebatePct <= 0) return { inventory, total: 0 };
+  const next = { ...inventory };
+  let total = 0;
+  for (const [id, need] of Object.entries(requires)) {
+    const amt = Math.floor((need * rebatePct) / 100);
+    if (amt > 0) {
+      next[id] = (next[id] ?? 0) + amt;
+      total += amt;
+    }
+  }
+  return { inventory: next, total };
+}
+
 const TIER1: MaterialId[] = ["wood", "stone", "clay", "scrap", "rope"];
 // 미완공 건물이 아직 필요로 하는 tier1 자재 하나 (재료 공수용).
 function neededTier1(s: GameState): MaterialId | null {
@@ -334,13 +354,15 @@ export function useGameEngine() {
     if (!mat || mat.locked) return;
     setState((s) => {
       // 이 상인과 쌓아둔 호감도가 있으면 감쇠 적용 후 이어간다(없으면 서버가 성향별 초기값 시드).
+      // 노상인(지인) perk = 흥정 시작 호감도 보너스. 기억 있으면 여기서 가산, 없으면 서버 시드에 가산(2레이어).
       const mem = s.merchantMemory?.[merchant.seed];
+      const startBonus = allyBonuses(population(s.placements)).haggleStartBonus;
       const haggle: HaggleState = {
         materialId,
         materialName: mat.name,
         offer: mat.offer,
         currentPrice: mat.offer,
-        disposition: mem ? decayedDisposition(mem, s.day) : undefined,
+        disposition: mem ? Math.min(100, decayedDisposition(mem, s.day) + startBonus) : undefined,
         turnsLeft: HAGGLE_TURNS,
         qualityApplied: false,
         tokenAwarded: mem?.tokenTaken ?? false,
@@ -361,12 +383,13 @@ export function useGameEngine() {
       if (!mat || mat.locked || mat.tier !== 3 || !pay) return;
       setState((s) => {
         const mem = s.merchantMemory?.[merchant.seed];
+        const startBonus = allyBonuses(population(s.placements)).haggleStartBonus;
         const haggle: HaggleState = {
           materialId: rareId,
           materialName: mat.name,
           offer: 0,
           currentPrice: 0,
-          disposition: mem ? decayedDisposition(mem, s.day) : undefined,
+          disposition: mem ? Math.min(100, decayedDisposition(mem, s.day) + startBonus) : undefined,
           turnsLeft: HAGGLE_TURNS,
           qualityApplied: false,
           tokenAwarded: mem?.tokenTaken ?? false,
@@ -404,6 +427,8 @@ export function useGameEngine() {
           payMaterialId: h.payMaterialId,
           day: state.day,
           recentBuys: state.recentBuys,
+          // 노상인 perk: 서버가 첫 턴 시드(disposition undefined)에만 가산. 2턴+는 누적값이 넘어와 중복 없음.
+          allyHaggleBonus: allyBonuses(population(state.placements)).haggleStartBonus,
           persona: {
             name: m.name,
             appearance: m.appearance,
@@ -455,7 +480,7 @@ export function useGameEngine() {
     } catch {
       setState((s) => (s.haggle ? { ...s, haggle: { ...s.haggle, pending: false, log: [...s.haggle.log, { role: "system", text: "말이 통하지 않았다…" }] } } : s));
     }
-  }, [state.merchant, state.haggle, state.day, state.recentBuys]);
+  }, [state.merchant, state.haggle, state.day, state.recentBuys, state.placements]);
 
   const buy = useCallback((qty: number) => {
     let msg = "";
@@ -526,6 +551,7 @@ export function useGameEngine() {
   // 자재 1개를 특정 건물 인스턴스에 투입. 마지막 슬롯이 채워지면 그 자리에서 완공 처리.
   const deposit = useCallback((placementId: string, materialId: MaterialId) => {
     let finished: (typeof BUILDINGS)[number] | null = null;
+    let rebateTotal = 0;
     setState((s) => {
       const idx = s.placements.findIndex((p) => p.id === placementId);
       if (idx < 0) return s;
@@ -545,24 +571,28 @@ export function useGameEngine() {
       const placements = [...s.placements];
       placements[idx] = { ...pl, progress, built: complete };
       if (complete) finished = b;
-      return complete
-        ? {
-            ...s,
-            inventory,
-            placements,
-            xp: s.xp + Math.round(b.xp * (1 + allyBonuses(population(s.placements)).bookXpPct / 100)),
-          }
-        : { ...s, inventory, placements };
+      if (!complete) return { ...s, inventory, placements };
+      const bonus = allyBonuses(population(s.placements));
+      const rebated = buildRebate(inventory, b.requires, bonus.buildRebatePct);
+      rebateTotal = rebated.total;
+      return {
+        ...s,
+        inventory: rebated.inventory,
+        placements,
+        xp: s.xp + Math.round(b.xp * (1 + bonus.bookXpPct / 100)),
+      };
     });
     if (finished) {
       const b = finished as (typeof BUILDINGS)[number];
-      setNotice(`${b.name}을(를) 완성했다. 경험치 +${b.xp}.`);
+      const rebate = rebateTotal > 0 ? ` 대목수가 자재 ${rebateTotal}개를 아껴 돌려줬다.` : "";
+      setNotice(`${b.name}을(를) 완성했다. 경험치 +${b.xp}.${rebate}`);
     }
   }, []);
 
   // 부족분과 보유량 중 작은 만큼 그 자재를 한 번에 투입한다. 마지막 슬롯이 차면 완공 처리.
   const depositMax = useCallback((placementId: string, materialId: MaterialId) => {
     let finished: (typeof BUILDINGS)[number] | null = null;
+    let rebateTotal = 0;
     setState((s) => {
       const idx = s.placements.findIndex((p) => p.id === placementId);
       if (idx < 0) return s;
@@ -583,18 +613,21 @@ export function useGameEngine() {
       const placements = [...s.placements];
       placements[idx] = { ...pl, progress, built: complete };
       if (complete) finished = b;
-      return complete
-        ? {
-            ...s,
-            inventory,
-            placements,
-            xp: s.xp + Math.round(b.xp * (1 + allyBonuses(population(s.placements)).bookXpPct / 100)),
-          }
-        : { ...s, inventory, placements };
+      if (!complete) return { ...s, inventory, placements };
+      const bonus = allyBonuses(population(s.placements));
+      const rebated = buildRebate(inventory, b.requires, bonus.buildRebatePct);
+      rebateTotal = rebated.total;
+      return {
+        ...s,
+        inventory: rebated.inventory,
+        placements,
+        xp: s.xp + Math.round(b.xp * (1 + bonus.bookXpPct / 100)),
+      };
     });
     if (finished) {
       const b = finished as (typeof BUILDINGS)[number];
-      setNotice(`${b.name}을(를) 완성했다. 경험치 +${b.xp}.`);
+      const rebate = rebateTotal > 0 ? ` 대목수가 자재 ${rebateTotal}개를 아껴 돌려줬다.` : "";
+      setNotice(`${b.name}을(를) 완성했다. 경험치 +${b.xp}.${rebate}`);
     }
   }, []);
 

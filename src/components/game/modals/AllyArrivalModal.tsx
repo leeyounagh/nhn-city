@@ -2,7 +2,7 @@
 // 지인 합류 연출 모달. 인구 임계를 넘으면 지인이 합류 — 초상화(아이콘 폴백)+AI 합류 대사+얻은 효과.
 // [환영]으로 확인하면 그 지인은 합류 완료 처리(다음 지인 대기).
 import { useEffect, useState } from "react";
-import type { Ally } from "@/lib/allies";
+import { type Ally, perkIcon } from "@/lib/allies";
 import { GameIcon } from "@/shared/icon/GameIcon";
 import { AllyAvatar } from "@/components/game/modals/AllyAvatar";
 
@@ -38,7 +38,7 @@ export function AllyArrivalModal({ ally, onWelcome }: { ally: Ally; onWelcome: (
         <p className="text-xs text-amber-300/80">{ally.role}</p>
         <p className="mt-3 text-sm italic leading-relaxed text-stone-300">“{greeting}”</p>
         <div className="mt-4 flex items-center justify-center gap-1.5 rounded border border-emerald-800/40 bg-emerald-950/25 px-3 py-2 text-sm font-semibold text-emerald-300">
-          <GameIcon name="income" className="h-4 w-4" /> {ally.perkLabel}
+          <GameIcon name={perkIcon(ally.perk)} className="h-4 w-4" /> {ally.perkLabel}
         </div>
         <button
           onClick={onWelcome}

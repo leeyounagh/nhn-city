@@ -1,6 +1,6 @@
 "use client";
 // 지인 명부. 합류한 조력자와 아직 안 온(잠긴) 지인을 인구 임계·효과와 함께 보여준다.
-import { ALLIES } from "@/lib/allies";
+import { ALLIES, perkIcon } from "@/lib/allies";
 import { GameIcon } from "@/shared/icon/GameIcon";
 import { AllyAvatar } from "@/components/game/modals/AllyAvatar";
 
@@ -60,7 +60,10 @@ export function AlliesModal({ population, onClose }: { population: number; onClo
                     >
                       {joined ? "합류 ✓" : `인구 ${a.popThreshold}`}
                     </span>
-                    <span className="mt-0.5 block text-[11px] text-sky-300">{a.perkLabel}</span>
+                    <span className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-sky-300">
+                      <GameIcon name={perkIcon(a.perk)} className="h-3 w-3" />
+                      {a.perkLabel}
+                    </span>
                   </span>
                 </div>
                 {joined && <p className="mt-1.5 text-[11px] italic text-stone-400">“{a.greeting}”</p>}

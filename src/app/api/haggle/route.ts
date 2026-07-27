@@ -37,6 +37,7 @@ const Body = z.object({
   payMaterialId: z.string().optional(), // barter: 지불 물품 (상인 wants 중 하나)
   day: z.number().int().min(1).optional(), // barter: wants 진위 검증용
   recentBuys: z.record(z.string(), z.number()).optional(), // 자재별 최근 구매량 → 품귀배수
+  allyHaggleBonus: z.number().min(0).max(100).optional(), // 노상인(지인) perk: 첫 턴 시드 호감도 가산
   persona: z
     .object({
       name: z.string(),
@@ -81,7 +82,10 @@ export async function POST(request: Request) {
   }
 
   // 첫 턴이면 서버가 성향별 초기 호감도를 시드한다 (클라에 노출 안 함).
-  const disposition = parsed.data.disposition ?? initialDisposition(derived.profile);
+  // 노상인 perk가 있으면 시드하는 첫 턴에만 가산(2턴+는 클라가 누적 disposition을 넘겨 중복 없음).
+  const disposition =
+    parsed.data.disposition ??
+    Math.min(100, initialDisposition(derived.profile) + (parsed.data.allyHaggleBonus ?? 0));
   const persona: Persona = parsed.data.persona ?? fallbackPersona(derived.spec, seed);
 
   // LLM 분류 + 연기 (실패 시 키워드 폴백).
