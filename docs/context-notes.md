@@ -513,3 +513,23 @@
 ### 마법의 책 Lv.1 — 건물 도감 (2026-07-26)
 - 시세 그래프에 이어 Lv.1 효과 하나 더. `BuildingCodexModal.tsx` — 전 건물(비deco) 카테고리별(도시·상업·타워·교회·성채)로 **완공 효과(매일 골드·자재 생산·경험치)** + 필요 자재·선행·책Lv를 한눈에. 클라 데이터(BUILDINGS)라 서버 불필요.
 - 엔진 `showBuildingCodex`, ModalStack 렌더, BookCodex Lv.1 행에 「건물 도감」 버튼(시세 그래프 버튼 옆). Lv.1 문구 갱신.
+
+## 지인 perk 확장 (Phase 3 · 2026-07-27)
+
+**결정: 역할별 1 perk 교체** (배열/신규지인 대신). 4명이 각 1 perk 유지, 신규 2종을 대목수·노상인에 배정해 기존 income+15%·bookXp+20%를 대체. 4종 perk가 골고루 대표됨. 노상인 인사말("상인들이 자네를 다르게 볼 걸세")이 흥정 호감도 perk의 복선.
+- comrade(30) income+10% 유지 / builder(90) → **buildRebate 20%** / merchant(180) → **haggleStart +15** / scholar(300) bookXp+25% 유지
+- ⚠️ 밸런스 이동: 후반 income+15·bookXp+20 사라지고 환급·흥정시작 유입 → 핸드오프 #2 시뮬 재점검 대상.
+
+**흥정 시작 호감도 (haggleStart)** — 2레이어 유지가 핵심.
+- 서버가 `initialDisposition(profile)`(성향별 초기값)을 계속 소유. perk는 **가산만** — 클라가 `/api/haggle` body `allyHaggleBonus`로 전달, 서버는 **disposition이 undefined인 첫 턴(시드)에만** `min(100, initial+bonus)`. 2턴+는 클라가 누적 disposition을 넘겨 서버가 bonus를 무시 → **중복 없음**(검증: disposition=30+bonus15 요청 시 28 반환, +15 재가산 안 됨).
+- 기억(단골) 있는 상인은 서버 시드를 안 타므로 `startHaggle`/`startBarter`에서 `min(100, decayed+bonus)`로 클라 가산. 두 경로 모두 1회만 적용.
+- ⚠️ `startHaggle`은 `useCallback([])` → `pop` 클로저는 stale. 반드시 setState 안에서 `population(s.placements)`로 계산.
+
+**건설 자재 할인 = 완공 시 환급 (buildRebate)** — literal need 감면 대신 환급 채택.
+- 이유: need를 깎으면 대목수 합류(pop90) 시점에 *짓는 중*이던 건물이 `have≥need`가 되지만 `built`는 투입 때만 켜져 → UI 완공·실제 미완공 desync + `canDeposit` false로 완공 불가 멈춤 버그. 환급은 need 불변이라 이 문제 원천 차단.
+- 구현: `buildRebate(inventory, requires, pct)` = 각 자재 `floor(need×pct/100)` 인벤 환급. `deposit`/`depositMax` 완공 블록에서만. **조력 이벤트 무상 투입(build) 완공은 제외** — 돌려줄 원본 자재가 없어 무에서 생성 방지.
+- notice에 "대목수가 자재 N개를 아껴 돌려줬다" 표기.
+
+**하위 호환**: pop 0에선 `allyBonuses`가 전부 0 → 모든 신규 경로가 no-op. 초반 회귀 위험 없음.
+
+**남은 폴리시(스코프 밖)**: `AllyArrivalModal`이 perk 종류와 무관하게 `income`(동전) 아이콘 사용 → 환급/흥정 perk에도 동전 표시. 라벨 텍스트는 정확하나 아이콘 불일치. 필요 시 perk.kind별 GameIcon 매핑.

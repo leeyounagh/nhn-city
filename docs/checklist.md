@@ -99,3 +99,13 @@
 - [x] `useGameEngine.ts` — `mission`(파생)·`missionDismissed`·`dismissMission` 노출. **GameState 불변**
 - [x] `Game.tsx` — CoachMark 렌더(인트로 종료·도움말 닫힘·모달 없음·미dismiss 조건). 모달 열리면 코치 숨김(z 충돌 회피)
 - [x] 검증 — tsc/eslint 그린 + dev 컴파일 클린. ⚠️ 이동→흥정→복귀→배치→완공 스포트라이트 추적은 브라우저 스모크 필요
+
+## 지인 perk 확장 (Phase 3 · 2026-07-27 착수)
+
+역할별 1 perk 교체 방식. 신규 perk 2종을 대목수·노상인에 배정(기존 income+15%·bookXp+20% 대체). 밸런스 소폭 이동 → 핸드오프 #2 재점검 대상.
+
+- [x] `lib/allies.ts` — `AllyPerk`에 `haggleStart`(호감도)·`buildRebate`(환급%) 추가. builder→buildRebate 20%, merchant→haggleStart +15. perkLabel 갱신. `allyBonuses`가 `haggleStartBonus`·`buildRebatePct`도 반환.
+- [x] `useGameEngine.startHaggle`/`startBarter` — 기억 있으면 `min(100, decayed+haggleStartBonus)`, 없으면 undefined(서버 시드). `sendUtterance` body에 `allyHaggleBonus` 전달(+deps에 state.placements).
+- [x] `api/haggle/route.ts` — body에 `allyHaggleBonus?` 추가. 시드하는 첫 턴(disposition undefined)에만 `min(100, initial+bonus)`. 2턴+는 누적값 넘어와 중복 방지.
+- [x] `useGameEngine.deposit`/`depositMax` — 완공 시 `floor(need×rebate%)` 자재를 인벤토리 환급(`buildRebate` 헬퍼). **build 이벤트 무상 투입은 제외**(원본 없음). 환급 시 notice에 표기.
+- [x] 검증: tsc/eslint 그린. 결정론 API 확인 — 보너스 없음 호감도23 / +15 호감도38 / 2턴+ 중복 안 됨(28). ⚠️ dev 라이브 스모크(pop180 흥정·pop90 환급)는 pop 도달 필요 → 미실행.
