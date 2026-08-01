@@ -26,15 +26,6 @@ function MerchantPortrait({ merchant }: { merchant: PublicMerchant }) {
   );
 }
 
-export const PORTRAIT_EMOJI: Record<string, string> = {
-  woodmonger: "🪵",
-  mason: "🗿",
-  junker: "🛠️",
-  glazier: "🔮",
-  draper: "🧵",
-  general: "🎒",
-};
-
 export function MerchantPanel({
   merchant,
   bookLevel,
@@ -100,7 +91,7 @@ export function MerchantPanel({
   }
 
   return (
-    <section className="flex max-h-[85vh] flex-col overflow-hidden rounded-2xl border border-amber-900/50 bg-stone-900/95 shadow-2xl shadow-black/70 ring-1 ring-white/5 backdrop-blur-xl">
+    <section className="flex max-h-[85dvh] flex-col overflow-hidden rounded-2xl border border-amber-900/50 bg-stone-900/95 shadow-2xl shadow-black/70 ring-1 ring-white/5 backdrop-blur-xl">
       {/* 헤더 — 초상화·이름을 키워 첫 시선을 명확히. 닫기는 헤더 우측 내장. */}
       <div className="flex items-start justify-between gap-3 border-b border-stone-700/60 p-4 pb-3">
         <div className="flex min-w-0 items-center gap-3">

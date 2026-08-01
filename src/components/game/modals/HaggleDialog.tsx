@@ -1,28 +1,10 @@
 "use client";
 // 멀티턴 흥정 대화창. 발언→서버 판정→호감도·가격 갱신. 수락 시 수량만큼 구매.
 import { useEffect, useRef, useState } from "react";
-import type { HaggleCategory, PublicMerchant } from "@/types/game";
+import type { PublicMerchant } from "@/types/game";
 import type { HaggleState } from "@/lib/game-state";
+import { CATEGORY_LABEL, PORTRAIT_EMOJI } from "@/lib/labels";
 import { GameIcon } from "@/shared/icon/GameIcon";
-
-const CATEGORY_LABEL: Record<HaggleCategory, string> = {
-  flattery: "아부",
-  logic: "논리",
-  bulk: "대량구매",
-  sob: "딱한사정",
-  threat: "협박",
-  smalltalk: "잡담",
-  quality: "자재흠집",
-};
-
-const PORTRAIT_EMOJI: Record<string, string> = {
-  woodmonger: "🪵",
-  mason: "🗿",
-  junker: "🛠️",
-  glazier: "🔮",
-  draper: "🧵",
-  general: "🎒",
-};
 
 // 상인 초상화. /merchants/{portrait}.png 있으면 그림, 없으면 이모지 폴백. 크기는 className으로 조절.
 function Portrait({
@@ -148,7 +130,7 @@ export function HaggleDialog({
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4">
-      <div className="flex h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-lg border border-stone-700 bg-stone-900 sm:h-[80vh] sm:max-w-3xl sm:flex-row sm:rounded-lg">
+      <div className="flex h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-lg border border-stone-700 bg-stone-900 sm:h-[80dvh] sm:max-w-3xl sm:flex-row sm:rounded-lg">
         {/* 왼쪽 — 초상화 + 마법의 책 분석 카드 (데스크톱 전용) */}
         <aside className="hidden shrink-0 flex-col gap-3 overflow-y-auto border-r border-stone-700 bg-stone-950/40 p-4 sm:flex sm:w-60">
           <Portrait
@@ -303,7 +285,7 @@ export function HaggleDialog({
                 onKeyDown={(e) => e.key === "Enter" && submit()}
                 disabled={haggle.pending}
                 placeholder="상인을 어떻게 설득할까…"
-                className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none"
+                className="min-w-0 flex-1 bg-transparent px-3 py-2 text-base text-stone-100 placeholder:text-stone-500 focus:outline-none"
               />
               <button
                 onClick={submit}

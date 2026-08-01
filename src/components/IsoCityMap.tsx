@@ -233,6 +233,7 @@ export function IsoCityMap({
               width: tileW,
               height: tileH,
               zIndex: 1000 + tx + ty,
+              WebkitClipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
               clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
             }}
             aria-label={p ? `${BUILDINGS.find((b) => b.id === p.buildingId)?.name} 터` : `빈 터 ${tx},${ty}`}
@@ -240,6 +241,7 @@ export function IsoCityMap({
             <span
               className="block h-full w-full transition hover:brightness-150"
               style={{
+                WebkitClipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
                 clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
                 backgroundColor: movingId
                   ? p
@@ -276,6 +278,7 @@ export function IsoCityMap({
                   width: tileW,
                   height: tileH,
                   objectFit: "cover",
+                  WebkitClipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
                   clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
                   transform: p.flipped ? "scaleX(-1)" : undefined,
                   opacity: p.id === movingId ? 0.4 : 1,

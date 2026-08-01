@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Cinzel, Song_Myung } from "next/font/google";
 import "./globals.css";
 
@@ -27,6 +27,11 @@ const songMyung = Song_Myung({
 export const metadata: Metadata = {
   title: "Ashen Kingdom",
   description: "소문을 읽고 떠돌이 상인과 거래해 폐허가 된 도시를 다시 세우는 게임.",
+};
+
+// viewport-fit=cover: iOS 노치/홈바 안전영역(env(safe-area-inset-*))을 사용하려면 필요.
+export const viewport: Viewport = {
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

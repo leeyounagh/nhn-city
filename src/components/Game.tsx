@@ -28,7 +28,7 @@ export function Game() {
   } = engine;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-b from-stone-950 to-stone-900 text-stone-200">
+    <div className="flex h-dvh-safe flex-col overflow-hidden bg-gradient-to-b from-stone-950 to-stone-900 text-stone-200">
       {state.location === "home" ? (
         // 고향맵: 한 화면 고정. 맵이 남는 공간(flex-1)을 전부 차지하고 세로 스크롤 없음.
         <main className="flex min-h-0 flex-1 flex-col px-3 pb-2 pt-2">

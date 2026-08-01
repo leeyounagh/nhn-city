@@ -72,3 +72,14 @@ body {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* ── 뷰포트/모바일 크로스브라우저 ───────────────────────── */
+/* iOS Safari는 주소창 높이를 100vh에 포함해 화면을 넘긴다. dvh(동적 뷰포트)로 보정하되, 미지원 브라우저를 위해 vh 폴백을 함께 둔다. */
+@utility h-dvh-safe {
+  height: 100vh;
+  height: 100dvh;
+}
+/* iOS 노치/홈바 안전 영역 하단 여백(viewport-fit=cover에서만 값이 잡힌다). */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}

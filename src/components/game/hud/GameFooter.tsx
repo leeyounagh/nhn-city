@@ -26,7 +26,7 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
     setShowAllies,
   } = engine;
   return (
-    <footer className="shrink-0 border-t border-amber-900/40 bg-gradient-to-t from-stone-950 via-stone-950/95 to-stone-900/90 shadow-[0_-6px_20px_rgba(0,0,0,0.55)] backdrop-blur">
+    <footer className="pb-safe shrink-0 border-t border-amber-900/40 bg-gradient-to-t from-stone-950 via-stone-950/95 to-stone-900/90 shadow-[0_-6px_20px_rgba(0,0,0,0.55)] backdrop-blur">
       <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
         <span className="font-display hidden pr-1 text-lg font-bold tracking-wider text-amber-200 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)] sm:inline">
           Ashen Kingdom
