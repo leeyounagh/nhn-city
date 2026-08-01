@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import type { Ally } from "@/lib/allies";
 import { AllyAvatar } from "@/components/game/modals/AllyAvatar";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 export function AllyEventModal({ ally, label, onClose }: { ally: Ally; label: string; onClose: () => void }) {
   const [line, setLine] = useState<string | null>(null);
+  const dialogRef = useDialogA11y(onClose);
 
   useEffect(() => {
     let alive = true;
@@ -30,14 +32,19 @@ export function AllyEventModal({ ally, label, onClose }: { ally: Ally; label: st
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-lg border border-amber-700/50 bg-stone-900 p-5 text-center shadow-2xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ally-event-title"
+        tabIndex={-1}
+        className="w-full max-w-sm rounded-lg border border-amber-700/50 bg-stone-900 p-5 text-center shadow-2xl focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="font-display text-xs font-semibold tracking-wide text-amber-400">지인의 손길</p>
         <div className="mx-auto my-3 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-amber-700/50 bg-stone-800">
           <AllyAvatar id={ally.id} iconClass="h-12 w-12 text-amber-300/80" />
         </div>
-        <h3 className="font-display text-base font-bold text-stone-100">
+        <h3 id="ally-event-title" className="font-display text-base font-bold text-stone-100">
           {ally.name} <span className="text-xs font-normal text-amber-300/80">· {ally.role}</span>
         </h3>
         {line && <p className="mt-2 text-sm italic leading-relaxed text-stone-300">“{line}”</p>}

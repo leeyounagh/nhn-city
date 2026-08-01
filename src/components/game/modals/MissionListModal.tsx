@@ -2,6 +2,7 @@
 // 미션 목록 모달. 진행 중 미션은 현재 목표를 보여주고, 완료 미션은 비활성(회색·취소선·완료 뱃지)으로 처리한다.
 import { GameIcon } from "@/shared/icon/GameIcon";
 import type { MissionStatus } from "@/lib/missions";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 export function MissionListModal({
   missions,
@@ -12,17 +13,23 @@ export function MissionListModal({
   onRestart: () => void; // 진행 중 미션 클릭 → 튜토리얼 재활성화
   onClose: () => void;
 }) {
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-20 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-lg border border-amber-700/50 bg-stone-900 p-4 shadow-xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mission-list-title"
+        tabIndex={-1}
+        className="w-full max-w-md rounded-lg border border-amber-700/50 bg-stone-900 p-4 shadow-xl focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-display flex items-center gap-2 text-base font-bold text-amber-200">
+          <h3 id="mission-list-title" className="font-display flex items-center gap-2 text-base font-bold text-amber-200">
             <GameIcon name="compass" className="h-5 w-5" /> 미션
           </h3>
           <button onClick={onClose} aria-label="닫기" className="text-stone-400 hover:text-stone-200">

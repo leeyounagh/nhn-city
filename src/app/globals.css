@@ -83,3 +83,11 @@ body {
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* ── 접근성: 키보드 포커스 가시성 ─────────────────────── */
+/* 마우스 클릭엔 안 뜨고 키보드 탐색(Tab) 시에만 링을 그려, 다크 테마에서 포커스를 보이게 한다. */
+:focus-visible {
+  outline: 2px solid #f59e0b; /* amber-500 */
+  outline-offset: 2px;
+  border-radius: 2px;
+}

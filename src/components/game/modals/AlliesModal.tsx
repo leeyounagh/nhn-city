@@ -3,20 +3,27 @@
 import { ALLIES, perkIcon } from "@/lib/allies";
 import { GameIcon } from "@/shared/icon/GameIcon";
 import { AllyAvatar } from "@/components/game/modals/AllyAvatar";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 export function AlliesModal({ population, onClose }: { population: number; onClose: () => void }) {
   const joinedCount = ALLIES.filter((a) => population >= a.popThreshold).length;
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-16 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-lg border border-amber-700/50 bg-stone-900 p-4 shadow-xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="allies-modal-title"
+        tabIndex={-1}
+        className="w-full max-w-md rounded-lg border border-amber-700/50 bg-stone-900 p-4 shadow-xl focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="font-display flex items-center gap-2 text-base font-bold text-amber-200">
+          <h3 id="allies-modal-title" className="font-display flex items-center gap-2 text-base font-bold text-amber-200">
             <GameIcon name="people" className="h-5 w-5" /> 지인
           </h3>
           <button onClick={onClose} aria-label="닫기" className="text-stone-400 hover:text-stone-200">

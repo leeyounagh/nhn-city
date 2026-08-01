@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { type Ally, perkIcon } from "@/lib/allies";
 import { GameIcon } from "@/shared/icon/GameIcon";
 import { AllyAvatar } from "@/components/game/modals/AllyAvatar";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 export function AllyArrivalModal({ ally, onWelcome }: { ally: Ally; onWelcome: () => void }) {
   const [greeting, setGreeting] = useState(ally.greeting);
+  const dialogRef = useDialogA11y(onWelcome);
 
   // AI 합류 대사(키 없으면 정적 폴백 유지).
   useEffect(() => {
@@ -29,12 +31,19 @@ export function AllyArrivalModal({ ally, onWelcome }: { ally: Ally; onWelcome: (
 
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-lg border border-amber-600/50 bg-stone-900 p-5 text-center shadow-2xl ring-1 ring-amber-500/20">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ally-arrival-title"
+        tabIndex={-1}
+        className="w-full max-w-sm rounded-lg border border-amber-600/50 bg-stone-900 p-5 text-center shadow-2xl ring-1 ring-amber-500/20 focus:outline-none"
+      >
         <p className="font-display text-xs font-semibold tracking-wide text-amber-400">새로운 조력자가 합류했다</p>
         <div className="mx-auto my-3 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-amber-700/50 bg-stone-800">
           <AllyAvatar id={ally.id} iconClass="h-14 w-14 text-amber-300/80" />
         </div>
-        <h3 className="font-display text-lg font-bold text-stone-100">{ally.name}</h3>
+        <h3 id="ally-arrival-title" className="font-display text-lg font-bold text-stone-100">{ally.name}</h3>
         <p className="text-xs text-amber-300/80">{ally.role}</p>
         <p className="mt-3 text-sm italic leading-relaxed text-stone-300">“{greeting}”</p>
         <div className="mt-4 flex items-center justify-center gap-1.5 rounded border border-emerald-800/40 bg-emerald-950/25 px-3 py-2 text-sm font-semibold text-emerald-300">

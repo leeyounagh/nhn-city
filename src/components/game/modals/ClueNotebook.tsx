@@ -2,6 +2,7 @@
 // 단서 노트. 수집한 소문을 지목 마을별로 묶어 보여준다. 진위 판정은 하지 않고 조각만 나열한다.
 import type { Rumor, ClueKind } from "@/types/game";
 import { groupCluesByTown } from "@/lib/game-state";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 const KIND_LABEL: Record<ClueKind, string> = {
   location: "위치",
@@ -17,11 +18,19 @@ const KIND_STYLE: Record<ClueKind, string> = {
 
 export function ClueNotebook({ clues, onClose }: { clues: Rumor[]; onClose: () => void }) {
   const groups = groupCluesByTown(clues);
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div className="fixed inset-0 z-40 flex items-start justify-center bg-black/70 p-4 pt-16">
-      <div className="w-full max-w-2xl rounded-lg border border-stone-700 bg-stone-900 shadow-xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="clue-notebook-title"
+        tabIndex={-1}
+        className="w-full max-w-2xl rounded-lg border border-stone-700 bg-stone-900 shadow-xl focus:outline-none"
+      >
         <div className="flex items-center justify-between border-b border-stone-700 px-5 py-3">
-          <h2 className="flex items-center gap-1.5 font-bold text-amber-200">
+          <h2 id="clue-notebook-title" className="flex items-center gap-1.5 font-bold text-amber-200">
             <img src="/ui/magicbook.png" alt="" draggable={false} className="h-6 w-6 object-contain" /> 단서 노트
           </h2>
           <button

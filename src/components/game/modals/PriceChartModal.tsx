@@ -6,6 +6,7 @@ import { Line, LineChart, Tooltip, YAxis } from "recharts";
 import type { MaterialId } from "@/types/game";
 import { MaterialIcon } from "@/shared/icon/MaterialIcon";
 import { GameIcon } from "@/shared/icon/GameIcon";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 type Point = { id: MaterialId; name: string; tier: number; series: number[] };
 
@@ -15,6 +16,7 @@ const TIER_COLOR: Record<number, string> = { 1: "#a8a29e", 2: "#7dd3fc", 3: "#fc
 export function PriceChartModal({ day, onClose }: { day: number; onClose: () => void }) {
   const [points, setPoints] = useState<Point[] | null>(null);
   const [dayLabels, setDayLabels] = useState<number[]>([]);
+  const dialogRef = useDialogA11y(onClose);
 
   useEffect(() => {
     let alive = true;
@@ -41,11 +43,16 @@ export function PriceChartModal({ day, onClose }: { day: number; onClose: () => 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-lg border border-sky-800/50 bg-stone-900 p-4 shadow-xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="price-chart-title"
+        tabIndex={-1}
+        className="w-full max-w-lg rounded-lg border border-sky-800/50 bg-stone-900 p-4 shadow-xl focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="font-display flex items-center gap-2 text-base font-bold text-sky-200">
+          <h3 id="price-chart-title" className="font-display flex items-center gap-2 text-base font-bold text-sky-200">
             <GameIcon name="spellBook" className="h-5 w-5" /> 자재 시세 흐름
           </h3>
           <button onClick={onClose} aria-label="닫기" className="text-stone-400 hover:text-stone-200">

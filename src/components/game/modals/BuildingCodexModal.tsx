@@ -5,6 +5,7 @@ import { BUILDINGS, MATERIAL_NAME } from "@/lib/game-data";
 import { MaterialIcon } from "@/shared/icon/MaterialIcon";
 import { GameIcon } from "@/shared/icon/GameIcon";
 import { buildingSprite } from "@/components/city/sprite";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 const CATEGORIES: { key: string; label: string }[] = [
   { key: "core", label: "도시" },
@@ -17,17 +18,23 @@ const CATEGORIES: { key: string; label: string }[] = [
 const buildingName = (id: string) => BUILDINGS.find((b) => b.id === id)?.name ?? id;
 
 export function BuildingCodexModal({ onClose }: { onClose: () => void }) {
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-16 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-lg border border-amber-800/50 bg-stone-900 p-4 shadow-xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="building-codex-title"
+        tabIndex={-1}
+        className="w-full max-w-lg rounded-lg border border-amber-800/50 bg-stone-900 p-4 shadow-xl focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="font-display flex items-center gap-2 text-base font-bold text-amber-200">
+          <h3 id="building-codex-title" className="font-display flex items-center gap-2 text-base font-bold text-amber-200">
             <GameIcon name="hammer" className="h-5 w-5" /> 건물 도감
           </h3>
           <button onClick={onClose} aria-label="닫기" className="text-stone-400 hover:text-stone-200">

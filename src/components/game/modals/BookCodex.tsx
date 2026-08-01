@@ -4,6 +4,7 @@
 import type { BookLevel } from "@/types/game";
 import { BOOK_XP_THRESHOLDS, MAX_BOOK_LEVEL } from "@/lib/game-data";
 import { GameIcon, type GameIconName } from "@/shared/icon/GameIcon";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 // 레벨별 해금 내용 (Lv1~3).
 const LEVEL_UNLOCKS: { level: BookLevel; title: string; desc: string }[] = [
@@ -62,6 +63,7 @@ export function BookCodex({
   const inLevel = xp - start;
   const span = Math.max(1, next - start);
   const pct = isMax ? 100 : Math.round((inLevel / span) * 100);
+  const dialogRef = useDialogA11y(onClose);
 
   return (
     <div
@@ -69,7 +71,12 @@ export function BookCodex({
       onClick={onClose}
     >
       <div
-        className="book-open relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-amber-700/50 bg-stone-900 shadow-2xl shadow-black/70 ring-1 ring-amber-900/40 sm:rounded-2xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="book-codex-title"
+        tabIndex={-1}
+        className="book-open relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-amber-700/50 bg-stone-900 shadow-2xl shadow-black/70 ring-1 ring-amber-900/40 focus:outline-none sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 책에서 배어나오는 금빛 (위쪽에서 은은히) */}
@@ -85,7 +92,7 @@ export function BookCodex({
             ✕
           </button>
           <GameIcon name="spellBook" className="mx-auto mb-1 h-10 w-10 text-amber-300 drop-shadow-[0_2px_6px_rgba(217,164,65,0.4)]" />
-          <h2 className="font-display text-2xl font-bold tracking-wide text-amber-200 [text-shadow:0_2px_8px_rgba(0,0,0,0.6)]">
+          <h2 id="book-codex-title" className="font-display text-2xl font-bold tracking-wide text-amber-200 [text-shadow:0_2px_8px_rgba(0,0,0,0.6)]">
             마법의 책
           </h2>
           <p className="font-display mt-0.5 text-[11px] italic tracking-[0.2em] text-amber-500/70">

@@ -29,6 +29,8 @@ export function Game() {
 
   return (
     <div className="flex h-dvh-safe flex-col overflow-hidden bg-gradient-to-b from-stone-950 to-stone-900 text-stone-200">
+      {/* 문서 제목(화면 리더용, 시각적으로 숨김) — 페이지에 단일 h1을 보장한다. */}
+      <h1 className="sr-only">Ashen Kingdom — 마지막 도시</h1>
       {state.location === "home" ? (
         // 고향맵: 한 화면 고정. 맵이 남는 공간(flex-1)을 전부 차지하고 세로 스크롤 없음.
         <main className="flex min-h-0 flex-1 flex-col px-3 pb-2 pt-2">

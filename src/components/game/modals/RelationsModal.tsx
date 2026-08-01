@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { GameIcon } from "@/shared/icon/GameIcon";
 import { type MerchantMemory, decayedDisposition, dispositionRank } from "@/lib/game-state";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 function RelationAvatar({ file }: { file?: string }) {
   const [ok, setOk] = useState(true);
@@ -36,13 +37,19 @@ export function RelationsModal({
   const rows = Object.entries(memory)
     .map(([seed, m]) => ({ seed, m, current: decayedDisposition(m, day) }))
     .sort((a, b) => b.current - a.current);
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div
       className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-16 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-lg border border-amber-700/60 bg-stone-900 p-5 shadow-xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="relations-modal-title"
+        tabIndex={-1}
+        className="relative w-full max-w-md rounded-lg border border-amber-700/60 bg-stone-900 p-5 shadow-xl focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -52,7 +59,7 @@ export function RelationsModal({
         >
           ✕
         </button>
-        <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-amber-400">
+        <p id="relations-modal-title" className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-amber-400">
           <GameIcon name="merchant" className="h-4 w-4" /> 관계 명부
         </p>
         <p className="mb-4 text-xs text-stone-500">거래하며 쌓은 상인들. 오래 안 만나면 호감도가 식는다.</p>

@@ -1,6 +1,7 @@
 "use client";
 // 도움말 — 세계관 속 "고서"처럼 연출. 카드형 5장 + 오프닝 다시보기.
 import { GameIcon, type GameIconName } from "@/shared/icon/GameIcon";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 const GUIDE: { icon: GameIconName; title: string; body: React.ReactNode }[] = [
   {
@@ -31,13 +32,19 @@ const GUIDE: { icon: GameIconName; title: string; body: React.ReactNode }[] = [
 ];
 
 export function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onReplayStory: () => void }) {
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div
       className="book-backdrop fixed inset-0 z-40 flex items-end justify-center overflow-y-auto bg-black/75 p-0 backdrop-blur-md sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="book-open relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-amber-700/50 bg-stone-900 shadow-2xl shadow-black/70 ring-1 ring-amber-900/40 sm:rounded-2xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tutorial-title"
+        tabIndex={-1}
+        className="book-open relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-amber-700/50 bg-stone-900 shadow-2xl shadow-black/70 ring-1 ring-amber-900/40 focus:outline-none sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(217,164,65,0.12),transparent_60%)]" />
@@ -52,7 +59,7 @@ export function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onRe
             ✕
           </button>
           <GameIcon name="spellBook" className="mx-auto mb-1 h-9 w-9 text-amber-300 drop-shadow-[0_2px_6px_rgba(217,164,65,0.4)]" />
-          <h2 className="font-display text-xl font-bold tracking-wide text-amber-200 [text-shadow:0_2px_8px_rgba(0,0,0,0.6)]">
+          <h2 id="tutorial-title" className="font-display text-xl font-bold tracking-wide text-amber-200 [text-shadow:0_2px_8px_rgba(0,0,0,0.6)]">
             마법의 책
           </h2>
           <p className="mt-0.5 text-[11px] tracking-wide text-amber-500/70">초보 후계자를 위한 기록</p>

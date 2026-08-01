@@ -5,6 +5,7 @@ import type { BookLevel, MaterialId, PublicMerchant } from "@/types/game";
 import { MaterialIcon } from "@/shared/icon/MaterialIcon";
 import { GameIcon } from "@/shared/icon/GameIcon";
 import { dispositionRank } from "@/lib/game-state";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 // 상인 초상화 — 실제 AI 초상화, 없으면 game-icon 폴백(분홍 이모지 대신).
 function MerchantPortrait({ merchant }: { merchant: PublicMerchant }) {
@@ -79,6 +80,8 @@ export function MerchantPanel({
   }, [seed, bookLevel]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  const dialogRef = useDialogA11y(onClose ?? (() => {}));
+
   if (!merchant) {
     return (
       <section className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-amber-900/40 bg-stone-900/95 p-8 text-center shadow-2xl shadow-black/70 ring-1 ring-white/5 backdrop-blur-xl">
@@ -91,14 +94,21 @@ export function MerchantPanel({
   }
 
   return (
-    <section className="flex max-h-[85dvh] flex-col overflow-hidden rounded-2xl border border-amber-900/50 bg-stone-900/95 shadow-2xl shadow-black/70 ring-1 ring-white/5 backdrop-blur-xl">
+    <section
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="merchant-panel-title"
+      tabIndex={-1}
+      className="flex max-h-[85dvh] flex-col overflow-hidden rounded-2xl border border-amber-900/50 bg-stone-900/95 shadow-2xl shadow-black/70 ring-1 ring-white/5 backdrop-blur-xl focus:outline-none"
+    >
       {/* 헤더 — 초상화·이름을 키워 첫 시선을 명확히. 닫기는 헤더 우측 내장. */}
       <div className="flex items-start justify-between gap-3 border-b border-stone-700/60 p-4 pb-3">
         <div className="flex min-w-0 items-center gap-3">
           <MerchantPortrait merchant={merchant} />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="truncate text-lg font-semibold tracking-wide text-stone-100">{merchant.name}</h2>
+              <h2 id="merchant-panel-title" className="truncate text-lg font-semibold tracking-wide text-stone-100">{merchant.name}</h2>
               <span className="shrink-0 rounded-full border border-stone-700 bg-stone-800 px-2 py-0.5 text-[11px] text-stone-400">{merchant.title}</span>
             </div>
             <p className="mt-0.5 truncate text-sm text-stone-400">{merchant.appearance}</p>

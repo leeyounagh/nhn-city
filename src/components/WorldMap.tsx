@@ -47,7 +47,7 @@ export function WorldMap({
         <span className="text-xs text-stone-500">지역을 눌러 이동 (이동일수만큼 하루가 흐른다)</span>
       </div>
 
-      <div className="relative grid grid-cols-3 grid-rows-3 gap-2 py-2 sm:gap-3">
+      <nav aria-label="월드맵 지역 이동" className="relative grid grid-cols-3 grid-rows-3 gap-2 py-2 sm:gap-3">
         {/* 중앙 고향 → 네 모서리로 뻗는 길. 굵은 길바닥 + 은은히 빛나는 금색 점선. */}
         <svg
           aria-hidden
@@ -83,6 +83,7 @@ export function WorldMap({
               type="button"
               data-coach={`mission-town-${id}`}
               disabled={here || busy}
+              aria-current={here ? "location" : undefined}
               onClick={() => onTravel(id)}
               className={`${CELL[id]} group relative z-10 flex flex-col items-center justify-center gap-1 px-1 py-2 text-center outline-none transition disabled:cursor-default ${
                 here ? "" : "enabled:hover:-translate-y-1"
@@ -136,7 +137,7 @@ export function WorldMap({
             </button>
           );
         })}
-      </div>
+      </nav>
     </section>
   );
 }

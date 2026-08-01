@@ -5,6 +5,7 @@ import type { PublicMerchant } from "@/types/game";
 import type { HaggleState } from "@/lib/game-state";
 import { CATEGORY_LABEL, PORTRAIT_EMOJI } from "@/lib/labels";
 import { GameIcon } from "@/shared/icon/GameIcon";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 // 상인 초상화. /merchants/{portrait}.png 있으면 그림, 없으면 이모지 폴백. 크기는 className으로 조절.
 function Portrait({
@@ -104,6 +105,7 @@ export function HaggleDialog({
   const [text, setText] = useState("");
   const [qty, setQty] = useState(1);
   const logRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useDialogA11y(onClose);
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
@@ -130,7 +132,14 @@ export function HaggleDialog({
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4">
-      <div className="flex h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-lg border border-stone-700 bg-stone-900 sm:h-[80dvh] sm:max-w-3xl sm:flex-row sm:rounded-lg">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="haggle-title"
+        tabIndex={-1}
+        className="flex h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-lg border border-stone-700 bg-stone-900 focus:outline-none sm:h-[80dvh] sm:max-w-3xl sm:flex-row sm:rounded-lg"
+      >
         {/* 왼쪽 — 초상화 + 마법의 책 분석 카드 (데스크톱 전용) */}
         <aside className="hidden shrink-0 flex-col gap-3 overflow-y-auto border-r border-stone-700 bg-stone-950/40 p-4 sm:flex sm:w-60">
           <Portrait
@@ -166,7 +175,7 @@ export function HaggleDialog({
           <div className="flex items-center gap-3">
             <Portrait portrait={merchant.portrait} file={merchant.portraitFile} />
             <div>
-              <p className="font-semibold text-stone-100">
+              <p id="haggle-title" className="font-semibold text-stone-100">
                 {merchant.name}와(과) {isBarter ? "물물교환" : "흥정"}
               </p>
               <p className="text-xs text-stone-400">
@@ -284,6 +293,7 @@ export function HaggleDialog({
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
                 disabled={haggle.pending}
+                aria-label="흥정 발언 입력"
                 placeholder="상인을 어떻게 설득할까…"
                 className="min-w-0 flex-1 bg-transparent px-3 py-2 text-base text-stone-100 placeholder:text-stone-500 focus:outline-none"
               />

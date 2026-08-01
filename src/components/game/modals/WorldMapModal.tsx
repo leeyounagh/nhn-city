@@ -2,6 +2,7 @@
 // 월드맵을 오버레이 모달로 감싼다. 노드 클릭 시 이동 후 모달이 닫힌다. WorldMap 자체는 그대로 재사용.
 import { WorldMap } from "@/components/WorldMap";
 import type { LocationId } from "@/types/game";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
 export function WorldMapModal({
   location,
@@ -16,12 +17,21 @@ export function WorldMapModal({
   onTravel: (dest: LocationId) => void;
   onClose: () => void;
 }) {
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div
       className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div className="mt-16 w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="월드맵"
+        tabIndex={-1}
+        className="mt-16 w-full max-w-3xl focus:outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-2 flex justify-end">
           <button
             onClick={onClose}

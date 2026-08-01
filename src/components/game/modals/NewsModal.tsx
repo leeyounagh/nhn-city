@@ -1,20 +1,27 @@
 "use client";
 // 아침 시황 뉴스 모달. 이동으로 날이 바뀌면 하루 1회 뜬다. 이벤트·그날 생산량을 함께 보여준다.
 import { GameIcon } from "@/shared/icon/GameIcon";
+import { useDialogA11y } from "@/shared/use-dialog-a11y";
 import { MATERIAL_NAME } from "@/lib/game-data";
 import type { MaterialId, NewsWithProduction } from "@/types/game";
 
 export function NewsModal({ news, onClose }: { news: NewsWithProduction; onClose: () => void }) {
   const ev = news.event;
   const prod = news.produced ? (Object.entries(news.produced) as [MaterialId, number][]) : [];
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div
       className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-24 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="news-modal-title"
+        tabIndex={-1}
         data-coach="mission-news"
-        className="relative w-full max-w-md rounded-lg border border-amber-700/60 bg-stone-900 p-5 shadow-xl"
+        className="relative w-full max-w-md rounded-lg border border-amber-700/60 bg-stone-900 p-5 shadow-xl focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -24,7 +31,7 @@ export function NewsModal({ news, onClose }: { news: NewsWithProduction; onClose
         >
           ✕
         </button>
-        <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-amber-400"><GameIcon name="newspaper" className="h-4 w-4" /> 아침 시황</p>
+        <p id="news-modal-title" className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-amber-400"><GameIcon name="newspaper" className="h-4 w-4" /> 아침 시황</p>
         <p className="mb-3 text-base font-bold leading-snug text-stone-100">{news.headline}</p>
         {ev ? (
           <div className="rounded border border-emerald-800/50 bg-emerald-950/30 px-3 py-2 text-sm">
