@@ -550,10 +550,15 @@ export function useGameEngine() {
     const id = crypto.randomUUID();
     let msg = "";
     setState((s) => {
-      if (s.placements.some((p) => p.x === x && p.y === y)) return s; // 이미 점유된 타일
-      if (!checkPlace(buildingId, s).canPlace) return s;
       const b = BUILDINGS.find((x2) => x2.id === buildingId);
       if (!b) return s;
+      // 바닥(flat)과 건물은 별개 레이어 — 같은 레이어끼리만 충돌. 건물은 바닥 위에 세울 수 있다.
+      const newFlat = !!b.flat;
+      const occupied = s.placements.some(
+        (p) => p.x === x && p.y === y && !!BUILDINGS.find((z) => z.id === p.buildingId)?.flat === newFlat,
+      );
+      if (occupied) return s;
+      if (!checkPlace(buildingId, s).canPlace) return s;
       // 장식물은 자재 불필요 → 즉시 완공 상태로 배치.
       msg = b.deco ? `${b.name}을(를) 놓았다.` : `${b.name} 터를 놓았다. 자재를 채워 완공하라.`;
       return {
@@ -663,10 +668,16 @@ export function useGameEngine() {
     if (name) setNotice(`${name}을(를) 헐고 자재를 반환했다.`);
   }, []);
 
-  // 건물을 빈 타일로 옮긴다 (점유 타일이면 무시).
+  // 건물/바닥을 옮긴다. 같은 레이어가 점유한 타일이면 무시(바닥 위로 건물 이동은 허용).
   const moveBuilding = useCallback((placementId: string, x: number, y: number) => {
     setState((s) => {
-      if (s.placements.some((p) => p.x === x && p.y === y)) return s; // 점유된 타일엔 못 옮김
+      const moving = s.placements.find((p) => p.id === placementId);
+      if (!moving) return s;
+      const movingFlat = !!BUILDINGS.find((z) => z.id === moving.buildingId)?.flat;
+      const occupied = s.placements.some(
+        (p) => p.id !== placementId && p.x === x && p.y === y && !!BUILDINGS.find((z) => z.id === p.buildingId)?.flat === movingFlat,
+      );
+      if (occupied) return s;
       return { ...s, placements: s.placements.map((p) => (p.id === placementId ? { ...p, x, y } : p)) };
     });
   }, []);

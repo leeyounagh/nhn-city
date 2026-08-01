@@ -101,10 +101,16 @@ export function IsoCityMap({
     };
   }, []);
 
-  const occupancy = useMemo(() => {
-    const map = new Map<string, Placement>();
-    for (const p of state.placements) map.set(`${p.x},${p.y}`, p);
-    return map;
+  // 바닥(flat)은 지면 레이어, 건물은 그 위 레이어. 한 타일에 바닥+건물이 공존할 수 있어 레이어별로 나눈다.
+  // 배치·이동 충돌은 같은 레이어끼리만 — 건물은 바닥 위에 자유로이 세운다.
+  const { buildingAt, floorAt } = useMemo(() => {
+    const buildingAt = new Map<string, Placement>();
+    const floorAt = new Map<string, Placement>();
+    for (const p of state.placements) {
+      const flat = BUILDINGS.find((b) => b.id === p.buildingId)?.flat;
+      (flat ? floorAt : buildingAt).set(`${p.x},${p.y}`, p);
+    }
+    return { buildingAt, floorAt };
   }, [state.placements]);
 
   // 건물/자재 드래그드롭. 드롭 지점을 타일로 역변환해 배치·투입한다.
@@ -189,6 +195,9 @@ export function IsoCityMap({
   const sprites: React.ReactNode[] = [];
   const tileW = TW * scale;
   const tileH = TH * scale;
+  // 이동 중인 대상이 바닥인지 건물인지 — 이동 충돌은 같은 레이어끼리만 판정한다.
+  const movingPlacement = movingId ? state.placements.find((pp) => pp.id === movingId) : undefined;
+  const movingIsFlat = !!(movingPlacement && BUILDINGS.find((b) => b.id === movingPlacement.buildingId)?.flat);
   if (viewport.w > 0 && viewport.h > 0) {
     const { txMin, txMax, tyMin, tyMax } = visibleTileRange();
 
@@ -200,7 +209,10 @@ export function IsoCityMap({
           continue;
         }
         const key = `${tx},${ty}`;
-        const p = occupancy.get(key);
+        const building = buildingAt.get(key); // 이 타일의 건물(있으면)
+        const floor = floorAt.get(key); // 이 타일의 바닥/밭(있으면)
+        const primary = building ?? floor; // 선택·라벨 기본 (건물 우선)
+        const moveBlocker = movingIsFlat ? floor : building; // 이동 충돌은 같은 레이어끼리만
         const even = (((tx + ty) % 2) + 2) % 2 === 0; // 체커보드 (음수 좌표 보정)
         tiles.push(
           <button
@@ -209,19 +221,23 @@ export function IsoCityMap({
             onClick={() => {
               if (consumePanClick()) return; // 팬 뒤 따라오는 click은 무시
               if (movingId) {
-                if (!p) {
-                  onMove(movingId, tx, ty); // 빈 타일 → 이동
+                if (!moveBlocker) {
+                  onMove(movingId, tx, ty); // 같은 레이어가 비어 있으면 이동
                   setMovingId(null);
-                } else if (p.id === movingId) {
+                } else if (moveBlocker.id === movingId) {
                   setMovingId(null); // 제자리 탭 = 이동 취소
                 }
-                return; // 다른 건물 위(빨강)면 무시
+                return; // 같은 레이어에 다른 게 있으면 무시(빨강)
               }
-              if (p) {
-                setSelectedPlacementId(p.id);
+              // 건물 있으면 선택. 없고 배치 중이면 (바닥 위에라도) 건물을 놓는다. 바닥만 있으면 바닥 선택.
+              if (building) {
+                setSelectedPlacementId(building.id);
                 setSelectedBuilding(null);
               } else if (selectedBuilding) {
                 onPlace(selectedBuilding, tx, ty);
+                setSelectedBuilding(null);
+              } else if (floor) {
+                setSelectedPlacementId(floor.id);
                 setSelectedBuilding(null);
               }
             }}
@@ -236,7 +252,7 @@ export function IsoCityMap({
               WebkitClipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
               clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
             }}
-            aria-label={p ? `${BUILDINGS.find((b) => b.id === p.buildingId)?.name} 터` : `빈 터 ${tx},${ty}`}
+            aria-label={primary ? `${BUILDINGS.find((b) => b.id === primary.buildingId)?.name} 터` : `빈 터 ${tx},${ty}`}
           >
             <span
               className="block h-full w-full transition hover:brightness-150"
@@ -244,12 +260,12 @@ export function IsoCityMap({
                 WebkitClipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
                 clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
                 backgroundColor: movingId
-                  ? p
-                    ? p.id === movingId
-                      ? "rgba(56,189,248,0.5)" // 옮기는 건물 제자리 = 하늘색
-                      : "rgba(220,38,38,0.6)" // 다른 건물 위 = 빨강(배치 불가)
-                    : "rgba(34,197,94,0.45)" // 빈 타일 = 초록(옮길 수 있음)
-                  : p
+                  ? moveBlocker
+                    ? moveBlocker.id === movingId
+                      ? "rgba(56,189,248,0.5)" // 옮기는 대상 제자리 = 하늘색
+                      : "rgba(220,38,38,0.6)" // 같은 레이어 점유 = 빨강(이동 불가)
+                    : "rgba(34,197,94,0.45)" // 이동 가능 = 초록
+                  : building
                     ? "rgba(120,90,60,0.15)"
                     : placingBuilding
                       ? "rgba(245,158,11,0.45)"
@@ -261,49 +277,50 @@ export function IsoCityMap({
           </button>,
         );
 
-        if (p) {
-          const b = BUILDINGS.find((x) => x.id === p.buildingId);
-          if (b?.flat) {
-            // 바닥 장식: 타일 지면으로 렌더(위로 솟지 않음). 선택 클릭은 아래 타일 버튼이 처리.
-            sprites.push(
-              <img
-                key={`f${p.id}`}
-                src={buildingSprite(p.buildingId)}
-                alt=""
-                draggable={false}
-                style={{
-                  position: "absolute",
-                  left,
-                  top,
-                  width: tileW,
-                  height: tileH,
-                  objectFit: "cover",
-                  WebkitClipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
-                  clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
-                  transform: p.flipped ? "scaleX(-1)" : undefined,
-                  opacity: p.id === movingId ? 0.4 : 1,
-                  zIndex: 1500 + tx + ty,
-                  pointerEvents: "none",
-                }}
-              />,
-            );
-            continue;
-          }
-          const chk = checkPlacement(p);
+        // 바닥/밭(flat) — 지면에 깔리며 아무것도 막지 않는다. 건물이 그 위에 온다.
+        if (floor) {
+          sprites.push(
+            <img
+              key={`f${floor.id}`}
+              src={buildingSprite(floor.buildingId)}
+              alt=""
+              draggable={false}
+              style={{
+                position: "absolute",
+                // 인접 바닥 타일이 살짝 겹치게 1.08×로 그려 다이아 사이 seam(공백)을 덮는다(마을 미리보기와 동일).
+                left: left - tileW * 0.04,
+                top: top - tileH * 0.04,
+                width: tileW * 1.08,
+                height: tileH * 1.08,
+                objectFit: "cover",
+                WebkitClipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
+                clipPath: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
+                transform: floor.flipped ? "scaleX(-1)" : undefined,
+                opacity: floor.id === movingId ? 0.4 : 1,
+                zIndex: 1500 + tx + ty,
+                pointerEvents: "none",
+              }}
+            />,
+          );
+        }
+        // 건물 — 바닥 위로 솟는다.
+        if (building) {
+          const b = BUILDINGS.find((x) => x.id === building.buildingId);
+          const chk = checkPlacement(building);
           const totalNeed = chk.slots.reduce((a, s) => a + s.need, 0);
           const have = chk.slots.reduce((a, s) => a + Math.min(s.have, s.need), 0);
           const pct = totalNeed > 0 ? Math.round((have / totalNeed) * 100) : 0;
-          const materialTarget = drag?.kind === "material" && !p.built;
-          const spriteW = tileW * BUILDING_SPRITE_SCALE * (BUILDING_RENDER_SCALE[p.buildingId] ?? 1);
+          const materialTarget = drag?.kind === "material" && !building.built;
+          const spriteW = tileW * BUILDING_SPRITE_SCALE * (BUILDING_RENDER_SCALE[building.buildingId] ?? 1);
           sprites.push(
             <button
-              key={`s${p.id}`}
+              key={`s${building.id}`}
               type="button"
-              data-pid={p.id} // 자재 드래그 드롭 히트테스트용 (elementFromPoint로 이 건물을 특정)
-              data-coach={p.buildingId === "hut" && !p.built ? "mission-hut" : undefined} // 미션: 오두막 완공 단계 강조
+              data-pid={building.id} // 자재 드래그 드롭 히트테스트용 (elementFromPoint로 이 건물을 특정)
+              data-coach={building.buildingId === "hut" && !building.built ? "mission-hut" : undefined} // 미션: 오두막 완공 단계 강조
               onClick={() => {
                 if (consumePanClick()) return;
-                setSelectedPlacementId(p.id);
+                setSelectedPlacementId(building.id);
                 setSelectedBuilding(null);
               }}
               // 스프라이트 바닥중앙을 타일 중앙에 앵커 (translate -50%,-100% → 건물이 타일 위로 솟음).
@@ -318,15 +335,15 @@ export function IsoCityMap({
               title={b?.name}
             >
               <img
-                src={buildingSprite(p.buildingId)}
+                src={buildingSprite(building.buildingId)}
                 alt={b?.name ?? ""}
                 draggable={false}
-                style={{ transform: p.flipped ? "scaleX(-1)" : undefined }}
+                style={{ transform: building.flipped ? "scaleX(-1)" : undefined }}
                 className={`pointer-events-none w-full select-none ${
-                  p.built ? "" : "opacity-70 grayscale"
-                } ${p.id === movingId ? "opacity-40" : ""} ${materialTarget ? "drop-shadow-[0_0_6px_rgba(52,211,153,0.9)]" : ""}`}
+                  building.built ? "" : "opacity-70 grayscale"
+                } ${building.id === movingId ? "opacity-40" : ""} ${materialTarget ? "drop-shadow-[0_0_6px_rgba(52,211,153,0.9)]" : ""}`}
               />
-              {!p.built && (
+              {!building.built && (
                 <div className="pointer-events-none absolute bottom-[30%] left-1/2 flex -translate-x-1/2 flex-col items-center gap-0.5">
                   <span className="rounded bg-stone-950/85 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 shadow">
                     {pct}%
