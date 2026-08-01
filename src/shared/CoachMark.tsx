@@ -86,14 +86,19 @@ export function CoachMark({
   }
 
   const pad = 8;
-  const hole = {
-    top: box.top - pad,
-    left: box.left - pad,
-    width: box.width + pad * 2,
-    height: box.height + pad * 2,
-  };
   const vh = typeof window !== "undefined" ? window.innerHeight : 800;
   const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+  // 강조 링(ring-offset-2 + ring-2 ≈ 4px)이 뷰포트 가장자리에서 잘리지 않게 여백을 두고 구멍을 클램프한다.
+  // (푸터처럼 화면 최하단에 붙은 대상은 pad+ring이 뷰포트를 넘어 노란 링 하단이 잘렸다.)
+  const ringSpace = 6;
+  const holeTop = Math.max(ringSpace, box.top - pad);
+  const holeLeft = Math.max(ringSpace, box.left - pad);
+  const hole = {
+    top: holeTop,
+    left: holeLeft,
+    width: Math.min(box.width + pad * 2, vw - ringSpace - holeLeft),
+    height: Math.min(box.height + pad * 2, vh - ringSpace - holeTop),
+  };
   const below = hole.top + hole.height < vh * 0.6; // 대상이 화면 상단부면 말풍선을 아래로
   const centerX = hole.left + hole.width / 2;
   const dim = "fixed bg-black/75 pointer-events-auto";
