@@ -1,19 +1,23 @@
 # 웹 표준 · 접근성 · SEO 감사 — 마지막 도시
 
-작성 2026-08-01. 코드 미변경(감사만). 이 게임은 클라이언트 중심 SPA(Next.js 16 App Router)라 콘텐츠 사이트와 기준이 다르다. 게임 특성상 화면 리더 완전 지원은 한계가 있으나, 표준·시맨틱·공유용 SEO는 충분히 개선 가능하다.
+작성 2026-08-01. 이 게임은 클라이언트 중심 SPA(Next.js 16 App Router)라 콘텐츠 사이트와 기준이 다르다. 게임 특성상 화면 리더 완전 지원은 한계가 있으나, 표준·시맨틱·공유용 SEO는 충분히 개선 가능하다.
+
+> **적용 완료 (2026-08-01).** 아래 T1·T2·T3를 전부 구현·검증했다(tsc·eslint 0·next build·playwright 스모크: 모달 role=dialog·초기 포커스·ESC 닫기·스크롤 잠금 복원 확인). 커밋: `3198d7c`(SEO)·`8b7dc39`(접근성). 이 문서는 이제 "무엇을 왜 했는지"의 기록이다.
 
 ---
 
-## 0. 한눈에 (우선순위)
+## 0. 한눈에 (적용 결과)
 
-| # | 영역 | 갭 | 심각도 | 공수 |
+| # | 영역 | 갭 | 심각도 | 상태 |
 |---|---|---|---|---|
-| 1 | 접근성 | 모달 13개에 `role="dialog"`·`aria-modal`·`aria-labelledby`·ESC·포커스 트랩/복원 없음 | 높음 | 큼(공용 프리미티브) |
-| 2 | SEO | `openGraph`·`twitter`·`robots`·`metadataBase` 없음, `manifest`/`robots`/`sitemap`/`opengraph-image` 파일 없음 | 중간 | 작음 |
-| 3 | 접근성 | 흥정 input에 라벨 없음(placeholder만) + `focus:outline-none`으로 포커스 표시 제거 | 중간 | 작음 |
-| 4 | 접근성 | 버튼 다수에 `focus-visible` 링 없음(기본 아웃라인 의존) | 중간 | 중간 |
-| 5 | 시맨틱 | 메인 게임 화면에 `<h1>` 없음(인트로에만) | 낮음 | 작음 |
-| 6 | SEO | 클라 렌더라 SSR HTML에 콘텐츠 없음 + `<noscript>` 안내 없음 | 낮음 | 작음 |
+| 1 | 접근성 | 모달 14개에 `role="dialog"`·`aria-modal`·`aria-labelledby`·ESC·포커스 트랩/복원 없음 | 높음 | ✅ `useDialogA11y` 훅으로 14개 적용 |
+| 2 | SEO | `openGraph`·`twitter`·`robots`·`metadataBase` 없음, `manifest`/`robots`/`sitemap`/`opengraph-image` 파일 없음 | 중간 | ✅ metadata 확장 + 3개 규약 파일 |
+| 3 | 접근성 | 흥정 input에 라벨 없음(placeholder만) + `focus:outline-none`으로 포커스 표시 제거 | 중간 | ✅ aria-label 추가(포커스는 wrapper `focus-within` 링 유지) |
+| 4 | 접근성 | 버튼 다수에 `focus-visible` 링 없음(기본 아웃라인 의존) | 중간 | ✅ 전역 `:focus-visible` 링 |
+| 5 | 시맨틱 | 메인 게임 화면에 `<h1>` 없음(인트로에만) | 낮음 | ✅ `sr-only h1`(단일 문서 제목) |
+| 6 | SEO | 클라 렌더라 SSR HTML에 콘텐츠 없음 + `<noscript>` 안내 없음 | 낮음 | ✅ `<noscript>` 소개 추가 |
+| 7 | 접근성 | 색 대비(보조 텍스트·플레이스홀더) 미확인 | 낮음 | ⏳ 수동 확인 권장(정적 감사 불가) |
+| 8 | 접근성 | `city/PlacementPanel` dialog 미적용 | 낮음 | ⏸ 보류(중앙 모달 아닌 배치 패널) |
 
 ---
 
@@ -90,11 +94,17 @@
 
 ---
 
-## 4. 권장 실행 계획 (티어)
+## 4. 실행 계획 (티어) — 전부 적용 완료 (2026-08-01)
 
-- **T1 — SEO 기본 (빠름·안전, ~30분)**: metadata 확장(OG·twitter·robots·metadataBase) + `manifest.ts`·`robots.ts`·`sitemap.ts` + `opengraph-image`(icon 재사용) + `<noscript>` 소개. 코드 리스크 낮음.
-- **T2 — 시맨틱·포커스 (작음, ~30분)**: 메인 `sr-only <h1>`, 흥정 input `aria-label` + 포커스 링, 전역 `:focus-visible` 정책, WorldMap `<nav>`/`aria-current`.
-- **T3 — 모달 접근성 (큼·핵심, ~2h)**: 공용 `Modal` 프리미티브(dialog·aria-modal·aria-labelledby·ESC·포커스 트랩/복원·스크롤 잠금) + 13개 모달 리팩터. 각 모달 레이아웃이 달라 개별 검증 필요.
+- ✅ **T1 — SEO 기본**: metadata 확장(OG·twitter·robots·metadataBase·keywords) + `manifest.ts`·`robots.ts`·`sitemap.ts` + OG 이미지(타이틀 아트 `/intro/title.png` 재사용) + `<noscript>` 소개. 커밋 `3198d7c`.
+- ✅ **T2 — 시맨틱·포커스**: 메인 `sr-only <h1>`(단일 문서 제목), 흥정 input `aria-label`, 전역 `:focus-visible` 링(globals.css), WorldMap `<nav aria-label>`/`aria-current`. 커밋 `8b7dc39`.
+- ✅ **T3 — 모달 접근성**: 공용 `Modal` 프리미티브 대신 **`useDialogA11y` 훅**(마크업 재구성 없이 패널에 얹음) 채택 — `role=dialog`·`aria-modal`·`aria-labelledby`·ESC 닫기·포커스 트랩·열기 전 포커스 저장→복원·body 스크롤 잠금. 14개 모달 적용, 각 제목을 aria-labelledby로 연결. 커밋 `8b7dc39`.
+  - **훅 방식 선택 이유**: 13개 모달의 백드롭 마크업(z-index·정렬·패딩)이 제각각이라 공용 래퍼로 감싸면 레이아웃 회귀 위험이 컸다. 훅은 속성만 추가해 기존 마크업을 보존하므로 저위험.
+  - **검증**: playwright로 튜토리얼 모달 role=dialog·초기 포커스 내부·ESC 닫힘·스크롤 잠금 복원 확인. tsc·eslint 0·next build 통과.
+
+### 남은 것 (선택)
+- 색 대비 수동 확인(보조 텍스트·플레이스홀더가 4.5:1 충족하는지) — 정적 감사 불가.
+- `city/PlacementPanel`은 중앙 모달이 아니라 배치 패널이라 dialog 미적용(필요 시 적용 가능).
 
 ## 5. 게임 특성상 보류/제외
 - 전면 SSR 콘텐츠화(색인용) — 게임이라 가치 낮음, 스코프 밖.
