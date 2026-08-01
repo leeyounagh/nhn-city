@@ -101,7 +101,6 @@ function SceneView({ scene }: { scene: Scene }) {
   return (
     <>
       {imgOk && (
-        /* eslint-disable-next-line @next/next/no-img-element -- 사용자 교체용 정적 프레임, 최적화 불필요 */
         <img
           src={scene.image}
           alt=""
@@ -128,7 +127,6 @@ function TitleCard({ onFinish }: { onFinish: () => void }) {
   if (imgOk) {
     return (
       <>
-        {/* eslint-disable-next-line @next/next/no-img-element -- 사용자 교체용 정적 프레임, 최적화 불필요 */}
         <img
           src={TITLE_IMAGE}
           alt=""
@@ -138,7 +136,6 @@ function TitleCard({ onFinish }: { onFinish: () => void }) {
         <div className="relative z-10 flex h-full w-full flex-col items-center justify-end pb-[14%]">
           <button onClick={onFinish} className="lc-fade-up transition hover:brightness-110" style={{ animationDelay: "0.4s" }}>
             {btnOk ? (
-              /* eslint-disable-next-line @next/next/no-img-element -- 사용자 교체용 정적 버튼, 최적화 불필요 */
               <img
                 src={START_BUTTON}
                 alt="게임 시작"
