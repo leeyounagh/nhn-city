@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { MaterialId } from "@/types/game";
 import { BUILDINGS, MATERIAL_NAME } from "@/lib/game-data";
 import { GameIcon } from "@/shared/icon/GameIcon";
-import { type GameState, checkPlace, hasBlueprint } from "@/lib/game-state";
+import { type GameState, checkPlace } from "@/lib/game-state";
 import { buildingSprite } from "./sprite";
 
 export function BuildingPalette({
@@ -20,20 +20,29 @@ export function BuildingPalette({
   onCardClick: (buildingId: string) => void;
   onStripPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
 }) {
-  const unlocked = hasBlueprint(state.inventory);
   const [tab, setTab] = useState<string>("core");
-  // 탭별 건물 목록 (category 없으면 core). deco 탭은 「설계도」 해금 시만.
+  // 탭별 건물 목록 (category 없으면 core). 나무·밭 등은 category로 분류되는 일반 자재 건물.
+  // 건축·장식(deco)은 항상 미리보기로 노출하되 「대건축가의 설계도」가 없으면 카드가 disable된다
+  // (checkPlace가 게이팅, PaletteCard에서 안내). 건축=deco+category "arch", 장식=deco+무category(바닥·문·울타리 등).
   const listFor = (cat: string) =>
-    cat === "deco"
-      ? BUILDINGS.filter((b) => b.deco)
-      : BUILDINGS.filter((b) => !b.deco && (b.category ?? "core") === cat);
+    cat === "arch"
+      ? BUILDINGS.filter((b) => b.deco && b.category === "arch")
+      : cat === "deco"
+        ? BUILDINGS.filter((b) => b.deco && !b.category)
+        : BUILDINGS.filter((b) => !b.deco && (b.category ?? "core") === cat);
   const TABS: { key: string; label: string }[] = [
     { key: "core", label: "도시" },
     { key: "commerce", label: "상업" },
     { key: "tower", label: "타워" },
     { key: "church", label: "교회" },
     { key: "castle", label: "성" },
-    ...(unlocked ? [{ key: "deco", label: "장식" }] : []),
+    { key: "farm", label: "농장" },
+    { key: "military", label: "군사" },
+    { key: "forge", label: "공방" },
+    { key: "nature", label: "나무" },
+    { key: "field", label: "밭" },
+    { key: "arch", label: "건축" },
+    { key: "deco", label: "장식" },
   ];
   const cards = (list: typeof BUILDINGS) =>
     list.map((b) => (
@@ -106,11 +115,13 @@ function PaletteCard({
           : "border-stone-700/60 bg-stone-900/40 enabled:cursor-grab enabled:hover:border-amber-600/60 enabled:active:cursor-grabbing"
       } disabled:cursor-not-allowed disabled:opacity-40`}
       title={
-        !c.prereqMet
-          ? `선행 필요: ${c.missingPrereq.map((p) => BUILDINGS.find((x) => x.id === p)?.name).join(", ")}`
-          : !c.bookMet
-            ? `마법의 책 Lv.${b.minBook} 필요`
-            : b.name
+        b.deco && !c.canPlace
+          ? "「대건축가의 설계도」 보유 시 배치 가능"
+          : !c.prereqMet
+            ? `선행 필요: ${c.missingPrereq.map((p) => BUILDINGS.find((x) => x.id === p)?.name).join(", ")}`
+            : !c.bookMet
+              ? `마법의 책 Lv.${b.minBook} 필요`
+              : b.name
       }
     >
       <img src={buildingSprite(b.id)} alt="" draggable={false} className="pointer-events-none h-12 w-12 select-none object-contain" />
@@ -121,8 +132,18 @@ function PaletteCard({
           <GameIcon name="factory" className="h-3 w-3 shrink-0" /> {(Object.entries(b.produces) as [MaterialId, number][]).map(([id, n]) => `${MATERIAL_NAME[id]}+${n}`).join(" ")}
         </span>
       )}
-      {!b.deco && !c.canPlace && (
-        <span className="text-[10px] text-rose-400">{!c.prereqMet ? "선행 필요" : `책 Lv.${b.minBook}`}</span>
+      {!c.canPlace && (
+        <span className="flex items-center gap-0.5 text-[10px] text-rose-400">
+          {b.deco ? (
+            <>
+              <GameIcon name="padlock" className="h-2.5 w-2.5 shrink-0" /> 설계도 필요
+            </>
+          ) : !c.prereqMet ? (
+            "선행 필요"
+          ) : (
+            `책 Lv.${b.minBook}`
+          )}
+        </span>
       )}
     </button>
   );
