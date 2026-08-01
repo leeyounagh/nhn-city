@@ -1,0 +1,107 @@
+// 흥정 폴백 데이터 — LLM 없이도 흥정이 성립하도록 키워드 분류 + 카테고리별 변형 대사를 제공한다.
+import type { HaggleCategory } from "@/types/game";
+import type { Persona } from "./personas";
+import { variant } from "./pick";
+
+const CATEGORIES: HaggleCategory[] = [
+  "flattery",
+  "logic",
+  "bulk",
+  "sob",
+  "threat",
+  "smalltalk",
+  "quality",
+];
+
+export function isValidCategory(c: unknown): c is HaggleCategory {
+  return typeof c === "string" && (CATEGORIES as string[]).includes(c);
+}
+
+// 키워드 기반 폴백 분류 (LLM 없이도 흥정이 성립하게).
+export function fallbackCategory(utterance: string): HaggleCategory {
+  const u = utterance.toLowerCase();
+  const has = (...ks: string[]) => ks.some((k) => u.includes(k));
+  if (has("죽여", "가만", "협박", "후회", "칼", "손봐", "박살", "때려", "패버", "threat")) return "threat";
+  if (has("흠집", "금 갔", "금갔", "품질", "상태", "낡", "깨졌", "결함", "긁", "때가", "먼지", "중고", "하자", "얼룩")) return "quality";
+  if (
+    /\d+\s*(개|점|묶음|박스|자루|다발)/.test(u) ||
+    /(한|두|세|네|다섯|여섯|일곱|여덟|아홉|열|스무|스물|수십|수백)\s*(개|점|묶음|자루|다발)/.test(u) ||
+    has("많이", "전부", "대량", "다 살", "다살", "여러", "여럿", "묶어", "한꺼번", "잔뜩", "왕창", "몽땅", "박스", "도매")
+  )
+    return "bulk";
+  if (has("불쌍", "사정", "도와", "굶", "제발", "형편", "아이", "가족", "돈이 없", "빠듯", "겨우", "재건", "폐허", "부탁", "간절")) return "sob";
+  if (has("멋지", "대단", "훌륭", "최고", "솜씨", "명성", "존경", "귀한", "역시", "장인", "실력", "명장", "물건 좋", "좋은 물건")) return "flattery";
+  if (has("시세", "시가", "계산", "합리", "따져", "값어치", "비싸", "비싼", "바가지", "깎", "할인", "에누리", "적정", "원가", "너무 비")) return "logic";
+  return "smalltalk";
+}
+
+// 카테고리별 폴백 대사 변형. seed+turnsLeft로 골라 매 턴·상인마다 다른 대사가 나온다.
+const FALLBACK_LINES: Record<HaggleCategory, string[]> = {
+  flattery: [
+    "허허, 그런 말은 처음 듣는군.",
+    "입에 발린 소리라도, 기분은 나쁘지 않군.",
+    "칭찬은 공짜라 이건가? 뭐, 싫진 않네.",
+    "자네 눈은 볼 줄 아는군. 계속해 보게.",
+    "허어, 이 늙은이를 띄워서 뭘 얻으려고.",
+    "말솜씨 하난 인정하지. 물건도 그만큼 봐줄까?",
+  ],
+  logic: [
+    "흠, 말은 되는군. 계속해 보게.",
+    "셈이 밝은 손님이군. 그 값이 그냥 나온 게 아냐.",
+    "따져보자 이거지? 좋아, 어디 한번 들어보지.",
+    "이치는 맞네만, 내 사정에도 이치가 있다네.",
+    "바가지라니 섭섭하군. 이게 다 정당한 값이야.",
+    "머리 굴리는 소리가 여기까지 들리는군. 나쁘진 않아.",
+  ],
+  bulk: [
+    "많이 사겠다? 귀가 솔깃하군.",
+    "한꺼번에 가져간다면… 이야기가 달라지지.",
+    "수레 채울 만큼 산다면 인심 좀 쓰지.",
+    "대량이라. 창고를 비워주니 나야 고맙지.",
+    "그만큼 사가면 짐이 줄어 좋고. 어디 보자.",
+    "통 크게 나오는군. 그런 손님은 대접해야지.",
+  ],
+  sob: [
+    "딱한 사정이야 다들 있지…",
+    "쯧, 요즘 안 힘든 사람이 어디 있나.",
+    "그 얘긴 나도 가슴이 아프군. 허나 장사는 장사라…",
+    "폐허에서 다시 일어선다니… 조금은 봐주고 싶군.",
+    "눈물로 값을 치를 순 없네만, 마음은 알겠네.",
+    "사연 없는 손님이 없어. 그래도 자네 건 좀 딱하군.",
+  ],
+  threat: [
+    "지금 나를 협박하는 건가?",
+    "허, 칼을 들이대면 값이 내려갈 줄 아나?",
+    "그 눈빛… 나도 폐허에서 살아남은 사람이야.",
+    "겁줘서 깎을 셈이면 번지수 틀렸네.",
+    "한 번만 더 그딴 소리 하면 거래는 없어.",
+    "무서워서 파는 물건은 없다네. 물러서게.",
+  ],
+  smalltalk: [
+    "그래서, 살 텐가 말 텐가?",
+    "잡담도 좋지만, 해는 짧다네.",
+    "이야긴 값을 치른 뒤에 실컷 하지.",
+    "허허, 그런 얘긴 주막에서 하고. 물건은?",
+    "날씨 얘기까진 공짜야. 그다음은 흥정이고.",
+    "손님, 말은 고맙네만 내 물건이 먼저일세.",
+  ],
+  quality: [
+    "내 물건에 트집을 잡는 건가?",
+    "흠집? 그건 세월의 훈장이지, 결함이 아냐.",
+    "눈은 밝군. 그래, 거기 자국 하나 있긴 하지.",
+    "그 정도 흠으로 값을 깎겠다? 어림도 없네.",
+    "멀쩡한 물건을 두고 왜 이래. …정 그러면 조금은.",
+    "장인이 만든 물건이야. 티끌 하나로 후려치지 말게.",
+  ],
+};
+
+export function fallbackLine(
+  category: HaggleCategory,
+  persona: Persona,
+  seed = 0,
+  turnsLeft = 0,
+): string {
+  const lines = FALLBACK_LINES[category];
+  if (!lines) return persona.greeting;
+  return variant(lines, seed + turnsLeft);
+}
