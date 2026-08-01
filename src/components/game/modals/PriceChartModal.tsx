@@ -66,7 +66,7 @@ export function PriceChartModal({ day, onClose }: { day: number; onClose: () => 
         {points === null ? (
           <p className="py-10 text-center text-sm text-stone-500">시세를 읽는 중…</p>
         ) : (
-          <div className="max-h-[65dvh] space-y-4 overflow-y-auto pr-1">
+          <div className="max-h-[80dvh] space-y-4 overflow-y-auto overflow-x-hidden pr-1">
             {[1, 2, 3].map((tier) => {
               const items = points.filter((p) => p.tier === tier);
               if (items.length === 0) return null;
@@ -95,6 +95,7 @@ export function PriceChartModal({ day, onClose }: { day: number; onClose: () => 
                           >
                             <YAxis hide domain={["dataMin", "dataMax"]} />
                             <Tooltip
+                              cursor={false}
                               contentStyle={{
                                 background: "#1c1917",
                                 border: "1px solid #44403c",
@@ -113,6 +114,7 @@ export function PriceChartModal({ day, onClose }: { day: number; onClose: () => 
                               stroke={TIER_COLOR[tier]}
                               strokeWidth={1.5}
                               dot={false}
+                              activeDot={false}
                               isAnimationActive={false}
                             />
                           </LineChart>

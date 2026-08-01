@@ -84,6 +84,13 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* 시세 스파크라인(recharts): dot={false}·activeDot={false}에도 남는 라인 점을 숨긴다.
+   호버 시 툴팁 박스만 뜨게 해 "차트마다 마커가 찍혀 보이는" 문제를 없앤다. recharts는 이 모달에만 쓰임. */
+.recharts-line-dot,
+.recharts-active-dot {
+  display: none;
+}
+
 /* ── 접근성: 키보드 포커스 가시성 ─────────────────────── */
 /* 마우스 클릭엔 안 뜨고 키보드 탐색(Tab) 시에만 링을 그려, 다크 테마에서 포커스를 보이게 한다. */
 :focus-visible {

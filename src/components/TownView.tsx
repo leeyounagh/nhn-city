@@ -107,9 +107,11 @@ export function TownView({
         <TownIsoPreview townId={townId} />
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto md:grid-cols-[1fr_320px]">
-      <section className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
-        <div className="mb-3 flex items-center gap-2">
+      {/* md+에선 grid-rows-1(=1fr)로 한 행이 전체 높이를 채워 컬럼이 늘 100% 높이 → 상인 없어도 border가 꽉 참.
+          내용이 넘치면 각 컬럼이 내부에서 스크롤(그리드 자체는 md+에서 스크롤하지 않음). 모바일은 그리드 세로 스크롤. */}
+      <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto md:grid-cols-[1fr_320px] md:grid-rows-1 md:overflow-hidden">
+      <section className="flex flex-col rounded-lg border border-stone-700/60 bg-stone-900/40 p-4 md:h-full md:min-h-0">
+        <div className="mb-3 flex shrink-0 items-center gap-2">
           <h2 className="flex items-center gap-1.5 text-base font-bold text-stone-100">
             <TownThumb townId={townId} /> {townName} 상인
           </h2>
@@ -119,9 +121,9 @@ export function TownView({
         {busy ? (
           <p className="py-8 text-center text-sm text-stone-500">마을에 들어서는 중…</p>
         ) : merchants.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-stone-700 py-8 text-center text-sm text-stone-500">오늘 이 마을엔 상인이 없다.</div>
+          <div className="grid flex-1 place-items-center rounded-lg border border-dashed border-stone-700 py-8 text-center text-sm text-stone-500">오늘 이 마을엔 상인이 없다.</div>
         ) : (
-          <ul data-coach="mission-merchant" className="flex flex-col gap-2">
+          <ul data-coach="mission-merchant" className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
             {merchants.map((m) => (
               <li key={m.seed}>
                 <button
@@ -144,7 +146,7 @@ export function TownView({
         )}
       </section>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 md:h-full md:min-h-0 md:overflow-y-auto">
       <section data-coach="mission-rumor" className="rounded-lg border border-stone-700/60 bg-stone-900/40 p-4">
         <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-stone-300"><GameIcon name="scroll" className="h-4 w-4 text-amber-400/80" /> 이 마을에 도는 소문</h3>
         {busy ? (
