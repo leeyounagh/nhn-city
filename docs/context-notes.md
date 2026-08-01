@@ -533,3 +533,25 @@
 **하위 호환**: pop 0에선 `allyBonuses`가 전부 0 → 모든 신규 경로가 no-op. 초반 회귀 위험 없음.
 
 **남은 폴리시(스코프 밖)**: `AllyArrivalModal`이 perk 종류와 무관하게 `income`(동전) 아이콘 사용 → 환급/흥정 perk에도 동전 표시. 라벨 텍스트는 정확하나 아이콘 불일치. 필요 시 perk.kind별 GameIcon 매핑.
+
+## 라이브 스모크 + 조력 이벤트 모달 버그 수정 (2026-08-01)
+
+**목표**: 지인 perk Phase 3(합류·환급·흥정시작) + 조력 이벤트를 실제 UI로 검증(그간 코드+결정론 API로만). pop 30/90/180 도달 그라인드 회피 위해 **개발 전용 임시 디버그 시드**(`window.__seedPop`) 승인받아 사용 → 검증 후 전량 제거.
+
+**스모크 결과 (전부 통과)**
+- pop 30 → 이르빈(옛 전우) 합류 모달 + "골드 수입 +10%" 정상.
+- pop 90 → 돌마루 한(대목수) 합류 모달 + "건설 자재 20% 환급" 정상. 환급 실효: 오두막(wood5/stone3) 완공 시 인벤 wood 50−5+**floor(5×0.2)=1**환급=46, stone 47(floor(3×0.2)=0). 결정론 확인.
+- pop 180 → 저울눈 노아(노상인) 합류 모달 + "흥정 시작 호감도 +15" 정상.
+- (미검증: 흥정시작+15·수입+10%의 *실효*는 이전 세션 API 검증 유지. 합류 모달 perk 표기까지만 UI.)
+
+**발견·수정: 조력 이벤트 모달이 한 번도 안 뜨던 버그**
+- **증상**: `applyAllyEvent`의 효과(골드/경험치/재료/건설)는 상태에 정상 적용되나 `AllyEventModal`이 렌더된 적 없음. `allyEvent` 상태를 직접 노출해 읽어 확정 — day 발생일에 wood는 +1 되는데 `allyEvent`는 계속 null.
+- **원인 (React eager-update 함정)**: `applyAllyEvent`가 `setState` updater **안에서** `let view`를 대입하고 updater **밖에서 동기로** `if(view) setAllyEvent(view)` 읽음. `passDay`/`travelTo`는 이 함수를 부르기 **전에 이미 자기 setState를 호출** → fiber에 pending lane 존재 → `applyAllyEvent`의 setState는 eager-update가 **건너뛰어져** updater가 렌더 시점(나중)에 실행 → `if(view)`는 항상 `view=null`을 봄. `placeBuilding`·`deposit`은 핸들러당 setState 1개(첫 dispatch=eager)라 동일 `let`-패턴이 동작 → 여태 안 걸림.
+- **수정**: 로직을 모듈 순수함수 `computeAllyEvent(s, newDay): {next, view} | null`로 분리(내용·수치·해시·라벨 원본과 동일). `applyAllyEvent`는 updater에서 `next` 적용 + `view` 캡처, 모달은 **setState 밖 `queueMicrotask`**로 flush 이후 표시. `passDay`·`travelTo` 공유 경로 모두 적용.
+  - discrete 이벤트(실제 버튼 클릭)는 React가 핸들러 종료 시 **동기 flush** → updater가 view 대입 후 microtask가 실행돼 확실. (eval로 직접 호출하는 비-discrete 경로는 scheduler 순서상 microtask가 flush보다 앞서 여전히 null — **테스트 하네스 한계**지 실게임 버그 아님. 실제 클릭 재검증으로 확정.)
+- **재검증**: BookCodex 모달이 푸터를 덮어(`book-backdrop z-40`) 실제 클릭이 가로채이므로 먼저 닫고, 실제 「하루 넘기기」 클릭 → day 2(allyHash(2,1)=0.236<0.25 발생일) → 모달 "이르빈 · 옛 전우 / 목재 1을(를) 구해왔다." 정상 렌더 확인.
+
+**함정 메모**
+- `setState` updater 안에서 값 대입 후 밖에서 동기로 읽는 패턴은 **핸들러의 첫 setState일 때만**(eager-update) 안전. 선행 setState가 있으면 깨진다 → 순수함수 분리 + flush 이후 스케줄로 회피.
+- 조력 이벤트 재료/건설 종류는 미완공 건물 없으면 no-op(모달 안 뜸). 라이브 검증 시 미완공 건물 1채 배치 필요. gold/xp는 무조건 발생.
+- 라이브 pop 검증 방법: 임시 `window.__seedPop`(hut로 pop 채움)+엔진 액션 노출 후 결정론 확인 → **반드시 검증 후 제거**(이번 세션 제거 완료, tsc/eslint 그린).
