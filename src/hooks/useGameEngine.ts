@@ -98,6 +98,48 @@ function unbuiltTarget(s: GameState): { idx: number; materialId: MaterialId } | 
 }
 type AllyEventView = { ally: Ally; label: string };
 
+// 조력 이벤트를 순수하게 계산 (효과가 반영된 다음 상태 + 모달 뷰). 이벤트 없으면 null.
+// setState updater 밖에서도 뷰를 얻을 수 있게 순수 분리 — updater 안에서 view를 대입해 동기로 읽으면
+// passDay/travelTo의 선행 setState 탓에 React eager-update가 건너뛰어져 모달이 누락된다.
+function computeAllyEvent(s: GameState, newDay: number): { next: GameState; view: AllyEventView } | null {
+  const active = activeAllies(population(s.placements));
+  if (active.length === 0 || allyHash(newDay, 1) >= ALLY_EVENT_CHANCE) return null;
+  const ally = active[Math.floor(allyHash(newDay, 2) * active.length)];
+  const kind = ALLY_EVENT_KIND[ally.id];
+  if (kind === "gold") {
+    const amt = 20 + Math.floor(allyHash(newDay, 3) * 31); // 20~50
+    return { next: { ...s, gold: s.gold + amt }, view: { ally, label: `거래처를 살펴 ${amt}골드를 벌어다 줬다.` } };
+  }
+  if (kind === "xp") {
+    const amt = 3 + Math.floor(allyHash(newDay, 3) * 3); // 3~5
+    return { next: { ...s, xp: s.xp + amt }, view: { ally, label: `기록을 도와 경험치 +${amt}.` } };
+  }
+  if (kind === "material") {
+    const mat = neededTier1(s);
+    if (!mat) return null;
+    const amt = 1 + Math.floor(allyHash(newDay, 3) * 3); // 1~3
+    return {
+      next: { ...s, inventory: { ...s.inventory, [mat]: (s.inventory[mat] ?? 0) + amt } },
+      view: { ally, label: `${MATERIAL_NAME[mat]} ${amt}을(를) 구해왔다.` },
+    };
+  }
+  // build: 미완공 건물에 자재 1 무료 투입 (마지막 슬롯이면 완공)
+  const target = unbuiltTarget(s);
+  if (!target) return null;
+  const pl = s.placements[target.idx];
+  const b = BUILDINGS.find((x) => x.id === pl.buildingId);
+  const progress = { ...pl.progress, [target.materialId]: (pl.progress[target.materialId] ?? 0) + 1 };
+  const complete = b
+    ? (Object.entries(b.requires) as [MaterialId, number][]).every(([id, n]) => (progress[id] ?? 0) >= n)
+    : false;
+  const placements = [...s.placements];
+  placements[target.idx] = { ...pl, progress, built: complete };
+  return {
+    next: complete ? { ...s, placements, xp: s.xp + (b?.xp ?? 0) } : { ...s, placements },
+    view: { ally, label: `${b?.name ?? "건물"}에 ${MATERIAL_NAME[target.materialId]} 1을(를) 채워줬다.` },
+  };
+}
+
 export function useGameEngine() {
   const [state, setState] = useState<GameState>(initialState);
   const [notice, setNotice] = useState<string>("퇴직기사와 함께 국보 「마법의 책」을 품고 폐허가 된 고향으로 돌아왔다. 소문을 읽어 상인을 찾고, 거래로 도시를 다시 세워라.");
@@ -162,45 +204,19 @@ export function useGameEngine() {
   );
   const clearAllyEvent = useCallback(() => setAllyEvent(null), []);
   // 날 경과 시 결정론 확률로 활성 지인 하나가 조력(재료·건설·골드·경험치). 효과 적용 + 모달 표시.
+  // ⚠️ 모달은 setState 밖에서 띄운다. passDay/travelTo가 먼저 setState를 부른 뒤 이 함수를 호출하므로
+  //    updater 안에서 view를 대입해 동기로 읽으면 eager-update가 건너뛰어져 모달이 누락됐다(이전 버그).
+  //    updater가 최신 상태로 효과를 적용하고, 그 때 얻은 view를 flush 이후(queueMicrotask)에 표시한다.
   const applyAllyEvent = useCallback((newDay: number) => {
     let view: AllyEventView | null = null;
     setState((s) => {
-      const active = activeAllies(population(s.placements));
-      if (active.length === 0 || allyHash(newDay, 1) >= ALLY_EVENT_CHANCE) return s;
-      const ally = active[Math.floor(allyHash(newDay, 2) * active.length)];
-      const kind = ALLY_EVENT_KIND[ally.id];
-      if (kind === "gold") {
-        const amt = 20 + Math.floor(allyHash(newDay, 3) * 31); // 20~50
-        view = { ally, label: `거래처를 살펴 ${amt}골드를 벌어다 줬다.` };
-        return { ...s, gold: s.gold + amt };
-      }
-      if (kind === "xp") {
-        const amt = 3 + Math.floor(allyHash(newDay, 3) * 3); // 3~5
-        view = { ally, label: `기록을 도와 경험치 +${amt}.` };
-        return { ...s, xp: s.xp + amt };
-      }
-      if (kind === "material") {
-        const mat = neededTier1(s);
-        if (!mat) return s;
-        const amt = 1 + Math.floor(allyHash(newDay, 3) * 3); // 1~3
-        view = { ally, label: `${MATERIAL_NAME[mat]} ${amt}을(를) 구해왔다.` };
-        return { ...s, inventory: { ...s.inventory, [mat]: (s.inventory[mat] ?? 0) + amt } };
-      }
-      // build: 미완공 건물에 자재 1 무료 투입 (마지막 슬롯이면 완공)
-      const target = unbuiltTarget(s);
-      if (!target) return s;
-      const pl = s.placements[target.idx];
-      const b = BUILDINGS.find((x) => x.id === pl.buildingId);
-      const progress = { ...pl.progress, [target.materialId]: (pl.progress[target.materialId] ?? 0) + 1 };
-      const complete = b
-        ? (Object.entries(b.requires) as [MaterialId, number][]).every(([id, n]) => (progress[id] ?? 0) >= n)
-        : false;
-      const placements = [...s.placements];
-      placements[target.idx] = { ...pl, progress, built: complete };
-      view = { ally, label: `${b?.name ?? "건물"}에 ${MATERIAL_NAME[target.materialId]} 1을(를) 채워줬다.` };
-      return complete ? { ...s, placements, xp: s.xp + (b?.xp ?? 0) } : { ...s, placements };
+      const res = computeAllyEvent(s, newDay);
+      view = res?.view ?? null;
+      return res ? res.next : s;
     });
-    if (view) setAllyEvent(view);
+    queueMicrotask(() => {
+      if (view) setAllyEvent(view);
+    });
   }, []);
 
   // 목적지 노드 선택 → 이동일수만큼 하루가 흐르고(→수입 정산) 그 마을의 상인·소문을 새로 불러온다.
