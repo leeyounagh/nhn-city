@@ -67,7 +67,7 @@ export function BookCodex({
 
   return (
     <div
-      className="book-backdrop fixed inset-0 z-40 flex items-end justify-center overflow-y-auto bg-black/75 p-0 backdrop-blur-md sm:items-center sm:p-4"
+      className="book-backdrop fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-md"
       onClick={onClose}
     >
       <div
@@ -76,7 +76,7 @@ export function BookCodex({
         aria-modal="true"
         aria-labelledby="book-codex-title"
         tabIndex={-1}
-        className="book-open relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-amber-700/50 bg-stone-900 shadow-2xl shadow-black/70 ring-1 ring-amber-900/40 focus:outline-none sm:rounded-2xl"
+        className="book-open relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-amber-700/50 bg-stone-900 shadow-2xl shadow-black/70 ring-1 ring-amber-900/40 focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 책에서 배어나오는 금빛 (위쪽에서 은은히) */}
@@ -187,15 +187,16 @@ export function BookCodex({
             <p className="mb-2 text-[11px] text-stone-500">
               무엇이 먹힐지는 상대마다 다르다. 반응을 보고, 책이 강해지면 그 상인의 약점이 드러난다.
             </p>
-            <div className="flex flex-wrap gap-1.5">
+            {/* 모바일: 이름+뜻 한 줄씩 리스트(칩 폭이 넓어 pill이 지저분하게 줄바꿈됨). sm+: 인라인 pill로 감쌈. */}
+            <div className="space-y-1.5 sm:flex sm:flex-wrap sm:gap-1.5 sm:space-y-0">
               {CATEGORIES.map((c) => (
                 <span
                   key={c.name}
                   title={c.desc}
-                  className={`cursor-default rounded-full border bg-stone-800/70 px-3 py-1 text-xs transition hover:scale-105 hover:bg-stone-800 ${c.color}`}
+                  className={`flex items-baseline gap-1 rounded-lg border bg-stone-800/70 px-3 py-1.5 text-xs transition hover:bg-stone-800 sm:rounded-full sm:py-1 ${c.color}`}
                 >
-                  <b className="font-semibold">{c.name}</b>
-                  <span className="ml-1 text-stone-400">· {c.desc}</span>
+                  <b className="shrink-0 font-semibold">{c.name}</b>
+                  <span className="text-stone-400">· {c.desc}</span>
                 </span>
               ))}
             </div>

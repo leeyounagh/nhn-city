@@ -131,14 +131,14 @@ export function HaggleDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="haggle-title"
         tabIndex={-1}
-        className="flex h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-lg border border-stone-700 bg-stone-900 focus:outline-none sm:h-[80dvh] sm:max-w-3xl sm:flex-row sm:rounded-lg"
+        className="flex h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-lg border border-stone-700 bg-stone-900 focus:outline-none sm:h-[80dvh] sm:max-w-3xl sm:flex-row"
       >
         {/* 왼쪽 — 초상화 + 마법의 책 분석 카드 (데스크톱 전용) */}
         <aside className="hidden shrink-0 flex-col gap-3 overflow-y-auto border-r border-stone-700 bg-stone-950/40 p-4 sm:flex sm:w-60">
@@ -235,8 +235,15 @@ export function HaggleDialog({
           </div>
         </div>
 
-        {/* 대화 로그 */}
-        <div ref={logRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-3">
+        {/* 대화 로그. 모바일은 좌측 aside가 없어 상인 초상화를 흐린 배경으로 깐다(어두운 그라디언트로 페이드).
+            CSS 배경이라 로그가 아래로 스크롤돼도 고정된다. 데스크톱은 aside에 초상화가 있어 sm:!bg-none으로 끈다. */}
+        <div
+          ref={logRef}
+          style={{
+            backgroundImage: `linear-gradient(rgba(28,25,23,0.85), rgba(28,25,23,0.93)), url(/merchants/${merchant.portraitFile ?? merchant.portrait}.png)`,
+          }}
+          className="flex-1 space-y-2 overflow-y-auto bg-cover bg-center bg-no-repeat px-4 py-3 sm:!bg-none"
+        >
           {haggle.log.map((line, i) => (
             <div
               key={i}
@@ -287,7 +294,7 @@ export function HaggleDialog({
         {/* 입력 — 한 컴포넌트처럼 통합 */}
         {ongoing && (
           <div className="border-t border-stone-800 px-4 py-3">
-            <div className="flex items-center gap-1 rounded-lg border border-stone-700 bg-stone-800/60 p-1 transition focus-within:border-amber-600">
+            <div className="flex items-center gap-1 rounded-lg border border-stone-700 bg-stone-800/60 p-1">
               <input
                 value={text}
                 onChange={(e) => setText(e.target.value)}

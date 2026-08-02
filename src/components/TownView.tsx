@@ -253,7 +253,7 @@ export function TownView({
 function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+      className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-[2px]"
       onClick={onClose}
     >
       <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
