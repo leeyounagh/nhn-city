@@ -1,7 +1,7 @@
 "use client";
 // 게임 엔진 훅. 클라이언트 상태를 소유하고 서버 라우트를 호출해 루프를 돈다.
 // 화면 컴포넌트(Game)는 이 훅의 상태·액션을 받아 렌더만 담당한다(관심사 분리).
-import { useCallback, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type {
   DailyNews,
   HaggleCategory,
@@ -36,6 +36,7 @@ import {
   allyHash,
   type Ally,
 } from "@/lib/allies";
+import { loadSave, writeSave, clearSave, SAVE_VERSION, type SaveData } from "@/lib/persist";
 
 const INTRO_SEEN_KEY = "lc_intro_seen";
 
@@ -163,6 +164,9 @@ export function useGameEngine() {
   const [news, setNews] = useState<NewsWithProduction | null>(null); // 오늘 아침 시황 (모달)
   const [newsPending, setNewsPending] = useState(false); // 뉴스 fetch 진행 중 (async 공백에 코치 깜빡임 방지)
   const [lastNewsDay, setLastNewsDay] = useState(1); // 뉴스를 마지막으로 띄운 날 (하루 1회)
+  const [hydrated, setHydrated] = useState(false); // IndexedDB 저장분 로드 완료 여부 (전까지 검은 커버)
+  const [showResetConfirm, setShowResetConfirm] = useState(false); // 새 게임 확인 모달
+  const pendingSave = useRef<SaveData | null>(null); // 디바운스 대기 중인 최신 저장 데이터 (탭 숨김 시 즉시 flush)
 
   // 세션에 한 번만 자동 재생 (새로고침 반복 방지). sessionStorage는 SSR에 없어 마운트 후 읽는다.
   // 페인트 직전에 판정해 게임 메인이 한 프레임 노출되는 깜빡임을 막는다.
@@ -174,6 +178,62 @@ export function useGameEngine() {
   const finishIntro = useCallback(() => {
     sessionStorage.setItem(INTRO_SEEN_KEY, "1");
     setShowIntro(false);
+  }, []);
+
+  // 마운트 시 IndexedDB 저장분을 1회 로드해 이전 진행을 복원한다(비동기 → 완료까지 검은 커버).
+  // 저장이 없거나 손상·IDB 불가면 새 게임 그대로 두고 hydrated만 켠다.
+  useEffect(() => {
+    let alive = true;
+    loadSave().then((save) => {
+      if (!alive) return;
+      if (save) {
+        setState(save.gameState);
+        setAlliesSeen(new Set(save.flags.alliesSeen));
+        setAcked(new Set(save.flags.acked));
+        setMissionDismissed(save.flags.missionDismissed);
+        setLastNewsDay(save.flags.lastNewsDay);
+      }
+      setHydrated(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // 상태·플래그가 바뀌면 디바운스 후 저장한다. 로드 완료(hydrated) 전엔 초기 상태로 덮어쓰지 않도록 건너뛴다.
+  useEffect(() => {
+    if (!hydrated) return;
+    const data: SaveData = {
+      version: SAVE_VERSION,
+      gameState: state,
+      flags: { alliesSeen: [...alliesSeen], acked: [...acked], missionDismissed, lastNewsDay },
+    };
+    pendingSave.current = data;
+    const t = setTimeout(() => void writeSave(data), 500);
+    return () => clearTimeout(t);
+  }, [hydrated, state, alliesSeen, acked, missionDismissed, lastNewsDay]);
+
+  // 탭이 숨겨지면 디바운스 대기 없이 마지막 상태를 즉시 저장(직전 행동 유실 방지).
+  useEffect(() => {
+    const flush = () => {
+      if (document.visibilityState === "hidden" && pendingSave.current) void writeSave(pendingSave.current);
+    };
+    document.addEventListener("visibilitychange", flush);
+    return () => document.removeEventListener("visibilitychange", flush);
+  }, []);
+
+  // 새 게임 — 저장분을 지우고 상태·플래그를 초기화한다(되돌릴 수 없음, 확인 모달을 거친다).
+  const resetGame = useCallback(() => {
+    void clearSave();
+    setState(initialState());
+    setAlliesSeen(new Set());
+    setAcked(new Set());
+    setMissionDismissed(false);
+    setLastNewsDay(1);
+    setNews(null);
+    setAllyEvent(null);
+    setShowResetConfirm(false);
+    setNotice("처음부터 다시 시작한다. 폐허가 된 고향을 다시 세워라.");
   }, []);
 
   const dismissMission = useCallback(() => setMissionDismissed(true), []);
@@ -715,6 +775,10 @@ export function useGameEngine() {
     setShowRelations,
     showIntro,
     setShowIntro,
+    hydrated,
+    showResetConfirm,
+    setShowResetConfirm,
+    resetGame,
     news,
     setNews,
     newsPending,

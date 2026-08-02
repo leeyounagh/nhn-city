@@ -15,6 +15,7 @@
 |---|---|
 | 게임 기획 (스토리·시스템·화면) | `docs/기획서.md` |
 | 경제 모델 (가격·생산·밸런스·perk) | `docs/경제모델.md` |
+| 진행 영속화 (IndexedDB·용량·우려) | `docs/indexeddb-persistence.md` |
 | 세션별 결정의 "왜" + 함정 | `docs/context-notes.md` |
 | 인수인계 (시작점·남은일·함정) | `docs/handoff.md` |
 | 실행 체크리스트 | `docs/checklist.md` |
@@ -92,11 +93,13 @@ src/
 
 ---
 
-## 6. 상태 미영속 (매 로드 새 게임)
+## 6. 진행 영속화 (IndexedDB)
 
-- `GameState`엔 진행/미션/지인/인구를 **저장하지 않는다.** 새로고침 = day1 초기화.
-- 파생: 미션 `resolve(state)`, 지인 `activeAllies(population)`, 조력 `allyHash(day)` 결정론 → desync 없음.
-- `GameState`에 필드 추가 시 dev 중 옛 state에 그 필드가 없어 런타임 에러 → `?.`/`?? {}` 방어 + 하드 새로고침.
+- 진행은 **IndexedDB에 저장**된다 (`src/lib/persist.ts`, DB `ashen-kingdom`·단일 키 `game`). 재접속 시 이전 상태 복원. 설계·용량·우려는 `docs/indexeddb-persistence.md`.
+- 저장 대상: **GameState 전체** + 온보딩 플래그(`alliesSeen`·`acked`·`missionDismissed`·`lastNewsDay`). 파생값(미션·지인·인구·수입)은 **저장 안 하고 상태에서 재계산** — 지인 해금·상인 관계는 원본(placements·merchantMemory)이 저장되므로 유지된다(desync 없음).
+- 로드는 비동기 → 완료(`hydrated`)까지 검은 커버로 게임 노출 차단(인트로 커버와 동일 z-60). 저장은 상태 변경 500ms 디바운스 + 탭 숨김(visibilitychange) 시 즉시 flush.
+- IDB 불가(프라이빗 모드 등)·손상·버전 불일치 시 조용히 미영속/새 게임으로 폴백(크래시 X). 「새 게임」 = 푸터 버튼 → 확인 모달(`ResetConfirmModal`) → `clearSave()` + 초기화.
+- `GameState`에 필드 추가 시: 옛 저장분엔 그 필드가 없다 → `persist.ts`의 `normalizeSave`가 `initialState()` 기본값으로 병합해 방어. 형태가 크게 바뀌면 `SAVE_VERSION`을 올린다(불일치분은 새 게임으로 폴백).
 
 ---
 

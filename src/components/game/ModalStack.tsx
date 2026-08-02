@@ -15,6 +15,7 @@ import { BuildingCodexModal } from "@/components/game/modals/BuildingCodexModal"
 import { AllyArrivalModal } from "@/components/game/modals/AllyArrivalModal";
 import { AllyEventModal } from "@/components/game/modals/AllyEventModal";
 import { AlliesModal } from "@/components/game/modals/AlliesModal";
+import { ResetConfirmModal } from "@/components/game/modals/ResetConfirmModal";
 import { homeIcon } from "@/lib/game-state";
 import type { GameEngine } from "@/hooks/useGameEngine";
 
@@ -55,6 +56,10 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
     clearAllyEvent,
     showIntro,
     setShowIntro,
+    hydrated,
+    showResetConfirm,
+    setShowResetConfirm,
+    resetGame,
     finishIntro,
     travelTo,
     sendUtterance,
@@ -143,7 +148,12 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
         <RelationsModal memory={state.merchantMemory} day={state.day} onClose={() => setShowRelations(false)} />
       )}
 
-      {showIntro === null && <div className="fixed inset-0 z-[60] bg-black" />}
+      {showResetConfirm && (
+        <ResetConfirmModal onConfirm={resetGame} onCancel={() => setShowResetConfirm(false)} />
+      )}
+
+      {/* 인트로 판정 전(showIntro===null) 또는 저장분 로드 전(!hydrated)엔 검은 커버로 게임 노출을 막는다. */}
+      {(showIntro === null || !hydrated) && <div className="fixed inset-0 z-[60] bg-black" />}
       {showIntro === true && <IntroCutscene onFinish={finishIntro} />}
 
       {news && (

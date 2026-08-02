@@ -21,6 +21,7 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
     setShowNotebook,
     setShowRelations,
     setShowTutorial,
+    setShowResetConfirm,
     openMissions,
     allies,
     setShowAllies,
@@ -112,6 +113,12 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
             className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-400 transition hover:border-amber-600/50 hover:text-amber-200"
           >
             <GameIcon name="candle" className="h-4 w-4" /> 도움말
+          </button>
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="flex h-10 items-center rounded-lg border border-stone-700/70 px-3 text-sm text-stone-500 transition hover:border-rose-600/50 hover:text-rose-300"
+          >
+            새 게임
           </button>
         </div>
       </div>
