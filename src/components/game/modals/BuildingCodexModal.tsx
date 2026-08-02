@@ -114,6 +114,50 @@ export function BuildingCodexModal({ onClose }: { onClose: () => void }) {
               </section>
             );
           })}
+
+          {/* 조경 — 효과 없는 나무·밭(자재만 소모). 완공 효과가 없어 컴팩트 그리드로 자재비만 보여준다. */}
+          {(() => {
+            const landscape = BUILDINGS.filter(
+              (b) => !b.deco && (b.category === "nature" || b.category === "field"),
+            );
+            if (landscape.length === 0) return null;
+            return (
+              <section>
+                <h4 className="mb-1.5 text-xs font-semibold text-stone-400">
+                  조경 <span className="font-normal text-stone-500">· 효과 없이 자재만 드는 꾸밈</span>
+                </h4>
+                <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                  {landscape.map((b) => {
+                    const req = Object.entries(b.requires) as [MaterialId, number][];
+                    return (
+                      <li
+                        key={b.id}
+                        className="flex items-center gap-2 rounded-lg border border-stone-700/60 bg-stone-900/40 px-2 py-1.5"
+                      >
+                        <img
+                          src={buildingSprite(b.id)}
+                          alt=""
+                          draggable={false}
+                          className="h-8 w-8 shrink-0 object-contain"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-xs font-medium text-stone-200">{b.name}</span>
+                          <span className="flex flex-wrap items-center gap-1 text-[11px] text-stone-400">
+                            {req.map(([id, n]) => (
+                              <span key={id} className="inline-flex items-center gap-0.5">
+                                <MaterialIcon id={id} className="h-3 w-3" />
+                                {n}
+                              </span>
+                            ))}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })()}
         </div>
       </div>
     </div>
