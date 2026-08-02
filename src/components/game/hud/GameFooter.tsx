@@ -1,9 +1,54 @@
 "use client";
 // 하단 푸터 HUD — 리소스 배지(골드·일차·수입)·마법의 책·이동/하루넘기기·보조 액션 버튼들.
-import { GameIcon } from "@/shared/icon/GameIcon";
+// 모바일(md 미만)에선 액션 버튼 라벨을 숨기고 아이콘만 보여 한 줄을 유지한다(i18n로 텍스트가 길어져도 안 깨짐).
+import { GameIcon, type GameIconName } from "@/shared/icon/GameIcon";
 import { ResChip } from "@/components/game/hud/ResChip";
 import { MAX_BOOK_LEVEL } from "@/lib/game-data";
 import type { GameEngine } from "@/hooks/useGameEngine";
+
+// 보조 액션 버튼 — md 미만은 아이콘만(라벨 숨김·카운트는 배지), md 이상은 아이콘+라벨.
+// 라벨 숨김에 대비해 aria-label을 항상 부여한다(스크린리더·접근성).
+function AuxButton({
+  icon,
+  label,
+  count,
+  onClick,
+  dataCoach,
+  danger,
+}: {
+  icon: GameIconName;
+  label: string;
+  count?: number;
+  onClick: () => void;
+  dataCoach?: string;
+  danger?: boolean;
+}) {
+  const hasCount = count !== undefined && count > 0;
+  return (
+    <button
+      data-coach={dataCoach}
+      onClick={onClick}
+      aria-label={label}
+      className={`relative flex h-10 items-center justify-center gap-1.5 rounded-lg border border-stone-700/70 px-2 text-sm transition md:px-3 ${
+        danger
+          ? "text-stone-500 hover:border-rose-600/50 hover:text-rose-300"
+          : "text-stone-300 hover:border-amber-600/50 hover:text-amber-200"
+      }`}
+    >
+      <GameIcon name={icon} className="h-4 w-4" />
+      <span className="hidden md:inline">
+        {label}
+        {hasCount ? ` (${count})` : ""}
+      </span>
+      {/* 라벨을 숨긴 모바일에서 카운트를 잃지 않도록 아이콘 우상단 배지로 표시. */}
+      {hasCount && (
+        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-600 px-1 text-[10px] font-bold text-stone-950 md:hidden">
+          {count}
+        </span>
+      )}
+    </button>
+  );
+}
 
 export function GameFooter({ engine }: { engine: GameEngine }) {
   const {
@@ -42,84 +87,54 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
             className="flex items-center gap-1.5 rounded-md border border-sky-900/50 bg-sky-950/30 px-2.5 py-1 shadow-sm transition hover:border-sky-600/60 hover:bg-sky-900/40"
           >
             <GameIcon name="spellBook" className="h-4 w-4 text-sky-300" />
-            <span className="text-[10px] font-medium uppercase tracking-wide text-sky-500/80">마법의 책</span>
+            <span className="hidden text-[10px] font-medium uppercase tracking-wide text-sky-500/80 sm:inline">마법의 책</span>
             <span className="text-sm font-bold text-sky-300">Lv.{bookLevel}</span>
             {bookLevel >= MAX_BOOK_LEVEL ? (
               <span className="text-[10px] font-semibold text-amber-300">최대</span>
             ) : (
-              next && <span className="text-[10px] text-stone-500">· 다음 {next.need}</span>
+              next && <span className="hidden text-[10px] text-stone-500 sm:inline">· 다음 {next.need}</span>
             )}
           </button>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          {/* 메인 액션 — 색으로 위계. 하루 넘기기(주)=금색, 이동=stone. */}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {/* 메인 액션 — 색으로 위계. 하루 넘기기(주)=금색, 이동=stone. 모바일은 아이콘만. */}
           <button
             data-coach="mission-worldmap"
             onClick={() => setShowWorldMap(true)}
-            className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-600 bg-stone-800 px-4 text-sm font-medium tracking-wide text-stone-100 transition hover:bg-stone-700"
+            aria-label="이동"
+            className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-stone-600 bg-stone-800 px-2 text-sm font-medium tracking-wide text-stone-100 transition hover:bg-stone-700 md:px-4"
           >
-            <GameIcon name="footprint" className="h-5 w-5" /> 이동
+            <GameIcon name="footprint" className="h-5 w-5" /> <span className="hidden md:inline">이동</span>
           </button>
           {state.location === "home" && (
             <button
               onClick={passDay}
               disabled={busy}
-              className="flex h-10 items-center gap-1.5 rounded-lg bg-amber-600 px-4 text-sm font-semibold tracking-wide text-stone-950 shadow-md shadow-amber-950/40 transition hover:bg-amber-500 disabled:opacity-50"
+              aria-label="하루 넘기기"
+              className="flex h-10 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-2 text-sm font-semibold tracking-wide text-stone-950 shadow-md shadow-amber-950/40 transition hover:bg-amber-500 disabled:opacity-50 md:px-4"
             >
-              <GameIcon name="hourglass" className="h-5 w-5" /> 하루 넘기기
+              <GameIcon name="hourglass" className="h-5 w-5" /> <span className="hidden md:inline">하루 넘기기</span>
             </button>
           )}
 
           {/* 구분선 */}
           <span className="mx-0.5 hidden h-6 w-px bg-stone-700/60 sm:block" />
 
-          {/* 보조 액션 — ghost */}
+          {/* 보조 액션 — ghost. 모바일은 아이콘만(카운트는 배지). */}
           {state.location !== "home" && (
-            <button
-              onClick={() => setShowInventory(true)}
-              className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
-            >
-              <GameIcon name="chest" className="h-4 w-4" /> 창고{invCount > 0 ? ` (${invCount})` : ""}
-            </button>
+            <AuxButton icon="chest" label="창고" count={invCount} onClick={() => setShowInventory(true)} />
           )}
-          <button
-            data-coach="mission-list-btn"
-            onClick={openMissions}
-            className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
-          >
-            <GameIcon name="compass" className="h-4 w-4" /> 미션
-          </button>
-          <button
-            onClick={() => setShowNotebook(true)}
-            className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
-          >
-            <GameIcon name="scroll" className="h-4 w-4" /> 단서 노트{state.clues.length > 0 ? ` (${state.clues.length})` : ""}
-          </button>
-          <button
-            onClick={() => setShowAllies(true)}
-            className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
-          >
-            <GameIcon name="people" className="h-4 w-4" /> 지인{allies.length > 0 ? ` (${allies.length})` : ""}
-          </button>
-          <button
+          <AuxButton icon="compass" label="미션" onClick={openMissions} dataCoach="mission-list-btn" />
+          <AuxButton icon="scroll" label="단서 노트" count={state.clues.length} onClick={() => setShowNotebook(true)} />
+          <AuxButton icon="people" label="지인" count={allies.length} onClick={() => setShowAllies(true)} />
+          <AuxButton
+            icon="merchant"
+            label="단골"
+            count={Object.keys(state.merchantMemory).length}
             onClick={() => setShowRelations(true)}
-            className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
-          >
-            <GameIcon name="merchant" className="h-4 w-4" /> 단골
-            {Object.keys(state.merchantMemory).length > 0 ? ` (${Object.keys(state.merchantMemory).length})` : ""}
-          </button>
-          <button
-            onClick={() => setShowTutorial((v) => !v)}
-            className="flex h-10 items-center gap-1.5 rounded-lg border border-stone-700/70 px-3 text-sm text-stone-400 transition hover:border-amber-600/50 hover:text-amber-200"
-          >
-            <GameIcon name="candle" className="h-4 w-4" /> 도움말
-          </button>
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            className="flex h-10 items-center rounded-lg border border-stone-700/70 px-3 text-sm text-stone-500 transition hover:border-rose-600/50 hover:text-rose-300"
-          >
-            새 게임
-          </button>
+          />
+          <AuxButton icon="candle" label="도움말" onClick={() => setShowTutorial((v) => !v)} />
+          <AuxButton icon="clockwiseRotation" label="새 게임" onClick={() => setShowResetConfirm(true)} danger />
         </div>
       </div>
     </footer>
