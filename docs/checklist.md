@@ -109,3 +109,18 @@
 - [x] `api/haggle/route.ts` — body에 `allyHaggleBonus?` 추가. 시드하는 첫 턴(disposition undefined)에만 `min(100, initial+bonus)`. 2턴+는 누적값 넘어와 중복 방지.
 - [x] `useGameEngine.deposit`/`depositMax` — 완공 시 `floor(need×rebate%)` 자재를 인벤토리 환급(`buildRebate` 헬퍼). **build 이벤트 무상 투입은 제외**(원본 없음). 환급 시 notice에 표기.
 - [x] 검증: tsc/eslint 그린. 결정론 API 확인 — 보너스 없음 호감도23 / +15 호감도38 / 2턴+ 중복 안 됨(28). ⚠️ dev 라이브 스모크(pop180 흥정·pop90 환급)는 pop 도달 필요 → 미실행.
+
+## IndexedDB 진행 영속화 (2026-08-02 · origin 푸시) → 검증: 재접속 복원·리셋
+설계 반전("매 로드 새 게임"→복원). 설계·용량은 `docs/indexeddb-persistence.md`.
+- [x] `src/lib/persist.ts` — IndexedDB 단일 키 래퍼 `loadSave`/`writeSave`/`clearSave` + `normalizeSave`(버전·필드·placement 검증) + `SAVE_VERSION`. IDB 불가/실패는 try/catch로 조용히 폴백.
+- [x] `useGameEngine` — 마운트 1회 로드→state+플래그 주입(`hydrated`까지 검은 커버), `[state·플래그]` 변경 500ms 디바운스 저장, `visibilitychange` 탭 숨김 flush, `resetGame`(clearSave+초기화). 저장 = GameState + 온보딩 플래그(alliesSeen·acked·missionDismissed·lastNewsDay).
+- [x] `ResetConfirmModal` + 푸터 「새 게임」 버튼(확인 후 리셋).
+- [x] 검증(playwright 실측): 하이드레이트 후 저장 존재 / day=5·gold=999 패치→리로드 복원 / 「새 게임」→day1·gold400 초기화 + 저장분 리셋. tsc/eslint 그린.
+
+## 모바일 대응 (2026-08-02 · origin 푸시) → 검증: 375/619/900px 실측
+- [x] 푸터 액션 버튼 `AuxButton` 아이콘화(md 미만 라벨 숨김·카운트 배지·aria-label, 「새 게임」 clockwiseRotation). 좁은 폭 세로 깨짐 해소, i18n 대비.
+- [x] 모달 4종(BookCodex·Tutorial·상인패널(TownView Modal)·HaggleDialog) 바텀시트→중앙정렬(`items-center p-4`)+`dvh`+전체 라운드. 상하 공백 대칭.
+- [x] BookCodex 흥정 기술 칩 모바일 리스트(`space-y-1.5 sm:flex sm:flex-wrap`).
+- [x] 흥정창 대화 로그에 흐린 상인 초상화 CSS 배경(그라디언트 페이드·스크롤 고정·`sm:!bg-none`).
+- [x] 흥정 입력 포커스 이중 테두리 제거(래퍼 `focus-within:border-amber-600` 삭제 — 전역 unlayered `:focus-visible`와 겹침).
+- [x] 검증: 375(칩 리스트·버튼 1줄)·619(모달 상하 대칭)·900(라벨 복귀·회귀 없음) 실측, tsc/eslint 그린.

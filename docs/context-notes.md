@@ -442,7 +442,7 @@
 - **검증**: tsc/eslint 그린(남은 6개는 의도된 `<img>` 경고). ⚠️ 동작 불변은 dev 스모크 필요(팬·줌·건물 드래그배치·자재투입·이동·회전·삭제·카테고리 탭). `BUILDING_ICON`(이모지 시대 데드 export)은 Surgical 원칙상 미삭제 유지.
 ### 미션 시스템 (온보딩) — 스포트라이트 코치마크 (2026-07-26, 확장 가능 설계)
 - **동기**: 첫 사용자가 "오두막 짓기까지" 헤매지 않게 단계별 안내. 사용자 요청 = 단계마다 대상 UI에 z높은 검정 오버레이+화살표+텍스트로 포인트.
-- **핵심 결정 — 진행을 저장하지 않고 파생**: 상태 영속화가 없어(매 로드 새 게임) "처음" ≈ "오두막 미완공". `activeMission(state)`가 `steps.findIndex(!done)`로 현재 단계를 매 렌더 계산 → 스텝 카운터·GameState 스키마 변경 불필요(desync 원천 차단). deriveWorld·checkPlace와 같은 파생 철학.
+- **핵심 결정 — 미션 진행을 스텝으로 저장하지 않고 파생**: `activeMission(state)`가 `steps.findIndex(!done)`로 현재 단계를 매 렌더 계산 → 스텝 카운터·GameState 스키마 변경 불필요(desync 원천 차단). deriveWorld·checkPlace와 같은 파생 철학. (2026-08-02 영속화 후에도 미션은 파생 유지 — GameState는 저장되지만 미션은 저장된 state에서 재계산되므로 정확. `missionDismissed`·`acked`만 플래그로 저장해 재접속 시 온보딩 반복 방지.)
 - **확장 구조**: `src/lib/missions.ts`에 `MISSIONS[]`(데이터). 새 미션은 항목만 추가. 각 `MissionStep`은 `done(s)`(판정)+`coach`(강조할 data-coach 키)+`label/hint`. 첫 미션 "첫 집 짓기" 5단계(이동→흥정→복귀→배치→완공).
 - **범용 프리미티브 분리**: `src/shared/CoachMark.tsx`는 미션 무지(無知) — `targetSelector`로 대상 rect를 rAF 추적, 4스트립 딤(대상 구멍만 클릭 통과, 바깥 차단)+화살표+말풍선+건너뛰기. 대상 못 찾으면(다른 화면) 중앙 말풍선. 어떤 온보딩에도 재사용.
 - **대상 표식**: 컴포넌트에 `data-coach="…"`만 부여(Surgical, 로직 무변) — 이동버튼(GameFooter)·상인목록ul(TownView)·오두막카드(BuildingPalette, `b.id==='hut'`)·배치된 오두막(IsoCityMap, `hut && !built`).
@@ -475,7 +475,7 @@
 - **모달 인구 표기 수정**: PlacementPanel 완공효과에 인구 누락 → `game-state.buildingPop(b)` 분리(population이 이를 사용) + 모달에 「인구 +N」.
 - **지인 데이터**: `src/lib/allies.ts` — ALLIES 4명(이르빈/옛전우 pop30 수입+10%, 돌마루한/대목수 pop90 경험치+20%, 저울눈노아/노상인 pop180 수입+15%, 등불세라/현자 pop300 경험치+25%). `activeAllies(pop)`·`allyBonuses(pop)`(income/bookXp 합산). game-state import 없음(pop 숫자만 받음 → 순환 회피).
 - **perk 적용(엔진)**: income → travelTo·passDay 정산 골드에 `×(1+incomePct/100)`(passDay는 gold도 gain으로 통일). bookXp → deposit·depositMax 완공 xp에 `×(1+bookXpPct/100)`(updater 안에서 `population(s.placements)`).
-- **합류 트리거**: `alliesSeen` Set + `pendingAlly`(activeAllies 중 미확인 첫 지인) + `acknowledgeAlly`. 상태 미영속이라 세션당 인구 도달 시 재생. 여러 임계 동시 돌파 시 한 명씩(환영→다음).
+- **합류 트리거**: `alliesSeen` Set + `pendingAlly`(activeAllies 중 미확인 첫 지인) + `acknowledgeAlly`. 여러 임계 동시 돌파 시 한 명씩(환영→다음). (2026-08-02 영속화 후 `alliesSeen`은 저장됨 → 재접속 시 합류 연출 **재생 안 함**. 예전엔 미영속이라 세션당 재생했음.)
 - **모달**: `AllyArrivalModal`(z-95, 초상화=people 아이콘 폴백, `/api/ally` AI 대사+정적 폴백, perk, [환영]) + `AlliesModal`(명부, 합류/잠금). 푸터 「지인 (N)」 버튼.
 - **AI(2레이어)**: `/api/ally`가 역할·외형으로 합류 인사 생성(askText), 키 없으면 `ally.greeting` 폴백. 수치·임계는 코드.
 - 검증: tsc/eslint 그린, /api/ally 폴백 확인, dev 컴파일 클린. ⚠️ 브라우저: 인구 30 도달 시 합류 모달·perk 체감은 스모크 필요.
@@ -556,3 +556,24 @@
 - `setState` updater 안에서 값 대입 후 밖에서 동기로 읽는 패턴은 **핸들러의 첫 setState일 때만**(eager-update) 안전. 선행 setState가 있으면 깨진다 → 순수함수 분리 + flush 이후 스케줄로 회피.
 - 조력 이벤트 재료/건설 종류는 미완공 건물 없으면 no-op(모달 안 뜸). 라이브 검증 시 미완공 건물 1채 배치 필요. gold/xp는 무조건 발생.
 - 라이브 pop 검증 방법: 임시 `window.__seedPop`(hut로 pop 채움)+엔진 액션 노출 후 결정론 확인 → **반드시 검증 후 제거**(이번 세션 제거 완료, tsc/eslint 그린).
+
+## IndexedDB 진행 영속화 + 모바일 대응 (2026-08-02)
+
+### 설계 결정 — 영속화 (반전)
+- **이전 설계 "매 로드 새 게임"(상태 미영속)에서 재접속 시 복원으로 전환.** 사용자 요청. 파생 시스템(미션·지인·조력)이 결정론이라 base state만 저장하면 파생값은 재계산으로 복원됨 → 저장 대상 최소화가 가능해 전환 비용이 낮았다.
+- **저장 = GameState 전체 + 온보딩 플래그**(`alliesSeen`·`acked`·`missionDismissed`·`lastNewsDay`). 플래그는 GameState 밖 `useState`라 따로 챙겨야 함(안 하면 재접속 시 지인 합류 연출·튜토리얼·아침뉴스가 재생). **파생값(미션·지인·인구·수입)은 저장 안 함** — 로드된 GameState에서 재계산. 지인 해금(placements→인구)·상인 관계(merchantMemory)는 원본이 저장돼 유지된다(이 구분이 헷갈리기 쉬워 `docs/indexeddb-persistence.md` §2에 표로 명시).
+- **용량 무해**: 직렬화 GameState 수십 KB(placements 최대 항목), IndexedDB 쿼터 GB 스케일 → QuotaExceeded 우려 없음. localStorage로도 충분하나 비동기·구조화복제·헤드룸으로 IDB 선택.
+
+### 구현 함정 (persist.ts / useGameEngine)
+- **비동기 로드 게이트**: IDB 로드는 비동기라 `initialState()`가 한 프레임 노출될 위험 → 기존 인트로용 `showIntro===null` 검은 커버 패턴 재사용, `hydrated`까지 커버 유지(`ModalStack`의 커버 조건에 `|| !hydrated` 추가).
+- **저장 effect는 `if(!hydrated) return` 가드 필수**: 안 하면 로드 완료 전 초기 상태가 디바운스 저장으로 세이브를 덮어씀. 로드가 setState한 뒤에만 저장 시작.
+- **디바운스 500ms + 탭 숨김 flush**: `visibilitychange`(hidden)에서 `pendingSave` ref를 즉시 write(직전 행동 유실 방지). ref는 저장 effect에서 갱신.
+- **마이그레이션/방어**: `normalizeSave`가 `version!==SAVE_VERSION`이면 null(새 게임 폴백), `{...initialState(), ...saved}` 병합으로 누락 필드 방어, **삭제된 buildingId 참조 placement는 `BUILDINGS`로 필터링**(안 하면 렌더/생산 크래시). GameState 형태 크게 바뀌면 `SAVE_VERSION`↑.
+- **폴백**: 모든 IDB 호출 `try/catch` → 실패(프라이빗 모드·쿼터) 시 조용히 미영속으로 강등(throw 안 함). `loadSave` 실패=null=새 게임.
+- **플래그는 배열로 저장**(Set→array). 구조화복제로 Set 직접 저장도 되지만 배열이 마이그레이션·디버깅에 명확.
+
+### 모바일 대응 결정·함정
+- **푸터 아이콘화 브레이크포인트 = md(768)**: 사용자 지목은 750px이나 표준 md 채택(기존 sm/md와 일관). 라벨 `<span className="hidden md:inline">`, 카운트는 모바일 배지(`md:hidden`)+데스크톱 라벨 내 표기. i18n 대비 = 아이콘은 번역돼도 안 커짐.
+- **모달 중앙정렬 트레이드오프**: 619px 같은 좁은 폭에서 바텀시트(`items-end`)가 하단에 붙어 상단만 공백(`max-h-92vh`의 남는 8vh가 전부 위로) = 비대칭. 사용자 요청으로 **중앙정렬**(`items-center`)로 전환 → 상하 대칭. 바텀시트 UX는 포기(중앙 카드). corners `rounded-t-*`→전체 라운드, `vh`→`dvh`(iOS 주소창).
+- **흥정창 초상화 배경 — 왜 CSS background인가**: 대화 로그는 새 메시지마다 **자동으로 맨 아래 스크롤**(`scrollTo scrollHeight`). 절대배치 `<img>`를 로그 안에 넣으면 스크롤돼 사라짐 → **CSS `background-image`는 `background-attachment: scroll` 기본값이 "요소에 고정, 내용 스크롤과 무관"**이라 로그가 스크롤돼도 고정. 페이드 = 어두운 그라디언트를 이미지 위에 겹쳐(`linear-gradient(rgba…), url(…)`), 텍스트는 완전 불투명 유지. 모바일 전용 = `sm:!bg-none`(데스크톱은 좌측 aside에 초상화가 있음). 404 시 그라디언트만 남아 깨진 아이콘 없음.
+- **흥정 입력 이중 테두리 근본원인**: 입력창 래퍼 `focus-within:border-amber-600`(입력+제안버튼 함께 감쌈) + input의 전역 `:focus-visible` amber 아웃라인(globals.css)이 **동시에** 뜸 = 이중 테두리, 바깥 링이 제안버튼까지 감쌈. **input의 `focus:outline-none`이 전역을 못 이기는 이유 = 전역 `:focus-visible`가 `@layer` 밖(unlayered)이라 layer 안 Tailwind 유틸보다 우선**(스펙: unlayered > layered, 명시도 무관). 수정 = 래퍼 `focus-within:border-amber-600` 제거, input의 `:focus-visible` 아웃라인 하나만 포커스 표시로 남김(접근성 유지, `!important` 불필요). — 텍스트 input은 마우스 클릭에도 `:focus-visible` 매칭됨.

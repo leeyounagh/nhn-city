@@ -1,10 +1,14 @@
 # 핸드오프 — Ashen Kingdom (망한 도시의 후계자)
 
-다음 세션/개발자가 바로 이어받도록 정리한 인수인계 문서. 최종 갱신 2026-08-01.
+다음 세션/개발자가 바로 이어받도록 정리한 인수인계 문서. 최종 갱신 2026-08-02.
 
 ## 0. 다음 세션 시작점 (여기부터 — 먼저 읽기)
 
-**끝난 상태 (2026-08-01 종료)**: 인구 임계 라이브 스모크(디버그 시드) 완료 + **조력 이벤트 모달 미표시 버그 발견·수정·재검증**. 지인 perk Phase 3(합류 모달·대목수 환급·노상인 흥정시작+15 표기)는 실제 UI로 확인됨. 워킹 트리: `src/hooks/useGameEngine.ts`(조력 이벤트 수정) + `docs/`(스모크·버그 기록) 변경, `dev.fresh.log` untracked. (커밋 상태는 세션 종료 시점 git log 확인.)
+**끝난 상태 (2026-08-02 종료)**: **IndexedDB 진행 영속화** + **모바일 대응** 완료·푸시(origin/master `cb84a15`).
+- **영속화(설계 반전)**: 이전 "매 로드 새 게임"에서 **재접속 시 이전 진행 복원**으로 전환. `src/lib/persist.ts`(DB `ashen-kingdom`·단일 키 `game`)에 GameState 전체 + 온보딩 플래그(`alliesSeen`·`acked`·`missionDismissed`·`lastNewsDay`) 저장. **파생값(미션·지인·인구·수입)은 저장 안 하고 로드 후 재계산** → 지인 해금·상인 관계도 원본(placements·merchantMemory) 저장으로 유지. `useGameEngine`이 마운트 로드(완료까지 검은 커버)·500ms 디바운스 저장·탭 숨김 flush·`resetGame`. IDB 불가/손상/버전불일치 시 새 게임 폴백. 푸터 「새 게임」 = `ResetConfirmModal` → `clearSave`. 스키마 변경 시 `SAVE_VERSION`↑. 용량 무해(수십 KB vs GB). 설계 `docs/indexeddb-persistence.md`.
+- **모바일 대응**: 푸터 액션 버튼 md 미만 아이콘화(라벨 숨김·카운트 배지·aria-label, i18n 대비 — 텍스트 길어져도 안 깨짐). 모달 4종(BookCodex·Tutorial·TownView 상인패널·HaggleDialog) 바텀시트(`items-end … sm:items-center`)→**중앙정렬**(`items-center p-4`)+`dvh`로 좁은 폭 상하 대칭. BookCodex 흥정 칩 모바일 리스트화. 흥정창 모바일에 **흐린 상인 초상화 배경**(CSS bg, 스크롤 고정, `sm:!bg-none`). 흥정 입력 포커스 **이중 테두리 제거**(래퍼 `focus-within:border-amber-600` 삭제 — 전역 `:focus-visible` 아웃라인과 겹쳐 제안버튼까지 amber로 감싸던 문제).
+
+**이전 끝난 상태 (2026-08-01 종료)**: 인구 임계 라이브 스모크(디버그 시드) 완료 + **조력 이벤트 모달 미표시 버그 발견·수정·재검증**. 지인 perk Phase 3(합류 모달·대목수 환급·노상인 흥정시작+15 표기)는 실제 UI로 확인됨. 워킹 트리: `src/hooks/useGameEngine.ts`(조력 이벤트 수정) + `docs/`(스모크·버그 기록) 변경, `dev.fresh.log` untracked. (커밋 상태는 세션 종료 시점 git log 확인.)
 - **조력 이벤트 버그 수정(이번 세션)**: `applyAllyEvent`가 setState updater 안 `let view`를 밖에서 동기로 읽어, `passDay`/`travelTo`의 선행 setState 탓에 React eager-update가 건너뛰어져 **모달이 한 번도 안 뜨던 버그**(효과는 정상 적용). 순수함수 `computeAllyEvent(s,newDay)` 분리 + 모달을 `queueMicrotask`로 flush 이후 표시로 수정. 실제 클릭 재검증 완료. 상세 `docs/context-notes.md`(2026-08-01 절).
 - **이전 상태 (2026-07-27)**: 지인 perk Phase 3 + 문서 동기화 완료, origin/master 푸시(`github.com/leeyounagh/nhn-city`, HEAD `3391742`).
 - **지인 perk 확장(Phase 3, 이번 세션)**: 역할별 1 perk 교체 — 대목수→**건설 자재 20% 환급**(완공 시 `floor(need×%)` 반환, need 감면 대신 환급으로 완공 desync 회피), 노상인→**흥정 시작 호감도 +15**(서버가 초기값 소유·첫 턴 시드에만 가산·중복 없음 = 2레이어 유지). 옛 전우 수입+10%·현자 경험치+25% 유지. perk 종류별 아이콘 매핑(`perkIcon`).
@@ -15,7 +19,7 @@
 
 **정할 것**: ① 승리조건/엔딩 화면(미구현) ② **밸런스 재점검**(생산 확장·지인 perk로 경제 완화됨 — 시뮬에 반영, 고급자재 marble·bronze 병목 재확인) ③ P5 산출물(Vercel 배포·영상·AI 기술문서) ④ 지인 초상화 배경 투명화 여부(현재 원본 그대로) ⑤ `dev.fresh.log` .gitignore 추가 여부.
 
-**작업 원칙**: 게임 로직은 `useGameEngine.ts` · **상태 미영속(매 로드 새 게임)** · 진행/미션/지인·인구는 상태 파생 · 커밋/푸시는 요청 시만 · 변경 전 승인 · AI 경로(페르소나·흥정·지인 대사) 정적으로 깎지 말 것 · **파일 이동·대량 import 변경 시 `.next` 삭제 후 dev 재시작**(Turbopack 스테일 캐시) · **push는 PreToolUse work-log 훅이 막음 → 커밋에 `Work-Log: skip` 트레일러**(로컬 미푸시 커밋은 rebase --exec로 일괄 추가 가능).
+**작업 원칙**: 게임 로직은 `useGameEngine.ts` · **진행은 IndexedDB 영속(재접속 복원, `lib/persist.ts`)** · 미션/지인·인구는 상태 파생(저장 안 함, 로드 후 재계산) · 커밋/푸시는 요청 시만 · 변경 전 승인 · AI 경로(페르소나·흥정·지인 대사) 정적으로 깎지 말 것 · **파일 이동·대량 import 변경 시 `.next` 삭제 후 dev 재시작**(Turbopack 스테일 캐시) · **push는 PreToolUse work-log 훅이 막음 → 커밋에 `Work-Log: skip` 트레일러**(로컬 미푸시 커밋은 rebase --exec로 일괄 추가 가능).
 
 ## 1. 프로젝트 개요
 - **무엇** — NHN NAN 2026 게임×AI 해커톤 사전과제. LLM 밀실 추리형 도시 재건 게임.
@@ -48,16 +52,22 @@ npx eslint <files>
 - **서버 전용 진실** — `src/lib/server/economy.ts`(가격·상인 스펙·성향·호감도Δ·흥정식·초상화풀·**`MERCHANTS` 영구 24명 정체성**·`merchantIdentity`·`canBarter`), `src/lib/server/world.ts`(**24명 슬라이딩 체류→하루 6명 등장·`daysLeft`**), `src/lib/server/rumor.ts`(소문 신선도·위치필터), `src/app/api/*`(haggle/town/news/book-advice).
 - **클라 공개 데이터** — `src/lib/game-data.ts`(자재·건물·`BuildingDef.category`·`BUILDING_RENDER_SCALE`·`TOWN_ICON`), `src/lib/game-state.ts`(GameState·**`merchantMemory`·`decayedDisposition`·`dispositionRank`**·생산·게이팅).
 - **로직 훅** — `src/hooks/useGameEngine.ts`(클라 상태 소유 + 서버 호출 + 모든 액션 + 미션/지인/인구 파생, `GameEngine` 타입 export). ⚠️ **게임 로직은 여기**, `Game.tsx`는 렌더 조립만.
-- **파생 시스템(상태 미영속 → 상태에서 계산)** — `lib/missions.ts`(온보딩 상태기계 `resolveFirstHut`·`activeMission`), `lib/allies.ts`(지인 데이터·`activeAllies`·`allyBonuses`(income·bookXp·**haggleStart·buildRebate**)·`perkIcon`·조력 이벤트 상수), `game-state.ts`(`population`·`buildingPop`·게이팅·호감도 감쇠).
+- **진행 영속화** — `lib/persist.ts`(IndexedDB 단일 키. `loadSave`/`writeSave`/`clearSave`·`normalizeSave` 검증·`SAVE_VERSION`). `useGameEngine`이 마운트 로드·디바운스 저장·`resetGame`. 저장 대상 = GameState + 온보딩 플래그.
+- **파생 시스템(저장 안 함 → 로드된 상태에서 재계산)** — `lib/missions.ts`(온보딩 상태기계 `resolveFirstHut`·`activeMission`), `lib/allies.ts`(지인 데이터·`activeAllies`·`allyBonuses`(income·bookXp·**haggleStart·buildRebate**)·`perkIcon`·조력 이벤트 상수), `game-state.ts`(`population`·`buildingPop`·게이팅·호감도 감쇠).
 - **UI** — `Game.tsx`(얇은 조립), `components/game/`(`modals/`=News·Relations·WorldMap·Tutorial·BookCodex·InventoryPanel·Merchant·Haggle·**PriceChart·BuildingCodex·Missions·AllyArrival·AllyEvent·Allies·AllyAvatar**, `hud/`=ResChip·GameFooter, `ModalStack`), 홈맵 `IsoCityMap.tsx`(423줄) + **`components/city/`**(`useIsoCamera` 훅·BuildingPalette·PlacementPanel·InventoryStrip·sprite), 마을 `TownView`+`TownIsoPreview`, `shared/CoachMark.tsx`(범용 스포트라이트), `shared/icon/`(`GameIcon` game-icons SVG + `MaterialIcon`).
 - **서버 라우트** — `api/`: haggle·town·news·book-advice·merchant·rumors + **prices(시세)·ally(지인 대사)**. `town`은 `guarantee` 파라미터로 튜토리얼 자재 보장.
-- **데이터 명세** — `docs/경제모델.md`(§5 성/교회, §6.1 생산 확장, §6.4 지인 perk), `docs/기획서.md`(§6.5 책 도구·§6.7 생산·§6.9 스토리라인 perk), `docs/allies-portrait-prompts.md`(지인 초상화 프롬프트), `docs/context-notes.md`(세션별 결정·함정 상세).
+- **데이터 명세** — `docs/경제모델.md`(§5 성/교회, §6.1 생산 확장, §6.4 지인 perk), `docs/기획서.md`(§6.5 책 도구·§6.7 생산·§6.9 스토리라인 perk), `docs/allies-portrait-prompts.md`(지인 초상화 프롬프트), `docs/indexeddb-persistence.md`(진행 영속화 설계·용량·우려), `docs/context-notes.md`(세션별 결정·함정 상세).
 
 ## 5. 자산 파이프라인
 - **건물 스프라이트** — itch "Isometric Realm — Medieval" by JP Cummins(구매, README 크레딧 필수). 원본 고해상 → PowerShell `System.Drawing`으로 max ~400~512px 다운스케일 → `public/buildings/{id}.png`. `buildingSprite(id)`가 id→png 매핑.
 - **UI/재료 아이콘** — ChatGPT 생성 이미지 또는 팩 재활용 → `public/ui/`, `public/materials/{materialId}.png`.
 - **배경 투명화** — ChatGPT 이미지에 흰/회색 배경이 남으면 PowerShell **가장자리 flood-fill(region-grow, tol~50-70)** 로 투명 처리(이전 세션 스크립트 참고: LockBits + 스택 BFS). 코너 알파=0으로 검증.
 - **크기 조정** — `BUILDING_RENDER_SCALE`(game-data)는 **전역**(홈맵+마을 미리보기 공용). 특정 스프라이트만 키/줄일 때 사용. 같은 키를 여러 마을이 공유하니 주의(예: tree 0.2는 모든 곳에 적용).
+
+## 6-0. 최근 세션 (2026-08-02 · IndexedDB 영속화 + 모바일 대응) — origin 푸시됨
+상세 결정·함정은 `docs/context-notes.md`(2026-08-02 절), 영속화 설계는 `docs/indexeddb-persistence.md`.
+- **IndexedDB 진행 영속화** — 핵심 설계 반전("매 로드 새 게임"→재접속 복원). `src/lib/persist.ts` 단일 키 래퍼(`loadSave`/`writeSave`/`clearSave`·`normalizeSave`·`SAVE_VERSION`). `useGameEngine`: 마운트 1회 로드→`setState`+플래그 주입(완료까지 `hydrated=false` 검은 커버), `[state·플래그]` 변경 500ms 디바운스 저장, `visibilitychange`로 탭 숨김 flush, `resetGame`(=`clearSave`+초기화). 저장 = GameState 전체 + 온보딩 플래그. **파생값은 재계산**이라 저장 안 함. 폴백: IDB 불가/손상/버전불일치 → 새 게임. `ResetConfirmModal`(푸터 「새 게임」). 라이브 검증: day/gold/플래그 왕복·복원·리셋 대칭 확인. 용량 무해(수십 KB vs GB 쿼터).
+- **모바일 대응** — ① 푸터 액션 버튼 `AuxButton` 아이콘화(md 미만 라벨 숨김·카운트 배지·aria-label, 「새 게임」 `clockwiseRotation`). 좁은 폭에서 버튼 세로 깨짐 해소, i18n 대비. ② 모달 4종(BookCodex·Tutorial·상인패널(TownView Modal)·HaggleDialog) 바텀시트→**중앙정렬 대칭**(`items-center p-4`, corners `rounded-2xl`/`rounded-lg`) + `max-h [92dvh]`. ③ BookCodex 흥정 기술 칩 = 모바일 리스트(`space-y-1.5 sm:flex sm:flex-wrap`). ④ 흥정창 대화 로그에 **흐린 상인 초상화 CSS 배경**(그라디언트 오버레이 페이드, 스크롤 고정, `sm:!bg-none`). ⑤ **흥정 입력 이중 테두리 제거** — 래퍼 `focus-within:border-amber-600`가 전역 `:focus-visible`(unlayered라 `focus:outline-none` 못 이김) 아웃라인과 겹쳐 제안버튼까지 감싸던 문제 → 래퍼 amber 제거, input 아웃라인만 포커스 표시로 남김.
 
 ## 6-1. 최근 세션 (2026-07-27 · 지인 perk Phase 3 + 스모크 + 문서 동기화) — origin 푸시됨
 상세 결정·함정은 `docs/context-notes.md`(지인 perk 확장 절).
@@ -130,7 +140,7 @@ UI를 "웹앱"에서 "다크 판타지 게임"으로. ChatGPT 화면별 비평�
 - **TownIsoPreview auto-fit** — `interactedRef`로 팬/줌 전까지 리사이즈·마을변경마다 재정렬(모바일 잘림 방지). 팬/줌하면 고정.
 - **색 역할** — 배경 stone, 강조/골드 amber, 마법 sky, 성공 emerald, 위험 rose. 초록은 성공 상태에만(패널 배경 금지).
 - **Turbopack 스테일(자주 겪음)** — 파일 **이동**·대량 import 변경 후 "Module not found"·"cam is not defined" 같은 옛 코드 오류가 남으면 코드가 아니라 HMR 캐시 문제. `rm -rf .next` 후 dev 재시작(+브라우저 하드 새로고침). tsc는 통과하는데 브라우저만 깨지면 이걸 의심.
-- **미션/지인/인구·진행은 상태 파생(미영속)** — `GameState`엔 안 저장. 새로고침=day1 초기화. 미션은 `resolve(state)`, 지인은 `activeAllies(population)`, 조력은 `allyHash(day)` 결정론 → desync 없음. "튜토리얼 다시"=`missionDismissed`+`acked` 리셋(`restartMission`). 조력 이벤트: 재료/건설은 미완공 건물 없으면 no-op(모달 안 뜸).
+- **진행은 IndexedDB 영속(`lib/persist.ts`), 파생값은 저장 안 함** — GameState 전체 + 온보딩 플래그(alliesSeen·acked·missionDismissed·lastNewsDay)를 저장하고 재접속 시 복원. 미션 `resolve(state)`·지인 `activeAllies(population)`·조력 `allyHash(day)`·인구는 **저장 안 하고 로드된 상태에서 재계산**(desync 없음) — 지인 해금·상인 관계는 원본(placements·merchantMemory) 저장으로 유지된다. 로드는 비동기(완료=`hydrated`까지 검은 커버), 저장은 500ms 디바운스 + 탭 숨김(visibilitychange) flush. IDB 불가(프라이빗 모드)/손상/버전불일치 → 조용히 새 게임 폴백. 「새 게임」=푸터 버튼→`ResetConfirmModal`→`clearSave`+초기화. "튜토리얼 다시"=`missionDismissed`+`acked` 리셋(`restartMission`). ⚠️ **`GameState`에 필드 추가 시** 옛 저장분엔 그 필드가 없다 → `persist.ts`의 `normalizeSave`가 `initialState()` 병합으로 방어(형태 크게 바뀌면 `SAVE_VERSION`↑, 불일치분은 새 게임 폴백). 삭제된 buildingId 참조 placement는 로드 시 걸러짐. 조력 이벤트: 재료/건설은 미완공 건물 없으면 no-op(모달 안 뜸). 상세 `docs/indexeddb-persistence.md`.
 - **⚠️ setState updater 안에서 값 대입 → 밖에서 동기로 읽기 패턴은 "핸들러의 첫 setState일 때만" 안전** (React eager-update). 선행 setState가 있으면 updater가 나중에 실행돼 그 값이 null이다. 조력 이벤트 모달이 `passDay`/`travelTo`의 선행 setState 탓에 이 함정에 걸려 **한 번도 안 뜨던 버그**가 있었음(2026-08-01 수정: `computeAllyEvent` 순수 분리 + 모달을 `queueMicrotask`로 flush 이후 표시). `placeBuilding`·`deposit`은 핸들러당 setState 1개라 우연히 동작해왔음 — 이 패턴을 새로 쓸 때 주의. 상세 `context-notes.md`(2026-08-01 절).
 - **지인 perk(Phase 3)** — `allyBonuses(pop)` 4종(income·bookXp·haggleStart·buildRebate). ⚠️ **건설 할인은 need 감면이 아니라 "완공 시 환급"**(`buildRebate`): need를 깎으면 대목수 합류 시점의 *짓는 중* 건물이 완공 처리 안 돼 멈추는 desync 버그가 나서 그렇게 안 함. ⚠️ **흥정 시작 호감도는 1회만** — 서버가 disposition undefined인 첫 턴 시드에만 `allyHaggleBonus` 가산(2턴+는 클라 누적값이 넘어와 중복 없음), 기억 있는 상인은 `startHaggle`에서 클라 가산. ⚠️ `startHaggle`은 `useCallback([])`라 `pop` 클로저 stale → **반드시 setState 안에서 `population(s.placements)`**. pop 0에선 전부 0 → no-op(하위 호환).
 - **코치 게이트는 `state.haggle`, `state.merchant` 아님** — `buy`가 `haggle:null`만 하고 `merchant`는 잔존시켜, 구매 후 게이트가 코치를 계속 숨기던 버그가 있었음. 흥정창 열림 판정은 `state.haggle`.
