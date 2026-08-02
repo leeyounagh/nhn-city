@@ -26,11 +26,13 @@ const REGION_DOT: Record<IndustryId, string> = {
 export function WorldMap({
   location,
   homeIcon,
+  homeName,
   busy,
   onTravel,
 }: {
   location: LocationId;
   homeIcon: string; // 고향 대표 스프라이트 (완성도에 따라 진화)
+  homeName: string; // 고향 이름/문구 (완성도 단계에 따라 진화)
   busy: boolean;
   onTravel: (dest: LocationId) => void;
 }) {
@@ -119,7 +121,7 @@ export function WorldMap({
               </span>
 
               <span className="font-display text-sm font-semibold text-stone-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
-                {locationName(id)}
+                {isHome ? homeName : locationName(id)}
               </span>
               {town && <span className="text-[11px] text-stone-400">{town.industryName}</span>}
               {here ? (

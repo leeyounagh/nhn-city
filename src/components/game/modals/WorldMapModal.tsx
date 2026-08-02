@@ -7,12 +7,14 @@ import { useDialogA11y } from "@/shared/use-dialog-a11y";
 export function WorldMapModal({
   location,
   homeIconId,
+  homeName,
   busy,
   onTravel,
   onClose,
 }: {
   location: LocationId;
   homeIconId: string;
+  homeName: string;
   busy: boolean;
   onTravel: (dest: LocationId) => void;
   onClose: () => void;
@@ -41,7 +43,7 @@ export function WorldMapModal({
             ✕
           </button>
         </div>
-        <WorldMap location={location} homeIcon={homeIconId} busy={busy} onTravel={onTravel} />
+        <WorldMap location={location} homeIcon={homeIconId} homeName={homeName} busy={busy} onTravel={onTravel} />
       </div>
     </div>
   );

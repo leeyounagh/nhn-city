@@ -11,6 +11,7 @@ import {
   checkPlace,
   checkPlacement,
   homeIcon,
+  homeStage,
 } from "@/lib/game-state";
 import { buildingSprite } from "@/components/city/sprite";
 import { TW, TH, DRAG_THRESHOLD, useIsoCamera } from "@/components/city/useIsoCamera";
@@ -387,7 +388,7 @@ export function IsoCityMap({
               className="h-6 w-6 object-contain"
             />
           </span>
-          폐허가 된 고향
+          {homeStage(state.placements).name}
         </h2>
         <span className="text-xs text-stone-400">건물을 끌어다(또는 골라 탭) 빈 터에 놓고, 자재를 끌어다(또는 터를 눌러) 채운다</span>
         <div className="ml-auto flex items-center gap-1">

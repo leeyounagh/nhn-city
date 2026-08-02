@@ -16,7 +16,7 @@ import { AllyArrivalModal } from "@/components/game/modals/AllyArrivalModal";
 import { AllyEventModal } from "@/components/game/modals/AllyEventModal";
 import { AlliesModal } from "@/components/game/modals/AlliesModal";
 import { ResetConfirmModal } from "@/components/game/modals/ResetConfirmModal";
-import { homeIcon } from "@/lib/game-state";
+import { homeIcon, homeStage } from "@/lib/game-state";
 import type { GameEngine } from "@/hooks/useGameEngine";
 
 export function ModalStack({ engine }: { engine: GameEngine }) {
@@ -88,6 +88,7 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
         <WorldMapModal
           location={state.location}
           homeIconId={homeIcon(state.placements)}
+          homeName={homeStage(state.placements).name}
           busy={busy}
           onTravel={(dest) => {
             setShowWorldMap(false);

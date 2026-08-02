@@ -226,6 +226,23 @@ export function homeIcon(placements: Placement[]): string {
   return best ?? "floor_dirt";
 }
 
+// 재건 완성도 단계 (인구 기준, 내림차순). 지인 합류 임계(30/90/180)와 정합.
+// 이름/문구가 진척에 따라 "폐허가 된 고향 → … → 재건된 왕국"으로 바뀐다.
+export const HOME_STAGES: { min: number; name: string }[] = [
+  { min: 180, name: "재건된 왕국" },
+  { min: 90, name: "번성하는 도시" },
+  { min: 30, name: "되살아나는 마을" },
+  { min: 1, name: "첫 삽을 뜬 고향" },
+  { min: 0, name: "폐허가 된 고향" },
+];
+
+// 현재 완성도 단계 (tier 0=폐허 … 4=왕국, name=표시 문구).
+export function homeStage(placements: Placement[]): { tier: number; name: string } {
+  const pop = population(placements);
+  const idx = HOME_STAGES.findIndex((s) => pop >= s.min); // 내림차순 → 첫 매치가 최고 단계
+  return { tier: HOME_STAGES.length - 1 - idx, name: HOME_STAGES[idx].name };
+}
+
 export interface PlaceCheck {
   prereqMet: boolean;
   bookMet: boolean;
