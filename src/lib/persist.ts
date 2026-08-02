@@ -15,6 +15,7 @@ export interface PersistedFlags {
   acked: string[]; // [다음]으로 넘긴 온보딩 정보 단계 id
   missionDismissed: boolean; // 튜토리얼 건너뛰기
   lastNewsDay: number; // 아침 시황을 마지막으로 띄운 날
+  endingSeen: boolean; // 재건 완성 엔딩(재건된 왕국)을 본 적 있는지 (1회만 표시)
 }
 
 export interface SaveData {
@@ -123,6 +124,7 @@ function normalizeSave(raw: unknown): SaveData | null {
     acked: Array.isArray(f.acked) ? f.acked : [],
     missionDismissed: !!f.missionDismissed,
     lastNewsDay: typeof f.lastNewsDay === "number" ? f.lastNewsDay : gameState.day,
+    endingSeen: !!f.endingSeen,
   };
 
   return { version: SAVE_VERSION, gameState, flags };

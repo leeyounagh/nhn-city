@@ -26,6 +26,7 @@ import {
   checkPlacement,
   decayRecentBuys,
   decayedDisposition,
+  homeStage,
 } from "@/lib/game-state";
 import { activeMission, missionStatuses } from "@/lib/missions";
 import {
@@ -166,6 +167,8 @@ export function useGameEngine() {
   const [lastNewsDay, setLastNewsDay] = useState(1); // 뉴스를 마지막으로 띄운 날 (하루 1회)
   const [hydrated, setHydrated] = useState(false); // IndexedDB 저장분 로드 완료 여부 (전까지 검은 커버)
   const [showResetConfirm, setShowResetConfirm] = useState(false); // 새 게임 확인 모달
+  const [endingSeen, setEndingSeen] = useState(false); // 재건 완성 엔딩을 본 적 있는지 (1회만)
+  const [showEnding, setShowEnding] = useState(false); // 엔딩 모달 표시
   const pendingSave = useRef<SaveData | null>(null); // 디바운스 대기 중인 최신 저장 데이터 (탭 숨김 시 즉시 flush)
 
   // 세션에 한 번만 자동 재생 (새로고침 반복 방지). sessionStorage는 SSR에 없어 마운트 후 읽는다.
@@ -192,6 +195,7 @@ export function useGameEngine() {
         setAcked(new Set(save.flags.acked));
         setMissionDismissed(save.flags.missionDismissed);
         setLastNewsDay(save.flags.lastNewsDay);
+        setEndingSeen(save.flags.endingSeen);
       }
       setHydrated(true);
     });
@@ -206,12 +210,12 @@ export function useGameEngine() {
     const data: SaveData = {
       version: SAVE_VERSION,
       gameState: state,
-      flags: { alliesSeen: [...alliesSeen], acked: [...acked], missionDismissed, lastNewsDay },
+      flags: { alliesSeen: [...alliesSeen], acked: [...acked], missionDismissed, lastNewsDay, endingSeen },
     };
     pendingSave.current = data;
     const t = setTimeout(() => void writeSave(data), 500);
     return () => clearTimeout(t);
-  }, [hydrated, state, alliesSeen, acked, missionDismissed, lastNewsDay]);
+  }, [hydrated, state, alliesSeen, acked, missionDismissed, lastNewsDay, endingSeen]);
 
   // 탭이 숨겨지면 디바운스 대기 없이 마지막 상태를 즉시 저장(직전 행동 유실 방지).
   useEffect(() => {
@@ -230,11 +234,26 @@ export function useGameEngine() {
     setAcked(new Set());
     setMissionDismissed(false);
     setLastNewsDay(1);
+    setEndingSeen(false);
+    setShowEnding(false);
     setNews(null);
     setAllyEvent(null);
     setShowResetConfirm(false);
     setNotice("처음부터 다시 시작한다. 폐허가 된 고향을 다시 세워라.");
   }, []);
+
+  // 재건 완성(최고 단계 "재건된 왕국", 인구 180+) 최초 도달 시 엔딩을 1회 띄운다. 오픈엔드라 닫으면 계속 플레이.
+  useEffect(() => {
+    if (!hydrated || endingSeen) return;
+    if (homeStage(state.placements).tier >= 4) {
+      // 파생 조건(최고 단계 도달) 최초 1회 트리거 — 정당한 setState-in-effect(모달 표시 + 영속 플래그).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEndingSeen(true);
+      setShowEnding(true);
+    }
+  }, [hydrated, endingSeen, state.placements]);
+
+  const dismissEnding = useCallback(() => setShowEnding(false), []);
 
   const dismissMission = useCallback(() => setMissionDismissed(true), []);
   const acknowledgeStep = useCallback(
@@ -752,6 +771,10 @@ export function useGameEngine() {
 
   const next = xpToNext(state.xp);
   const invCount = Object.values(state.inventory).reduce((a, b) => a + b, 0);
+  // 엔딩 요약용 완공 건물 수 (장식·조경 제외).
+  const builtCount = state.placements.filter(
+    (p) => p.built && !BUILDINGS.find((b) => b.id === p.buildingId)?.deco,
+  ).length;
   const mission = missionDismissed
     ? null
     : activeMission(state, acked, { worldMapOpen: showWorldMap }); // 현재 목표(상태에서 계산)
@@ -779,6 +802,9 @@ export function useGameEngine() {
     showResetConfirm,
     setShowResetConfirm,
     resetGame,
+    showEnding,
+    dismissEnding,
+    builtCount,
     news,
     setNews,
     newsPending,

@@ -16,6 +16,7 @@ import { AllyArrivalModal } from "@/components/game/modals/AllyArrivalModal";
 import { AllyEventModal } from "@/components/game/modals/AllyEventModal";
 import { AlliesModal } from "@/components/game/modals/AlliesModal";
 import { ResetConfirmModal } from "@/components/game/modals/ResetConfirmModal";
+import { EndingModal } from "@/components/game/modals/EndingModal";
 import { homeIcon, homeStage } from "@/lib/game-state";
 import type { GameEngine } from "@/hooks/useGameEngine";
 
@@ -60,6 +61,10 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
     showResetConfirm,
     setShowResetConfirm,
     resetGame,
+    showEnding,
+    dismissEnding,
+    builtCount,
+    allies,
     finishIntro,
     travelTo,
     sendUtterance,
@@ -151,6 +156,19 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
 
       {showResetConfirm && (
         <ResetConfirmModal onConfirm={resetGame} onCancel={() => setShowResetConfirm(false)} />
+      )}
+
+      {showEnding && (
+        <EndingModal
+          day={state.day}
+          population={population}
+          buildings={builtCount}
+          gold={state.gold}
+          patrons={Object.keys(state.merchantMemory).length}
+          allies={allies.length}
+          onContinue={dismissEnding}
+          onNewGame={resetGame}
+        />
       )}
 
       {/* 인트로 판정 전(showIntro===null) 또는 저장분 로드 전(!hydrated)엔 검은 커버로 게임 노출을 막는다. */}
