@@ -7,12 +7,16 @@ import { GameIcon } from "@/shared/icon/GameIcon";
 import { buildingSprite } from "@/components/city/sprite";
 import { useDialogA11y } from "@/shared/use-dialog-a11y";
 
+// 도감은 완공 효과(골드·생산·경험치)가 있는 건물만. 나무·밭(효과 없는 조경)·건축·장식(설계도 장식)은 제외.
 const CATEGORIES: { key: string; label: string }[] = [
   { key: "core", label: "도시" },
   { key: "commerce", label: "상업" },
   { key: "tower", label: "타워" },
   { key: "church", label: "교회" },
   { key: "castle", label: "성채" },
+  { key: "farm", label: "농장" },
+  { key: "military", label: "군사" },
+  { key: "forge", label: "공방" },
 ];
 
 const buildingName = (id: string) => BUILDINGS.find((b) => b.id === id)?.name ?? id;
