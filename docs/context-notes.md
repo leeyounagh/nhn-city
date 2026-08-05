@@ -577,3 +577,20 @@
 - **모달 중앙정렬 트레이드오프**: 619px 같은 좁은 폭에서 바텀시트(`items-end`)가 하단에 붙어 상단만 공백(`max-h-92vh`의 남는 8vh가 전부 위로) = 비대칭. 사용자 요청으로 **중앙정렬**(`items-center`)로 전환 → 상하 대칭. 바텀시트 UX는 포기(중앙 카드). corners `rounded-t-*`→전체 라운드, `vh`→`dvh`(iOS 주소창).
 - **흥정창 초상화 배경 — 왜 CSS background인가**: 대화 로그는 새 메시지마다 **자동으로 맨 아래 스크롤**(`scrollTo scrollHeight`). 절대배치 `<img>`를 로그 안에 넣으면 스크롤돼 사라짐 → **CSS `background-image`는 `background-attachment: scroll` 기본값이 "요소에 고정, 내용 스크롤과 무관"**이라 로그가 스크롤돼도 고정. 페이드 = 어두운 그라디언트를 이미지 위에 겹쳐(`linear-gradient(rgba…), url(…)`), 텍스트는 완전 불투명 유지. 모바일 전용 = `sm:!bg-none`(데스크톱은 좌측 aside에 초상화가 있음). 404 시 그라디언트만 남아 깨진 아이콘 없음.
 - **흥정 입력 이중 테두리 근본원인**: 입력창 래퍼 `focus-within:border-amber-600`(입력+제안버튼 함께 감쌈) + input의 전역 `:focus-visible` amber 아웃라인(globals.css)이 **동시에** 뜸 = 이중 테두리, 바깥 링이 제안버튼까지 감쌈. **input의 `focus:outline-none`이 전역을 못 이기는 이유 = 전역 `:focus-visible`가 `@layer` 밖(unlayered)이라 layer 안 Tailwind 유틸보다 우선**(스펙: unlayered > layered, 명시도 무관). 수정 = 래퍼 `focus-within:border-amber-600` 제거, input의 `:focus-visible` 아웃라인 하나만 포커스 표시로 남김(접근성 유지, `!important` 불필요). — 텍스트 input은 마우스 클릭에도 `:focus-visible` 매칭됨.
+
+## 완성도 단계 + 엔딩 + 밸런스 재점검 (2026-08-04)
+
+### 완성도 단계(homeStage) + 엔딩
+- **`homeStage(placements)`** — 인구 기준 5단계(폐허가 된 고향→첫 삽을 뜬 고향→되살아나는 마을→번성하는 도시→재건된 왕국, 임계 0/1/30/90/180). 지인 합류 임계(30/90/180)와 정합. 고향맵 헤더 + 월드맵 홈 노드 라벨이 이 이름으로. 아이콘은 기존 `homeIcon`(건물 스프라이트) 진화 유지.
+- **엔딩 모달** — 최고 단계(tier 4, 인구 180+) 최초 도달 시 1회. `EndingModal`(요약: 일수·인구·건물·골드·단골·지인) + 계속/새 게임. **오픈엔드 유지**(과거 "승리 개념 제거" 원칙과 충돌 안 하게 하드 게임오버 아님). `endingSeen` 플래그 영속(persist.ts), `resetGame`이 리셋. 감지는 `useEffect`에서 tier≥4 && !endingSeen 1회 트리거(정당한 setState-in-effect, eslint-disable).
+
+### 밸런스 재점검 — tier1 가격 ×1.30
+- **방법**: `game-data.ts` BUILDINGS를 파싱하는 시뮬(scratchpad `balance-sim.mjs`) — 건물별 회수기간, 생산 자급, 지인 perk, 그리디 플레이 엔딩 일수.
+- **진단**:
+  1. 회수기간 최고 건물 6~10일(하한가) → 골드가 빠르게 눈덩이.
+  2. **tier3 "병목"이 사실상 없음** — marble(guildhall)·bronze(대장간)·stainedglass(예배당)·steel·glass·planks·brick **전부 자가 생산 가능**. handoff가 걱정한 marble/bronze 병목이 생산 확장으로 해소돼 tier3 긴장감 소실. **유일한 실질 병목 = `relic`**(총 3개, 구매전용·Lv3), 근데 이건 최상위 2건물만 막고 엔딩(인구180)은 안 막음.
+  3. 그리디 엔딩 도달: 하한가 18일 / 기준가 35일(생산·환급·물물교환 미반영이라 실제 더 빠름).
+  4. **핵심 리스크 = 흥정 루프 무력화** — 중반 골드 과잉이면 "AI 흥정으로 싸게 사기" 가치가 사라짐(데모 임팩트에 치명).
+- **결정 (사용자 A안·×1.30)**: tier1 5종 가격 ×1.30(economy.ts PRICES). wood 10→13(floor 6→8), stone 12→16(7→9), clay 10→13(6→8), scrap 15→20(9→12), rope 8→10(5→7). 효과: 엔딩 18→26일(하한가), 눈덩이 ~45% 완만, 흥정 절감액↑로 흥정 루프를 중반까지 유지. ×1.40+는 플래토라 지양. **저원가 고속회수 건물이 tier1 위주라 정확히 타깃**, tier2/3·수입은 미변경(저위험).
+- **보류(후속 후보)**: tier3 자가 생산이 tier3 긴장을 없애는 구조적 이슈는 이번에 안 건드림(생산 조이기=진행 흐름 변경, 마감 임계라 지양). 필요 시 생산율↓ or 책 레벨 게이팅.
+- 검증: tsc 그린 + `/api/prices` wood≈12·stone≈14로 반영 확인.

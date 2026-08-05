@@ -77,11 +77,12 @@ export function eventMultiplier(
 
 // 자재별 기준가/하한가 (단가). 하한가 ≈ 기준가의 60%.
 const PRICES: Record<MaterialId, { base: number; floor: number; tier: Tier }> = {
-  wood: { base: 10, floor: 6, tier: 1 },
-  stone: { base: 12, floor: 7, tier: 1 },
-  clay: { base: 10, floor: 6, tier: 1 },
-  scrap: { base: 15, floor: 9, tier: 1 },
-  rope: { base: 8, floor: 5, tier: 1 },
+  // tier1 가격 ×1.30 (밸런스 재점검, 2026-08-04) — 저원가 고속회수 건물 눈덩이 완화 + 흥정 절감액↑로 흥정 루프를 중반까지 유지.
+  wood: { base: 13, floor: 8, tier: 1 },
+  stone: { base: 16, floor: 9, tier: 1 },
+  clay: { base: 13, floor: 8, tier: 1 },
+  scrap: { base: 20, floor: 12, tier: 1 },
+  rope: { base: 10, floor: 7, tier: 1 },
   planks: { base: 30, floor: 18, tier: 2 },
   brick: { base: 35, floor: 21, tier: 2 },
   glass: { base: 45, floor: 27, tier: 2 },
