@@ -11,13 +11,12 @@ import {
   TOKEN_DISPOSITION,
 } from "@/lib/server/economy";
 import { deriveWorld } from "@/lib/server/world";
-import { askText, extractJson } from "@/lib/server/llm";
+import { askText } from "@/lib/server/llm";
 import {
-  haggleSystem,
-  haggleUser,
+  haggleLineSystem,
+  haggleLineUser,
   fallbackCategory,
   fallbackLine,
-  isValidCategory,
   fallbackPersona,
   type Persona,
 } from "@/lib/server/prompt";
@@ -88,17 +87,15 @@ export async function POST(request: Request) {
     Math.min(100, initialDisposition(derived.profile) + (parsed.data.allyHaggleBonus ?? 0));
   const persona: Persona = parsed.data.persona ?? fallbackPersona(derived.spec, seed);
 
-  // LLM 분류 + 연기 (실패 시 키워드 폴백).
-  const llm = extractJson<{ category?: string; line?: string }>(
+  // 하이브리드: 카테고리는 키워드 분류(결정적·안정 → 가격 로직 신뢰성), 대사만 AI로 생동감 있게(실패 시 정적 폴백).
+  const category: HaggleCategory = fallbackCategory(utterance);
+  const aiLine = (
     await askText(
-      haggleSystem(persona, derived.spec, disposition),
-      haggleUser(MATERIAL_NAME[materialId], mat.offer0, utterance),
-    ),
-  );
-  const category: HaggleCategory = isValidCategory(llm?.category)
-    ? llm.category
-    : fallbackCategory(utterance);
-  const line = llm?.line?.trim() || fallbackLine(category, persona, seed, turnsLeft);
+      haggleLineSystem(persona, derived.spec, disposition, category),
+      haggleLineUser(MATERIAL_NAME[materialId], mat.offer0, utterance),
+    )
+  )?.trim();
+  const line = aiLine || fallbackLine(category, persona, seed, turnsLeft);
 
   // 코드가 호감도·가격(골드) 또는 교환비(개수)를 계산한다.
   const newDisposition = applyCategory(disposition, category, derived.profile);
