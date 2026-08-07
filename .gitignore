@@ -51,3 +51,6 @@ next-env.d.ts
 # dev 임시 로그 / 크래시 덤프
 dev*.log
 *.stackdump
+
+.vercel
+.env*
