@@ -594,3 +594,25 @@
 - **결정 (사용자 A안·×1.30)**: tier1 5종 가격 ×1.30(economy.ts PRICES). wood 10→13(floor 6→8), stone 12→16(7→9), clay 10→13(6→8), scrap 15→20(9→12), rope 8→10(5→7). 효과: 엔딩 18→26일(하한가), 눈덩이 ~45% 완만, 흥정 절감액↑로 흥정 루프를 중반까지 유지. ×1.40+는 플래토라 지양. **저원가 고속회수 건물이 tier1 위주라 정확히 타깃**, tier2/3·수입은 미변경(저위험).
 - **보류(후속 후보)**: tier3 자가 생산이 tier3 긴장을 없애는 구조적 이슈는 이번에 안 건드림(생산 조이기=진행 흐름 변경, 마감 임계라 지양). 필요 시 생산율↓ or 책 레벨 게이팅.
 - 검증: tsc 그린 + `/api/prices` wood≈12·stone≈14로 반영 확인.
+
+## 모바일 짧은 화면 — 코치마크 스크롤 잠금 + 도움말 압축 (2026-08-07)
+
+### 코치마크(CoachMark) — 뒷 배경 스크롤로 링 어긋남
+- **증상**: 길이 짧은 모바일에서 마을 진입 시 소문 코치의 링·화살표가 대상(소문 섹션)을 벗어나 엉뚱한 영역(지도 미리보기)을 감쌈. playwright 390×620에서 배경 300px 스크롤 시 재현.
+- **원인**: 대상(`data-coach="mission-rumor"`)이 TownView 그리드(`overflow-y-auto`, 모바일 스크롤 컨테이너) 안에 있음. 코치는 `fixed`+rAF로 추적하나, **짧은 화면에선 소문 섹션이 뷰포트보다 커서** 링 높이가 뷰포트로 클램프됨(`Math.min(..., vh-...)`) → 배경 구멍(pointer 통과)으로 스크롤이 새어들면 클램프된 링이 대상 실제 bounds와 어긋남.
+- **결정**: 코치가 대상과 함께 뜨는 동안 **대상의 세로 스크롤 조상을 `overflow:hidden`으로 잠금**(`scrollableAncestor()` 헬퍼로 레이아웃 비종속 탐색 — CoachMark는 범용 프리미티브). 진입 시 `scrollIntoView({block:center})`로 중앙 정렬 후 잠금 → 배경이 못 움직여 정렬 영구 유지(대상이 뷰포트보다 커도). 클린업/`targetSelector` 변경 시 원복.
+- **부수 변경**: `scrollIntoView` `behavior:"smooth"`→`"auto"`. smooth는 잠금이 애니메이션 중간을 끊어 위치가 틀어질 수 있음 → 즉시 스크롤이 잠금과 정합. 기존 iOS 모멘텀 rAF 지연 우려는 잠금으로 무의미해짐.
+- **비대상 케이스**: 홈맵/월드맵 코치는 스크롤 조상 없음 → `scrollableAncestor` null → 잠금 스킵(기존 동작 유지). 검증: 종료(건너뛰기) 후 배경 정상 스크롤 복구 확인.
+
+### 도움말(Tutorial=마법의 책) — 짧은 화면 스크롤/잘림
+- **증상**: 모바일 풀스크린(`h-dvh-safe`)인데 안내 5장+인트로+버튼이 넘쳐 하단(5번째 카드+"오프닝 다시 보기")이 잘림.
+- **원인 2가지**: (1) 내용이 짧은 높이 초과. (2) 내부 스크롤 컨테이너에 `min-h-0 flex-1`이 없어 높이 바운딩 실패 → `overflow-y-auto`가 실제로 스크롤되지 못하고 부모 `overflow-hidden`이 하단을 클립(버튼 도달 불가).
+- **결정 (사용자 A안=여백 압축)**: 스크롤 컨테이너에 `min-h-0 flex-1` 추가(깔끔한 스크롤 폴백) + 여백 압축(헤더 pt-4/pb-3, 아이콘 h-8, `space-y-1.5`, 카드 `py-2`, 본문 `text-[13px] leading-snug`, 버튼 `py-1.5`). 내용(설명 문구) 유지. ~600px 이상에서 5장 모두 표시, 극단적 짧은 높이만 헤더 고정+본문 깔끔 스크롤로 폴백.
+
+## 전체 모달 짧은 화면 점검 패스 (2026-08-07, 이어서)
+- **점검 방법**: playwright 390×620에서 모든 모달을 실제로 열어 헤더 고정·본문 스크롤·하단 버튼 도달을 확인.
+- **동일 버그 추가 발견·수정** (Tutorial과 같은 클래스 = flex-col 상한 모달인데 내부 스크롤 컨테이너에 `min-h-0 flex-1` 누락 → 짧은 화면에서 하단 클립·스크롤 불가):
+  - **BookCodex**(`107`): 본문 div에 `min-h-0 flex-1` 추가 → 상인 성향 섹션(최하단)까지 스크롤 도달 확인.
+  - **MerchantPanel**(`106`/`142`): 헤더에 `shrink-0`, 본문에 `min-h-0 flex-1` 추가 → 판매 물품(구매 버튼) 하단 도달 확인.
+- **iOS 정합(§8: 모달 높이 캡은 dvh)**: `vh`로 남아있던 3곳을 `dvh`로 — BuildingCodexModal `68vh→68dvh`, ClueNotebook·InventoryPanel `70vh→70dvh`. (iOS Safari에서 `vh`=주소창 숨긴 큰 뷰포트라 캡이 가시영역 초과 → 하단이 주소창 뒤로 잘리는 문제 예방.)
+- **이상 없음 확인**: HaggleDialog(직전 커밋에서 `min-h-0 flex-1` 이미 적용), MissionList·ClueNotebook·Allies·Relations·WorldMap·Inventory·PriceChart(80dvh)·News·ResetConfirm·AllyArrival/Event·Ending — 구조상 backdrop `overflow-y-auto` 또는 내부 캡+스크롤로 정상. pattern-A(`items-start pt-16~24` + backdrop 스크롤)는 이중 스크롤이나 기능 정상이라 미변경(스타일 churn 지양).
