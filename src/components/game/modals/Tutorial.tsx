@@ -50,7 +50,7 @@ export function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onRe
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(217,164,65,0.12),transparent_60%)]" />
 
         {/* 표지 헤더 */}
-        <div className="relative shrink-0 border-b border-amber-800/40 bg-gradient-to-b from-amber-950/40 to-transparent px-5 pb-4 pt-5 text-center">
+        <div className="relative shrink-0 border-b border-amber-800/40 bg-gradient-to-b from-amber-950/40 to-transparent px-5 pb-3 pt-4 text-center">
           <button
             onClick={onClose}
             aria-label="닫기"
@@ -58,32 +58,32 @@ export function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onRe
           >
             ✕
           </button>
-          <GameIcon name="spellBook" className="mx-auto mb-1 h-9 w-9 text-amber-300 drop-shadow-[0_2px_6px_rgba(217,164,65,0.4)]" />
+          <GameIcon name="spellBook" className="mx-auto mb-0.5 h-8 w-8 text-amber-300 drop-shadow-[0_2px_6px_rgba(217,164,65,0.4)]" />
           <h2 id="tutorial-title" className="font-display text-xl font-bold tracking-wide text-amber-200 [text-shadow:0_2px_8px_rgba(0,0,0,0.6)]">
             마법의 책
           </h2>
           <p className="mt-0.5 text-[11px] tracking-wide text-amber-500/70">초보 후계자를 위한 기록</p>
         </div>
 
-        <div className="book-ink space-y-2.5 overflow-y-auto px-5 py-4">
-          <p className="mb-1 text-center text-sm leading-6 text-stone-300">
+        <div className="book-ink min-h-0 flex-1 space-y-1.5 overflow-y-auto px-5 py-2.5">
+          <p className="mb-0.5 text-center text-sm leading-snug text-stone-300">
             폐허가 된 고향을 다시 세우려면 — 상인을 <span className="text-amber-300">찾고</span>, 자재를 <span className="text-amber-300">거래하고</span>, 건물을 <span className="text-amber-300">복원</span>하라.
           </p>
           {GUIDE.map((g) => (
-            <div key={g.title} className="flex items-start gap-3 rounded-xl border border-stone-700/70 bg-stone-800/40 px-4 py-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-800/40 bg-amber-950/30">
+            <div key={g.title} className="flex items-start gap-3 rounded-xl border border-stone-700/70 bg-stone-800/40 px-3.5 py-2">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-800/40 bg-amber-950/30">
                 <GameIcon name={g.icon} className="h-5 w-5 text-amber-400" />
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-stone-100">{g.title}</p>
-                <p className="text-sm leading-6 text-stone-400">{g.body}</p>
+                <p className="text-[13px] leading-snug text-stone-400">{g.body}</p>
               </div>
             </div>
           ))}
-          <div className="pt-1 text-center">
+          <div className="pt-0.5 text-center">
             <button
               onClick={onReplayStory}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-700/70 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-700/70 px-4 py-1.5 text-sm text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
             >
               <GameIcon name="scroll" className="h-4 w-4" /> 오프닝 다시 보기
             </button>
