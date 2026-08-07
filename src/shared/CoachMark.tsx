@@ -30,9 +30,17 @@ export function CoachMark({
   useEffect(() => {
     let raf = 0;
     let prev = "";
+    // 대상이 스크롤 컨테이너 하단에 있으면 유저가 스크롤해야 보인다. iOS Safari는 모멘텀 스크롤
+    // 중 rAF를 지연시켜 링/말풍선이 대상에서 떨어지므로, 진입 시 한 번 대상을 뷰 중앙으로 끌어와
+    // 애초에 스크롤할 필요를 없앤다.
+    let scrolledIntoView = false;
     const tick = () => {
       const el = targetSelector ? (document.querySelector(targetSelector) as HTMLElement | null) : null;
       if (el) {
+        if (!scrolledIntoView) {
+          scrolledIntoView = true;
+          el.scrollIntoView({ block: "center", behavior: "smooth" });
+        }
         const r = el.getBoundingClientRect();
         const key = `${Math.round(r.top)},${Math.round(r.left)},${Math.round(r.width)},${Math.round(r.height)}`;
         if (key !== prev) {
