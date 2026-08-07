@@ -42,7 +42,7 @@ export function ClueNotebook({ clues, onClose }: { clues: Rumor[]; onClose: () =
           </button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
+        <div className="max-h-[70dvh] overflow-y-auto px-5 py-4">
           {groups.length === 0 ? (
             <p className="py-8 text-center text-sm text-stone-500">
               아직 들은 소문이 없다. 마을을 돌며 소문을 모아라.

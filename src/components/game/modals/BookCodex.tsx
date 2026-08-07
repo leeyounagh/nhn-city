@@ -104,7 +104,7 @@ export function BookCodex({
           </span>
         </div>
 
-        <div className="book-ink relative space-y-5 overflow-y-auto px-5 py-4">
+        <div className="book-ink relative min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
           {/* 경험치 게이지 (금빛 글로우) */}
           <div>
             <div className="mb-1 flex items-center justify-between text-[11px]">

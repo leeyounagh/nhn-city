@@ -47,7 +47,7 @@ export function BuildingCodexModal({ onClose }: { onClose: () => void }) {
         </div>
         <p className="mb-3 text-xs text-stone-500">마법의 책 Lv.1 — 지을 수 있는 건물과 완공 효과를 미리 본다.</p>
 
-        <div className="max-h-[68vh] space-y-4 overflow-y-auto pr-1">
+        <div className="max-h-[68dvh] space-y-4 overflow-y-auto pr-1">
           {CATEGORIES.map(({ key, label }) => {
             const items = BUILDINGS.filter((b) => !b.deco && (b.category ?? "core") === key);
             if (items.length === 0) return null;

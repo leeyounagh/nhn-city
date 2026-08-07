@@ -103,7 +103,7 @@ export function MerchantPanel({
       className="flex max-h-[85dvh] flex-col overflow-hidden rounded-2xl border border-amber-900/50 bg-stone-900/95 shadow-2xl shadow-black/70 ring-1 ring-white/5 backdrop-blur-xl focus:outline-none"
     >
       {/* 헤더 — 초상화·이름을 키워 첫 시선을 명확히. 닫기는 헤더 우측 내장. */}
-      <div className="flex items-start justify-between gap-3 border-b border-stone-700/60 p-4 pb-3">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-stone-700/60 p-4 pb-3">
         <div className="flex min-w-0 items-center gap-3">
           <MerchantPortrait merchant={merchant} />
           <div className="min-w-0">
@@ -139,7 +139,7 @@ export function MerchantPanel({
         )}
       </div>
 
-      <div className="flex flex-col gap-3 overflow-y-auto p-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
         {/* 대사 — 양피지/가죽 느낌 */}
         <div className="rounded-lg border-l-2 border-amber-700/70 bg-stone-800/60 px-4 py-3">
           <p className="text-sm italic leading-6 text-stone-300">“{merchant.greeting}”</p>
