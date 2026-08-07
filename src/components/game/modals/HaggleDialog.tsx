@@ -169,7 +169,7 @@ export function HaggleDialog({
         </aside>
 
         {/* 오른쪽 대화 열 */}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* 헤더 */}
         <div className="flex items-center justify-between border-b border-stone-700 px-4 py-3">
           <div className="flex items-center gap-3">
@@ -242,7 +242,7 @@ export function HaggleDialog({
           style={{
             backgroundImage: `linear-gradient(rgba(28,25,23,0.85), rgba(28,25,23,0.93)), url(/merchants/${merchant.portraitFile ?? merchant.portrait}.png)`,
           }}
-          className="flex-1 space-y-2 overflow-y-auto bg-cover bg-center bg-no-repeat px-4 py-3 sm:!bg-none"
+          className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-cover bg-center bg-no-repeat px-4 py-3 sm:!bg-none"
         >
           {haggle.log.map((line, i) => (
             <div
