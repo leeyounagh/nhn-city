@@ -35,7 +35,7 @@ export function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onRe
   const dialogRef = useDialogA11y(onClose);
   return (
     <div
-      className="book-backdrop fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-md"
+      className="book-backdrop fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/75 p-0 backdrop-blur-md sm:p-4"
       onClick={onClose}
     >
       <div
@@ -44,7 +44,7 @@ export function Tutorial({ onClose, onReplayStory }: { onClose: () => void; onRe
         aria-modal="true"
         aria-labelledby="tutorial-title"
         tabIndex={-1}
-        className="book-open relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-amber-700/50 bg-stone-900 shadow-2xl shadow-black/70 ring-1 ring-amber-900/40 focus:outline-none"
+        className="book-open relative flex h-dvh-safe w-full max-w-2xl flex-col overflow-hidden rounded-none border-0 bg-stone-900 shadow-2xl shadow-black/70 focus:outline-none sm:h-auto sm:max-h-[92dvh] sm:rounded-2xl sm:border sm:border-amber-700/50 sm:ring-1 sm:ring-amber-900/40"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(217,164,65,0.12),transparent_60%)]" />
