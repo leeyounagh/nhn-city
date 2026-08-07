@@ -114,7 +114,7 @@ function resolveFirstHut(
   if (!acked.has("read-rumors"))
     return {
       id: "read-rumors",
-      label: "우측 소문을 읽어 위치를 추측하라",
+      label: "소문을 읽어 위치를 추측하라",
       hint: "소문으로 어느 상인이 무엇을 파는지·어디에 있는지 추측한다. 상인 자리는 매일 바뀐다.",
       info: true,
       coach: "mission-rumor",
