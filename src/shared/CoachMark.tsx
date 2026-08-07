@@ -6,6 +6,18 @@ import { useEffect, useState } from "react";
 
 type Box = { top: number; left: number; width: number; height: number };
 
+// 대상의 가장 가까운 세로 스크롤 조상을 찾는다(없으면 null). 코치 활성 중 이 컨테이너를 잠가
+// 뒷 배경이 스크롤돼 링/화살표가 대상에서 어긋나는 것을 막는다.
+function scrollableAncestor(el: HTMLElement | null): HTMLElement | null {
+  let node = el?.parentElement ?? null;
+  while (node) {
+    const oy = getComputedStyle(node).overflowY;
+    if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
 export function CoachMark({
   targetSelector,
   missionTitle,
@@ -30,16 +42,23 @@ export function CoachMark({
   useEffect(() => {
     let raf = 0;
     let prev = "";
-    // 대상이 스크롤 컨테이너 하단에 있으면 유저가 스크롤해야 보인다. iOS Safari는 모멘텀 스크롤
-    // 중 rAF를 지연시켜 링/말풍선이 대상에서 떨어지므로, 진입 시 한 번 대상을 뷰 중앙으로 끌어와
-    // 애초에 스크롤할 필요를 없앤다.
+    // 대상이 스크롤 컨테이너 하단에 있으면 유저가 스크롤해야 보인다. 진입 시 한 번 대상을 뷰 중앙으로
+    // 끌어온 뒤 그 스크롤 조상을 잠가, 짧은 화면에서 뒷 배경이 스크롤돼 링/말풍선이 대상에서
+    // 어긋나는 것을 원천 차단한다(대상이 뷰포트보다 큰 경우에도 정렬 유지). 클린업에서 원복.
     let scrolledIntoView = false;
+    let lockedScroller: HTMLElement | null = null;
+    let prevOverflow = "";
     const tick = () => {
       const el = targetSelector ? (document.querySelector(targetSelector) as HTMLElement | null) : null;
       if (el) {
         if (!scrolledIntoView) {
           scrolledIntoView = true;
-          el.scrollIntoView({ block: "center", behavior: "smooth" });
+          el.scrollIntoView({ block: "center", behavior: "auto" });
+          lockedScroller = scrollableAncestor(el);
+          if (lockedScroller) {
+            prevOverflow = lockedScroller.style.overflow;
+            lockedScroller.style.overflow = "hidden";
+          }
         }
         const r = el.getBoundingClientRect();
         const key = `${Math.round(r.top)},${Math.round(r.left)},${Math.round(r.width)},${Math.round(r.height)}`;
@@ -54,7 +73,10 @@ export function CoachMark({
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (lockedScroller) lockedScroller.style.overflow = prevOverflow;
+    };
   }, [targetSelector]);
 
   const bubble = (
