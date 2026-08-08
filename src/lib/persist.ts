@@ -116,6 +116,7 @@ function normalizeSave(raw: unknown): SaveData | null {
     merchantMemory: g.merchantMemory ?? base.merchantMemory,
     townMerchants: Array.isArray(g.townMerchants) ? g.townMerchants : base.townMerchants,
     clues: Array.isArray(g.clues) ? g.clues : base.clues,
+    haggle: null, // 흥정은 휘발 세션 상태 — 복원하지 않는다(리로드 시 흥정창이 되살아나는 문제 방지).
   };
 
   const f = (r.flags ?? {}) as Partial<PersistedFlags>;

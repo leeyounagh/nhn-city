@@ -642,3 +642,9 @@
 - **수정**(`useGameEngine.ts` `finishIntro`/마운트 `useLayoutEffect`): `sessionStorage`→`localStorage`. 프라이빗 모드/쿼터 대비 read·write 모두 try/catch(실패 시 "못 봤음"으로 폴백해 인트로 재생, 저장 실패는 조용히 무시). 마운트 시 `useLayoutEffect`로 페인트 전에 판정하는 구조는 유지(게임 메인 한 프레임 노출 방지).
 - **reset 정책**: 「새 게임」은 seen 플래그를 지우지 **않음**(리셋해도 인트로 재시청 강요 안 함 — 의도).
 - **검증(playwright)**: 첫 방문 `intro_visible=true, ls=null` / 스킵 후 `ls="1", ss=null` / 새로고침 미재생. tsc·eslint 그린.
+
+## 흥정창 리로드 복원 차단 (2026-08-08, QA 후속)
+- **증상**: 새로고침 시 진행 중이던 흥정창이 되살아남. 원인 = `GameState.haggle`가 저장에 포함되고 `normalizeSave`가 `...g`로 그대로 복원.
+- **수정**(`persist.ts normalizeSave`): gameState 조립 시 `haggle: null` 강제. 흥정은 휘발 세션 상태로 취급 → 복원 안 함. **로드 지점**에서 막아 기존 저장분(이미 haggle가 저장된 세이브)까지 커버. 저장 자체를 막지 않아 변경 최소.
+- **부작용 없음**: 단골(관계)은 구매 시 `merchantMemory`에 커밋돼 영속되므로 흥정 중단분만 사라지고 관계는 유지. 위치·골드·일차 등 나머지 복원 정상.
+- **검증(playwright)**: 흥정 열고 새로고침 → 흥정창 미복원(`haggle_dialog=false`), 위치(삼목골)·골드400·일차2 정상 복원, 콘솔 에러 0.
