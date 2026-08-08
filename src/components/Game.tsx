@@ -27,6 +27,15 @@ export function Game() {
     rotateBuilding,
   } = engine;
 
+  // 온보딩 완료(모든 미션 끝) 안내 코치가 떠 있는 순간. 이때 모바일에선 미션이 ⋯ 메뉴 안에 숨어 있어
+  // 강조가 안 되므로, 이 값을 푸터로 내려 ⋯ 메뉴를 강제로 열고 미션 항목을 코치 대상으로 노출한다.
+  const missionDoneCoach =
+    engine.showIntro === false &&
+    !engine.mission &&
+    !engine.missionDismissed &&
+    !engine.acked.has("onboarding-done") &&
+    !engine.showMissions;
+
   return (
     <div className="flex h-dvh-safe flex-col overflow-hidden bg-gradient-to-b from-stone-950 to-stone-900 text-stone-200">
       {/* 문서 제목(화면 리더용, 시각적으로 숨김) — 페이지에 단일 h1을 보장한다. */}
@@ -72,7 +81,7 @@ export function Game() {
       )}
 
       <ModalStack engine={engine} />
-      <GameFooter engine={engine} />
+      <GameFooter engine={engine} highlightMissionMenu={missionDoneCoach} />
 
       {/* 온보딩 코치마크 — 인트로 종료 후. 대상이 월드맵 섬 노드면 지도 위에 표시하고, 그 외 모달이
           열리면 숨겨 z 충돌을 피한다(코치는 버튼만 강조 → 클릭해 모달 열리면 물러남). */}
@@ -81,8 +90,7 @@ export function Game() {
         const m = engine.mission;
         // 모든 미션 완료: 하단 미션 버튼으로 마지막 안내(완료 축하). 버튼 클릭(openMissions) 시 확인 처리되어 종료.
         if (!m) {
-          if (engine.missionDismissed || engine.acked.has("onboarding-done") || engine.showMissions)
-            return null;
+          if (!missionDoneCoach) return null;
           return (
             <CoachMark
               targetSelector='[data-coach="mission-list-btn"]'

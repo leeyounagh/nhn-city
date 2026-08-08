@@ -52,15 +52,19 @@ function AuxButton({
 }
 
 // 모바일 전용 보조 액션 오버플로 메뉴 — ⋯ 버튼 + 위로 뜨는 팝업. 데스크톱은 md:hidden으로 숨는다.
-// 온보딩 코치가 가리키는 mission-list-btn을 이 버튼에 달아, 인라인 미션 버튼이 숨는 모바일에서도 정확히 강조된다.
+// forceOpen: 온보딩 완료 코치가 뜨는 순간 메뉴를 강제로 열어, 그 안의 미션 항목(data-coach)을 스포트라이트
+// 대상으로 노출한다. mission-list-btn을 ⋯ 버튼이 아니라 메뉴 "항목"에 달아 정확히 미션이 강조되게 한다.
 function MoreMenu({
   items,
+  forceOpen = false,
 }: {
   items: { icon: GameIconName; label: string; count?: number; onClick: () => void; danger?: boolean; dataCoach?: string }[];
+  forceOpen?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  // 바깥을 누르면 닫는다.
+  const isOpen = open || forceOpen; // 강제 오픈이면 사용자 토글과 무관하게 열림
+  // 바깥을 누르면 닫는다(강제 오픈 중엔 코치 딤이 바깥 클릭을 막아 무의미하지만 방어적으로 open만 끈다).
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
@@ -72,16 +76,15 @@ function MoreMenu({
   return (
     <div ref={ref} className="relative md:hidden">
       <button
-        data-coach="mission-list-btn"
         onClick={() => setOpen((v) => !v)}
         aria-label="더 보기"
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={isOpen}
         className="flex h-10 items-center justify-center rounded-lg border border-stone-700/70 px-3 text-lg leading-none text-stone-300 transition hover:border-amber-600/50 hover:text-amber-200"
       >
         <span aria-hidden>⋯</span>
       </button>
-      {open && (
+      {isOpen && (
         <div
           role="menu"
           className="absolute bottom-full right-0 z-50 mb-2 w-44 overflow-hidden rounded-lg border border-stone-700 bg-stone-900/95 py-1 shadow-2xl ring-1 ring-amber-900/30 backdrop-blur"
@@ -90,6 +93,7 @@ function MoreMenu({
             <button
               key={it.label}
               role="menuitem"
+              data-coach={it.dataCoach}
               onClick={() => {
                 setOpen(false);
                 it.onClick();
@@ -130,7 +134,7 @@ function BookButton({ bookLevel, next, onOpen }: { bookLevel: number; next: { ne
   );
 }
 
-export function GameFooter({ engine }: { engine: GameEngine }) {
+export function GameFooter({ engine, highlightMissionMenu = false }: { engine: GameEngine; highlightMissionMenu?: boolean }) {
   const {
     state,
     income,
@@ -221,7 +225,7 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
               />
             ))}
           </div>
-          <MoreMenu items={auxItems} />
+          <MoreMenu items={auxItems} forceOpen={highlightMissionMenu} />
         </div>
       </div>
     </footer>
