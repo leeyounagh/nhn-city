@@ -667,3 +667,13 @@
 - **아이소맵 "전체 보기"**(`useIsoCamera.fitTo` + IsoCityMap 헤더 버튼): 배치물 타일 월드바운드 계산 → 여백 15%로 fit(스프라이트 상단 솟음 TH*3 여유·중심 위로 보정), fit 전용 최소배율 0.25(수동 줌 버튼은 0.5~3 유지). 배치 0이면 원점 중앙, 배치물 있을 때만 버튼 노출. 검증: 60채 120%→64%, 화면 내 57→60채. 부수효과: 리사이즈/시트 토글로 보드 높이 바뀔 때 중심 유지(prevViewportRef 보정과 결합).
 - **모바일 온보딩 완료 코치가 미션 강조 못 하던 문제**: 모바일 미션은 닫힌 ⋯ 팝업 안(미렌더)이라 스포트라이트 불가. → `data-coach="mission-list-btn"`을 ⋯ 트리거가 아니라 **메뉴 항목**에 부여 + 완료 코치 조건(`missionDoneCoach`)을 `Game.tsx` 한 곳에서 계산해 `GameFooter→MoreMenu.forceOpen`으로 전달 → 코치 뜨는 순간 ⋯ 강제 오픈 → CoachMark `firstVisible`이 보이는 미션 항목 타깃. 탭→openMissions→showMissions=true→forceOpen 해제→메뉴 닫힘+코치 종료. 데스크톱은 인라인 미션 버튼(md:contents)이 타깃이라 무영향. **주의: missionDoneCoach는 Game.tsx 단일 정의(코치 렌더/푸터 forceOpen 공유) — 복제 금지.** 검증: ⋯ 자동오픈·미션 항목 강조·탭 시 미션 모달.
 - **도움말(튜토리얼 책)이 매 새로고침마다 자동으로 뜨던 문제**(사용자 지적): `showTutorial`가 `useState(true)`라 매 마운트 자동 오픈. → `useState(false)` + 마운트 effect에서 `lc_tutorial_seen`(localStorage) 없을 때만 1회 열고 즉시 seen 기록(인트로와 동일 패턴, 프라이빗 모드 try/catch 폴백). 이후엔 푸터 「도움말」로 수동 열람. 「새 게임」은 seen 미삭제(재시청 강요 안 함). 검증: 최초 로드 표시·seen="1", 재로드 시 미표시.
+
+## 떠돌이 상인 이벤트 (2026-08-09)
+- **컨셉**: 프린세스메이커 「떠돌이 상인」. 하루 넘길 때 낮은 확률로 등장(초상화+말풍선 모달) → [흥정한다] → 물물교환 흥정창. 희귀템 권유.
+- **⚠️ 핵심 제약**: `/api/haggle` 물물교환은 서버에서 seed로 재검증(`route.ts:59-78`) — 대상은 그 seed가 실제 파는 tier3여야 하고, payId는 그날 `deriveWorld(day)`의 그 상인 `wants`에 있어야 함(안티치트). **완전 독립 가상 seed로는 거부됨.**
+- **해법(서버 흥정 무변경)**: 떠돌이 상인 = **그날 월드의 tier3 판매 실상인 1명에 "떠돌이 스킨"**(name/title/appearance/greeting/tone/portraitFile 오버라이드). seed·materials·wants는 실상인이라 흥정 검증 그대로 통과. `/api/event-merchant`가 `deriveWorld(day)`에서 후보(거래가능 tier3 보유) 필터→`mulberry32(day*7919+101)`로 결정론 선택→`buildPublicMerchant`로 조립 후 스킨 덮음.
+- **트레이드오프**: 그날 6명 중 tier3 판매자가 없으면 이벤트 스킵(서버 null). 대부분 날은 mason(marble)·glazier(stainedglass)·junker(relic) 등으로 충족. relic/blueprint는 책 Lv3부터(그 전엔 marble/bronze/stainedglass).
+- **초상화**: 미사용 12장(각 아키타입 -5·-6) 중 general-5/6·junker-5/6 4장 풀. day-hash로 등장마다 얼굴 변화. **새 아트 0**.
+- **AI 인사**: `askText`로 떠돌이 장사꾼 말투 1문장 생성(6~80자 검증), 실패/무키 시 정적 폴백 풀. 검증서 실제 AI 생성 확인.
+- **클라**: `useGameEngine` `eventMerchant` state + `passDay`에서 `allyHash(day,11)<EVENT_MERCHANT_CHANCE(0.12)` → fetch → 표시. `acceptEventMerchant`=startBarter 재사용, `dismissEventMerchant`=닫기. 영속 제외(휘발), resetGame 정리.
+- **함정(경미)**: 트리거 날은 아침 뉴스도 같이 떠서, 이벤트 모달(z-88, 뉴스 z-40 위)은 문제없으나 [흥정한다] 후 뉴스가 비동기로 흥정창을 잠깐 덮을 수 있음(닫으면 됨). 모달 스택 기존 성질, 데모 무해.

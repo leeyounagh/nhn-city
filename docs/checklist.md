@@ -75,7 +75,7 @@
 - **Sprint 3 — 관계 반영 대사** (prompt.ts, api/haggle) ✅ 2026-07-25
   - [x] 흥정 시스템 프롬프트에 호감도(disposition) 관계 문맥 주입 → 단골 대사(AI 활용↑). 25/50/75 구간별 태도(가격은 코드 소유, 태도만 연기).
   - [~] 페르소나 캐시 — **보류**: 이름·외모가 이미 정체성 고정이라 정체성 일관 확보됨. greeting/tone 캐시는 클라↔서버 왕복 복잡도 대비 효용 낮아 스킵(필요 시 후속).
-- **Sprint 4 — 이벤트 상인** (후순위) — 남은 초상화 12장 특수 등장
+- **Sprint 4 — 이벤트 상인** ✅ 2026-08-09 — 남은 초상화 12장(general/junker -5·-6) 활용, 떠돌이 상인 랜덤 등장→물물교환 흥정. (아래 "떠돌이 상인 이벤트" 섹션 참조)
 
 ## 재활용 자산 (구 빌드에서 그대로)
 - [♻️] economy.ts — 가격·하한·티어·seed 상인·profile·호감도 수식
@@ -143,3 +143,11 @@
 - [x] 모달 상단 여백 축소 — `WorldMapModal` dialog `mt-16`→`mt-4 sm:mt-16`. 모바일 콘텐츠가 위로 올라옴(top 80→32px).
 - [x] 세로 꽉 채우기 — 모바일 dialog를 `h-[calc(100dvh-3rem)] flex-col`(데스크톱 `sm:block sm:h-auto`), WorldMap `section flex h-full flex-col`(`sm:h-auto`)·`nav flex-1`로 남는 높이를 맵이 차지(nav 524→598px). 그리드 `grid-rows-3`(1fr)이 늘어나며 노드가 세로로 벌어짐.
 - [x] 검증: 412×760(top32·nav598·오버플로X)·390×620(top32·잘림X)·900(mt-16·block·auto 복귀 회귀X), tsc/eslint 그린.
+
+## 떠돌이 상인 이벤트 (2026-08-09) → 검증: 서버 curl + playwright(데스크톱/모바일)
+- [x] `/api/event-merchant` — 그날 tier3 파는 실상인 1명을 결정론적 선택 → "떠돌이 상인" 스킨(이름·초상 풀·AI 인사) 반환. seed·materials·wants는 실상인이라 흥정 검증 통과. book Lv3 게이팅(relic/blueprint).
+- [x] 초상화 = 미사용 12장 중 general-5/6·junker-5/6 풀(day-hash로 얼굴 변화). 새 아트 불필요.
+- [x] 트리거 = `passDay` 시 `allyHash(day,11)<0.12`. 고향 하루넘기기 전용. 영속 제외(휘발).
+- [x] `EventMerchantModal`(프린세스메이커풍) — 초상화+말풍선+권유 희귀템+[흥정한다]/[돌려보낸다]. 모바일 세로·데스크톱 초상화좌+말풍선우.
+- [x] [흥정한다] → `startBarter`(기존) → 물물교환 흥정창. 서버 검증 통과(에러 0). [돌려보낸다] → 닫힘.
+- [x] 검증: day5(relic·석재)·day13(청동·판자) 등장, AI 인사 생성, 흥정 성사, bookLv1 게이팅(day2=null), 콘솔 0.
