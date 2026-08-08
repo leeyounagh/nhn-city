@@ -171,15 +171,27 @@ export function useGameEngine() {
   const [showEnding, setShowEnding] = useState(false); // 엔딩 모달 표시
   const pendingSave = useRef<SaveData | null>(null); // 디바운스 대기 중인 최신 저장 데이터 (탭 숨김 시 즉시 flush)
 
-  // 세션에 한 번만 자동 재생 (새로고침 반복 방지). sessionStorage는 SSR에 없어 마운트 후 읽는다.
+  // 인트로는 "한 번 본 사람"에겐 다시 재생하지 않는다. 진행이 IndexedDB로 영속되는 것과 정합을 위해
+  // 세션 스코프(sessionStorage) 대신 영속 스토리지(localStorage)에 seen 플래그를 둔다 → 탭/브라우저를
+  // 닫고 재방문해도 인트로가 반복되지 않는다. localStorage는 SSR에 없어 마운트 후 읽는다.
   // 페인트 직전에 판정해 게임 메인이 한 프레임 노출되는 깜빡임을 막는다.
   useLayoutEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 시스템(sessionStorage) 동기화용 정당한 마운트 1회 세팅
-    setShowIntro(!sessionStorage.getItem(INTRO_SEEN_KEY));
+    let seen = false;
+    try {
+      seen = !!localStorage.getItem(INTRO_SEEN_KEY);
+    } catch {
+      // 프라이빗 모드 등 접근 불가 → 못 본 것으로 간주(인트로 재생).
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 시스템(localStorage) 동기화용 정당한 마운트 1회 세팅
+    setShowIntro(!seen);
   }, []);
 
   const finishIntro = useCallback(() => {
-    sessionStorage.setItem(INTRO_SEEN_KEY, "1");
+    try {
+      localStorage.setItem(INTRO_SEEN_KEY, "1");
+    } catch {
+      // 저장 불가(프라이빗 모드·쿼터) 시 조용히 무시 — 이번 표시만 끈다.
+    }
     setShowIntro(false);
   }, []);
 

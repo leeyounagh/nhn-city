@@ -636,3 +636,9 @@
 - **증상**: 모바일에서 월드맵 모달 상단에 큰 빈 공간 + 세로를 못 채워 아래가 잘리는 느낌. 원인 = `WorldMapModal` dialog의 `mt-16`(64px) + WorldMap `nav` 높이가 콘텐츠 고정(세로 확장 안 함). 실측 top 80·nav 524.
 - **수정**: 모바일만 (a) `mt-16`→`mt-4`(top 80→32), (b) dialog를 `h-[calc(100dvh-3rem)] flex-col`로 화면 높이 고정 + WorldMap을 감싼 div `flex-1 min-h-0`, (c) `section flex h-full flex-col`·`nav flex-1 min-h-0`로 남는 높이를 맵이 차지. `grid-rows-3`은 Tailwind에서 `1fr`이라 nav가 커지면 3행이 균등 확장→노드가 세로로 벌어짐. SVG 길은 `viewBox 0 0 100 / preserveAspectRatio=none`이라 nav 박스에 맞춰 늘어나 정합. 결과 nav 524→598(760뷰포트). 데스크톱은 전부 `sm:`(mt-16·block·h-auto·flex-none)로 기존 상단 카드 유지(회귀 0). 검증: 412×760·390×620 오버플로/잘림 없음, 900 회귀 없음.
 - **함정 메모**: 자식을 `flex-1`로 채우려면 부모(dialog)에 **확정 높이**가 필요 → `min-h-*`가 아니라 `h-[calc(100dvh-3rem)]`. `100dvh`는 iOS 주소창 대응(§8). backdrop `p-4`+`mt-4`를 빼려고 `-3rem`.
+
+## 인트로 seen 플래그 영속화 (2026-08-08, QA 후속)
+- **증상**: 진행은 IndexedDB로 영속되는데 인트로 "본 여부"만 `sessionStorage`(`lc_intro_seen`)라, 탭/브라우저를 닫고 재방문하면 인트로가 다시 재생됨(같은 탭 새로고침은 OK). 영속 정책과 불일치 — 데모에서 심사위원이 새 탭마다 인트로부터 봐야 함.
+- **수정**(`useGameEngine.ts` `finishIntro`/마운트 `useLayoutEffect`): `sessionStorage`→`localStorage`. 프라이빗 모드/쿼터 대비 read·write 모두 try/catch(실패 시 "못 봤음"으로 폴백해 인트로 재생, 저장 실패는 조용히 무시). 마운트 시 `useLayoutEffect`로 페인트 전에 판정하는 구조는 유지(게임 메인 한 프레임 노출 방지).
+- **reset 정책**: 「새 게임」은 seen 플래그를 지우지 **않음**(리셋해도 인트로 재시청 강요 안 함 — 의도).
+- **검증(playwright)**: 첫 방문 `intro_visible=true, ls=null` / 스킵 후 `ls="1", ss=null` / 새로고침 미재생. tsc·eslint 그린.
