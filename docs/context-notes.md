@@ -616,3 +616,12 @@
   - **MerchantPanel**(`106`/`142`): 헤더에 `shrink-0`, 본문에 `min-h-0 flex-1` 추가 → 판매 물품(구매 버튼) 하단 도달 확인.
 - **iOS 정합(§8: 모달 높이 캡은 dvh)**: `vh`로 남아있던 3곳을 `dvh`로 — BuildingCodexModal `68vh→68dvh`, ClueNotebook·InventoryPanel `70vh→70dvh`. (iOS Safari에서 `vh`=주소창 숨긴 큰 뷰포트라 캡이 가시영역 초과 → 하단이 주소창 뒤로 잘리는 문제 예방.)
 - **이상 없음 확인**: HaggleDialog(직전 커밋에서 `min-h-0 flex-1` 이미 적용), MissionList·ClueNotebook·Allies·Relations·WorldMap·Inventory·PriceChart(80dvh)·News·ResetConfirm·AllyArrival/Event·Ending — 구조상 backdrop `overflow-y-auto` 또는 내부 캡+스크롤로 정상. pattern-A(`items-start pt-16~24` + backdrop 스크롤)는 이중 스크롤이나 기능 정상이라 미변경(스타일 churn 지양).
+
+## 모바일 고향맵 — 보드 공간 회복 + 터치 팬/핀치줌 (2026-08-08)
+- **증상(사용자 카톡 스샷)**: 폰에서 고향 진입 시 아이소맵이 지나치게 좁고 드래그도 안 됨.
+- **1차 가설(푸터가 범인)은 틀렸다.** 390×620 실측(`getBoundingClientRect`)으로 뒤집힘 — 세로 620 중 **헤더 104 + 인벤토리 61 + 팔레트 254 + 푸터 137**이 다 먹어 `flex-1` 보드가 **2px**. 즉 진짜 범인은 **건물 팔레트(254=뷰포트 41%)와 헤더(104)**. 교훈: "좁다"는 체감을 특정 위젯 탓으로 넘겨짚지 말고 요소별 실측부터. 사용자에게 데이터로 재보고 후 방향(제자리 압축) 재승인받음.
+- **드래그 안 됨 = 의도적 마우스 전용이었다.** `useIsoCamera.startPan`·`IsoCityMap.startBuildingDrag`가 `pointerType!=="mouse"` return, 보드 `touch-none`. 주석에 "이 데모는 데스크톱 기준". 폰에선 맵이 (0,0) 고정.
+- **터치 팬/핀치줌**(`useIsoCamera.ts`): `startPan`에서 pointerId를 `pointersRef`(Map)에 등록 — 1개=팬, 2개=핀치. 팬 가드 제거해 마우스·터치 공통. 핀치는 시작 스냅샷(두 손가락 거리·중점·그때 카메라)을 `pinchRef`에 잡고 거리비로 scale, 중점을 월드 고정점 유지. `touch-none`은 **유지**해야 브라우저 기본 제스처가 커스텀 팬/핀치를 안 가로챔. 건물 드래그의 마우스 가드는 **그대로 둠**(터치는 탭-배치가 정석). `pointercancel`도 up으로 처리. 탭/팬 구분은 기존 `DRAG_THRESHOLD`(6px)·`didPanRef` 재사용 → 탭-배치 회귀 없음(실측 0→1채).
+- **제자리 압축**(팔레트 접기 대신 사용자가 A안 선택): 헤더 `flex-wrap`→`flex-nowrap`+제목 `truncate`+힌트 `hidden sm:inline`(팔레트 라벨과 중복), 카테고리 탭 `flex-wrap`→`overflow-x-auto`(한 줄 가로 스크롤·`shrink-0 whitespace-nowrap`), 인벤토리 설명 `hidden sm:inline`+여백↓, 팔레트 카드 모바일만 `h-10`(sm:h-12)·`min-w-[84px]`·`py-1.5`. 결과 보드 2→126px(헤더 104→28, 팔레트 254→186). 데스크톱은 전부 `sm:` 복원이라 회귀 없음.
+- **푸터 보조 오버플로**(`GameFooter.tsx`): 보조 6개(마을=+창고)를 배열로 공유 — 데스크톱은 `hidden md:contents`로 인라인 유지, 모바일은 `MoreMenu`(⋯ 버튼+위로 뜨는 팝업, 바깥 클릭 닫힘). 골드·일차·수입·인구·책·이동·하루넘기기는 상시 노출. (참고: 오버플로만으론 보드 공간에 큰 영향 없었음 — 위 팔레트/헤더 압축이 핵심.)
+- **CoachMark 재배선 함정**(`CoachMark.tsx`): 코치는 `document.querySelector`로 **첫 매칭**을 잡음. `data-coach="mission-list-btn"`을 데스크톱 인라인 미션 버튼과 모바일 ⋯ 둘 다에 달면, `display:none`인 쪽(rect 0,0)이 먼저 잡혀 링이 화면 좌상단에 박힘. → `firstVisible()`(= `getClientRects().length>0`)로 **보이는 요소만** 고르게 보강. 범용 프리미티브 개선이라 반응형 중복 target 전반에 안전.
