@@ -661,3 +661,9 @@
 - **자동 반영**: 미션 부족량 라벨(계산식), 건물 도감(`BuildingCodexModal`, `Object.entries(b.requires)`), 보드 요구 배지·배치패널 슬롯 모두 `b.requires`에서 동적 렌더 → 하드코딩 없음. 검증: 배치 배지 "0/5" 단일 슬롯(석재 없음).
 - **문서 동기**: `경제모델.md` §기초T0 오두막 표기 `wood5`로 수정. 2번째 이후 건물·가격(×1.30)·전체 밸런스는 미변경(저위험).
 - **⚠️ 후속 버그(사용자 지적)**: 온보딩 미션(`missions.ts`)이 오두막 요구량을 `HUT_WOOD=5`/`HUT_STONE=3` **별도 하드코딩**하고 있어, game-data만 바꾸니 튜토리얼만 "나무5·돌3"로 남았다(배치/도감/배지는 정상). → `HUT_REQ = BUILDINGS.find(hut).requires`에서 파생하도록 수정(`HUT_WOOD=req.wood`, `HUT_STONE=req.stone??0`). go-buy 힌트도 부족 자재만 언급(shortfall 기반)하게 동적화. **교훈: 요구 자재 같은 게임데이터는 반드시 BUILDINGS 단일 출처에서 읽어라 — 로직에 상수로 복제하면 desync.** 검증: 새 게임 코치 라벨 "부족한 나무 5개를 사러 떠나라"(돌 없음), 힌트 "나무는 삼목골에 많다".
+
+## 2차 QA 후속 수정 4건 (2026-08-08)
+- **엔딩 통계 라벨 대비**(`EndingModal`): `text-stone-500`→`text-stone-400`.
+- **아이소맵 "전체 보기"**(`useIsoCamera.fitTo` + IsoCityMap 헤더 버튼): 배치물 타일 월드바운드 계산 → 여백 15%로 fit(스프라이트 상단 솟음 TH*3 여유·중심 위로 보정), fit 전용 최소배율 0.25(수동 줌 버튼은 0.5~3 유지). 배치 0이면 원점 중앙, 배치물 있을 때만 버튼 노출. 검증: 60채 120%→64%, 화면 내 57→60채. 부수효과: 리사이즈/시트 토글로 보드 높이 바뀔 때 중심 유지(prevViewportRef 보정과 결합).
+- **모바일 온보딩 완료 코치가 미션 강조 못 하던 문제**: 모바일 미션은 닫힌 ⋯ 팝업 안(미렌더)이라 스포트라이트 불가. → `data-coach="mission-list-btn"`을 ⋯ 트리거가 아니라 **메뉴 항목**에 부여 + 완료 코치 조건(`missionDoneCoach`)을 `Game.tsx` 한 곳에서 계산해 `GameFooter→MoreMenu.forceOpen`으로 전달 → 코치 뜨는 순간 ⋯ 강제 오픈 → CoachMark `firstVisible`이 보이는 미션 항목 타깃. 탭→openMissions→showMissions=true→forceOpen 해제→메뉴 닫힘+코치 종료. 데스크톱은 인라인 미션 버튼(md:contents)이 타깃이라 무영향. **주의: missionDoneCoach는 Game.tsx 단일 정의(코치 렌더/푸터 forceOpen 공유) — 복제 금지.** 검증: ⋯ 자동오픈·미션 항목 강조·탭 시 미션 모달.
+- **도움말(튜토리얼 책)이 매 새로고침마다 자동으로 뜨던 문제**(사용자 지적): `showTutorial`가 `useState(true)`라 매 마운트 자동 오픈. → `useState(false)` + 마운트 effect에서 `lc_tutorial_seen`(localStorage) 없을 때만 1회 열고 즉시 seen 기록(인트로와 동일 패턴, 프라이빗 모드 try/catch 폴백). 이후엔 푸터 「도움말」로 수동 열람. 「새 게임」은 seen 미삭제(재시청 강요 안 함). 검증: 최초 로드 표시·seen="1", 재로드 시 미표시.
