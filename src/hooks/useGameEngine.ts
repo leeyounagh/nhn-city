@@ -41,6 +41,7 @@ import { loadSave, writeSave, clearSave, SAVE_VERSION, type SaveData } from "@/l
 
 const INTRO_SEEN_KEY = "lc_intro_seen";
 const TUTORIAL_SEEN_KEY = "lc_tutorial_seen"; // 도움말(튜토리얼 책) 자동 표시는 최초 1회만 (매 새로고침 반복 방지)
+const EVENT_MERCHANT_CHANCE = 0.12; // 하루 넘길 때 떠돌이 상인 등장 확률
 
 // 흥정 종료 시 그 상인과의 호감도·신표 수령을 기억에 저장한다(seed=정체성 키). 대화 없이 닫으면 유지.
 function rememberMerchant(s: GameState): Record<number, MerchantMemory> {
@@ -161,6 +162,8 @@ export function useGameEngine() {
   const [alliesSeen, setAlliesSeen] = useState<ReadonlySet<string>>(() => new Set()); // 합류 연출 본 지인
   const [showAllies, setShowAllies] = useState(false); // 지인 명부 모달
   const [allyEvent, setAllyEvent] = useState<AllyEventView | null>(null); // 조력 이벤트 모달
+  // 떠돌이 상인 이벤트 — 등장 모달용. seed·rareId·payId는 서버가 그날 실상인에서 결정(흥정 검증 통과).
+  const [eventMerchant, setEventMerchant] = useState<{ merchant: PublicMerchant; rareId: MaterialId; payId: MaterialId } | null>(null);
   // null = 판정 전(첫 프레임) · true = 재생 · false = 종료. 판정 전엔 검은 커버로 게임 노출을 막는다.
   const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const [news, setNews] = useState<NewsWithProduction | null>(null); // 오늘 아침 시황 (모달)
@@ -265,6 +268,7 @@ export function useGameEngine() {
     setLastNewsDay(1);
     setEndingSeen(false);
     setShowEnding(false);
+    setEventMerchant(null);
     setNews(null);
     setAllyEvent(null);
     setShowResetConfirm(false);
@@ -471,7 +475,22 @@ export function useGameEngine() {
         .catch(() => {})
         .finally(() => setNewsPending(false));
     }
-  }, [state.day, state.placements, busy, lastNewsDay, pop, applyAllyEvent]);
+    // 떠돌이 상인 이벤트 — 낮은 확률로 등장(초상화 모달 → 흥정). 그날 tier3 파는 상인이 없으면 서버가 null 반환.
+    if (allyHash(newDay, 11) < EVENT_MERCHANT_CHANCE) {
+      fetch("/api/event-merchant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ day: newDay, bookLevel, recentBuys: state.recentBuys }),
+      })
+        .then((r) => r.json())
+        .then((res: { merchant: PublicMerchant | null; rareId?: MaterialId; payId?: MaterialId }) => {
+          if (res.merchant && res.rareId && res.payId) {
+            setEventMerchant({ merchant: res.merchant, rareId: res.rareId, payId: res.payId });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [state.day, state.placements, state.recentBuys, busy, lastNewsDay, pop, bookLevel, applyAllyEvent]);
 
   const startHaggle = useCallback((merchant: PublicMerchant, materialId: MaterialId) => {
     const mat = merchant.materials.find((x) => x.id === materialId);
@@ -529,6 +548,14 @@ export function useGameEngine() {
     },
     [],
   );
+
+  // 떠돌이 상인 [흥정한다] → 그 상인과 물물교환 흥정 시작(기존 startBarter 재사용). [돌려보낸다] → 그냥 닫기.
+  const acceptEventMerchant = useCallback(() => {
+    if (!eventMerchant) return;
+    startBarter(eventMerchant.merchant, eventMerchant.rareId, eventMerchant.payId);
+    setEventMerchant(null);
+  }, [eventMerchant, startBarter]);
+  const dismissEventMerchant = useCallback(() => setEventMerchant(null), []);
 
   const sendUtterance = useCallback(async (text: string) => {
     const m = state.merchant;
@@ -862,6 +889,9 @@ export function useGameEngine() {
     setShowAllies,
     allyEvent,
     clearAllyEvent,
+    eventMerchant,
+    acceptEventMerchant,
+    dismissEventMerchant,
     next,
     invCount,
     travelTo,

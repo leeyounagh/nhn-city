@@ -8,6 +8,7 @@ import { IntroCutscene } from "@/components/IntroCutscene";
 import { NewsModal } from "@/components/game/modals/NewsModal";
 import { RelationsModal } from "@/components/game/modals/RelationsModal";
 import { WorldMapModal } from "@/components/game/modals/WorldMapModal";
+import { EventMerchantModal } from "@/components/game/modals/EventMerchantModal";
 import { Tutorial } from "@/components/game/modals/Tutorial";
 import { MissionListModal } from "@/components/game/modals/MissionListModal";
 import { PriceChartModal } from "@/components/game/modals/PriceChartModal";
@@ -55,6 +56,9 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
     setShowAllies,
     allyEvent,
     clearAllyEvent,
+    eventMerchant,
+    acceptEventMerchant,
+    dismissEventMerchant,
     showIntro,
     setShowIntro,
     hydrated,
@@ -120,6 +124,17 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
       {showAllies && <AlliesModal population={population} onClose={() => setShowAllies(false)} />}
 
       {allyEvent && <AllyEventModal ally={allyEvent.ally} label={allyEvent.label} onClose={clearAllyEvent} />}
+
+      {/* 떠돌이 상인 이벤트 — 등장 모달. [흥정한다] → 물물교환 흥정창. */}
+      {eventMerchant && (
+        <EventMerchantModal
+          merchant={eventMerchant.merchant}
+          rareId={eventMerchant.rareId}
+          payId={eventMerchant.payId}
+          onAccept={acceptEventMerchant}
+          onDismiss={dismissEventMerchant}
+        />
+      )}
 
       {/* 지인 합류 연출 — 인구 임계를 넘긴 미확인 지인이 있으면(인트로 종료 후). 최상위. */}
       {pendingAlly && showIntro === false && (
