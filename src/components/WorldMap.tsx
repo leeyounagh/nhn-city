@@ -37,19 +37,19 @@ export function WorldMap({
   onTravel: (dest: LocationId) => void;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-lg border border-stone-700/60 bg-stone-950/60 p-4">
+    <section className="relative flex h-full flex-col overflow-hidden rounded-lg border border-stone-700/60 bg-stone-950/60 p-4 sm:h-auto">
       {/* 안개 + 희미한 그리드 (지도 느낌) */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(120,113,108,0.10),transparent_70%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:34px_34px] opacity-[0.04]" />
 
-      <div className="relative mb-3 flex items-center justify-between">
+      <div className="relative mb-3 flex shrink-0 items-center justify-between">
         <h2 className="font-display flex items-center gap-1.5 text-base font-semibold tracking-wide text-stone-100">
           <GameIcon name="compass" className="h-5 w-5 text-amber-400" /> 월드맵
         </h2>
         <span className="text-xs text-stone-500">지역을 눌러 이동 (이동일수만큼 하루가 흐른다)</span>
       </div>
 
-      <nav aria-label="월드맵 지역 이동" className="relative grid grid-cols-3 grid-rows-3 gap-2 py-2 sm:gap-3">
+      <nav aria-label="월드맵 지역 이동" className="relative grid min-h-0 flex-1 grid-cols-3 grid-rows-3 gap-2 py-2 sm:flex-none sm:gap-3">
         {/* 중앙 고향 → 네 모서리로 뻗는 길. 굵은 길바닥 + 은은히 빛나는 금색 점선. */}
         <svg
           aria-hidden

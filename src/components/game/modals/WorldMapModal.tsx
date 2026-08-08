@@ -31,10 +31,11 @@ export function WorldMapModal({
         aria-modal="true"
         aria-label="월드맵"
         tabIndex={-1}
-        className="mt-16 w-full max-w-3xl focus:outline-none"
+        // 모바일: 상단 여백 최소 + 화면 높이를 꽉 채우는 세로 플렉스(맵이 남는 공간을 차지). 데스크톱은 기존 중앙 상단 카드.
+        className="mt-4 flex h-[calc(100dvh-3rem)] w-full max-w-3xl flex-col focus:outline-none sm:mt-16 sm:block sm:h-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-2 flex justify-end">
+        <div className="mb-2 flex shrink-0 justify-end">
           <button
             onClick={onClose}
             aria-label="닫기"
@@ -43,7 +44,9 @@ export function WorldMapModal({
             ✕
           </button>
         </div>
-        <WorldMap location={location} homeIcon={homeIconId} homeName={homeName} busy={busy} onTravel={onTravel} />
+        <div className="min-h-0 flex-1 sm:flex-none">
+          <WorldMap location={location} homeIcon={homeIconId} homeName={homeName} busy={busy} onTravel={onTravel} />
+        </div>
       </div>
     </div>
   );
