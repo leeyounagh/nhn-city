@@ -68,7 +68,7 @@ export function IsoCityMap({
   // 모바일에서 팔레트를 보일지 — 수동으로 펼쳤거나 온보딩이 강제할 때. 데스크톱은 아래 래퍼가 항상 표시.
   const paletteVisible = buildOpen || forcePaletteOpen;
 
-  const { scale, viewport, boardAreaRef, zoomTo, startPan, consumePanClick, worldToScreen, screenToTile, visibleTileRange } =
+  const { scale, viewport, boardAreaRef, zoomTo, fitTo, startPan, consumePanClick, worldToScreen, screenToTile, visibleTileRange } =
     useIsoCamera();
   const dragRef = useRef<DragRef | null>(null);
   const didDragRef = useRef(false);
@@ -398,6 +398,16 @@ export function IsoCityMap({
         {/* 조작 힌트는 팔레트 라벨과 중복 → 좁은 모바일에선 숨겨 헤더를 한 줄로 유지한다. */}
         <span className="hidden text-xs text-stone-400 sm:inline">건물을 끌어다(또는 골라 탭) 빈 터에 놓고, 자재를 끌어다(또는 터를 눌러) 채운다</span>
         <div className="ml-auto flex shrink-0 items-center gap-1">
+          {state.placements.length > 0 && (
+            <button
+              type="button"
+              title="전체 보기"
+              onClick={() => fitTo(state.placements.map((p) => ({ x: p.x, y: p.y })))}
+              className="h-7 rounded border border-stone-600 px-2 text-xs text-stone-300 transition hover:bg-stone-800"
+            >
+              전체
+            </button>
+          )}
           <ZoomBtn label="－" onClick={() => zoomTo(Math.max(0.5, +(scale - 0.2).toFixed(2)))} />
           <span className="w-10 text-center text-xs text-stone-400">{Math.round(scale * 100)}%</span>
           <ZoomBtn label="＋" onClick={() => zoomTo(Math.min(3, +(scale + 0.2).toFixed(2)))} />

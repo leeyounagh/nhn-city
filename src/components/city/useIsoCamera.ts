@@ -114,6 +114,33 @@ export function useIsoCamera() {
     setScale(nz);
   };
 
+  // 전체 보기: 주어진 타일들이 모두 뷰포트에 들어오도록 배율·카메라를 맞춘다(큰 도시 한눈에).
+  // 스프라이트가 타일 위로 솟으므로 상단 여유(TH*3)를 더 준다. 배치가 없으면 원점 중앙 기본값.
+  const fitTo = (tiles: { x: number; y: number }[]) => {
+    if (viewport.w <= 0 || viewport.h <= 0) return;
+    if (tiles.length === 0) {
+      setScale(1.2);
+      setPan({ x: viewport.w / 2, y: viewport.h / 2 });
+      return;
+    }
+    let minWx = Infinity, maxWx = -Infinity, minWy = Infinity, maxWy = -Infinity;
+    for (const t of tiles) {
+      const { wx, wy } = worldPos(t.x, t.y);
+      if (wx < minWx) minWx = wx;
+      if (wx > maxWx) maxWx = wx;
+      if (wy < minWy) minWy = wy;
+      if (wy > maxWy) maxWy = wy;
+    }
+    const contentW = maxWx - minWx + TW * 2; // 타일 폭 여유
+    const contentH = maxWy - minWy + TH * 2 + TH * 3; // 아래 타일 + 위로 솟는 스프라이트 여유
+    const margin = 0.85; // 가장자리 15% 여백
+    const nz = Math.min(3, Math.max(0.25, +Math.min((viewport.w * margin) / contentW, (viewport.h * margin) / contentH).toFixed(3)));
+    const cWx = (minWx + maxWx) / 2;
+    const cWy = (minWy + maxWy) / 2 - TH * 1.5; // 스프라이트가 위로 솟는 만큼 중심을 살짝 위로
+    setScale(nz);
+    setPan({ x: viewport.w / 2 - cWx * nz, y: viewport.h / 2 - cWy * nz });
+  };
+
   // 보드 배경을 누르면 팬 시작점을 기록한다(마우스·터치 공통). 손가락 2개째가 닿으면 핀치줌으로 전환.
   const startPan = (e: React.PointerEvent) => {
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -197,6 +224,7 @@ export function useIsoCamera() {
     viewport,
     boardAreaRef,
     zoomTo,
+    fitTo,
     startPan,
     consumePanClick,
     worldToScreen,

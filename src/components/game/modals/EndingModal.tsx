@@ -58,7 +58,7 @@ export function EndingModal({
           <div className="mt-5 grid grid-cols-3 gap-2">
             {stats.map((s) => (
               <div key={s.label} className="rounded-lg border border-stone-700/60 bg-stone-800/40 px-2 py-2">
-                <p className="text-[10px] uppercase tracking-wide text-stone-500">{s.label}</p>
+                <p className="text-[10px] uppercase tracking-wide text-stone-400">{s.label}</p>
                 <p className="text-sm font-bold tabular-nums text-amber-200">{s.value}</p>
               </div>
             ))}
