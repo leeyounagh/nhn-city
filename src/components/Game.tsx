@@ -43,6 +43,7 @@ export function Game() {
             onReclaim={reclaim}
             onMove={moveBuilding}
             onRotate={rotateBuilding}
+            forcePaletteOpen={engine.mission?.objective.coach === "mission-palette-hut"}
           />
         </main>
       ) : (

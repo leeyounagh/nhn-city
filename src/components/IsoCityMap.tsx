@@ -49,6 +49,7 @@ export function IsoCityMap({
   onReclaim,
   onMove,
   onRotate,
+  forcePaletteOpen = false,
 }: {
   state: GameState;
   onPlace: (buildingId: string, x: number, y: number) => void;
@@ -57,11 +58,15 @@ export function IsoCityMap({
   onReclaim: (placementId: string) => void;
   onMove: (placementId: string, x: number, y: number) => void;
   onRotate: (placementId: string) => void;
+  forcePaletteOpen?: boolean; // 온보딩(오두막 배치 안내) 중엔 모바일에서도 팔레트를 강제로 연다.
 }) {
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
   const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null); // 이동 모드: 옮기는 중인 건물 id
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [buildOpen, setBuildOpen] = useState(false); // 모바일 건설 시트 펼침 여부(데스크톱은 항상 펼침)
+  // 모바일에서 팔레트를 보일지 — 수동으로 펼쳤거나 온보딩이 강제할 때. 데스크톱은 아래 래퍼가 항상 표시.
+  const paletteVisible = buildOpen || forcePaletteOpen;
 
   const { scale, viewport, boardAreaRef, zoomTo, startPan, consumePanClick, worldToScreen, screenToTile, visibleTileRange } =
     useIsoCamera();
@@ -161,14 +166,13 @@ export function IsoCityMap({
   const placingBuilding = selectedBuilding !== null || drag?.kind === "building";
 
   const startBuildingDrag = (e: React.PointerEvent, buildingId: string) => {
-    if (e.pointerType !== "mouse") return; // 터치는 네이티브 스크롤 + 탭 선택으로 배치
     if (!checkPlace(buildingId, state).canPlace) return;
     didDragRef.current = false;
     dragRef.current = { kind: "building", id: buildingId, startX: e.clientX, startY: e.clientY, moved: false };
   };
-  // 팔레트 스트립을 마우스로 누르면 좌우 드래그 스크롤 시작점을 기록한다.
+  // 팔레트 스트립을 누르면 좌우 드래그 스크롤 시작점을 기록한다(마우스·터치 공통).
+  // 카드가 touch-none이라 네이티브 스크롤은 없고, 여기서 방향을 판정해 가로=스크롤 / 세로=건물 드래그로 나눈다.
   const stripPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== "mouse") return;
     scrollDragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -185,6 +189,7 @@ export function IsoCityMap({
     }
     setSelectedBuilding((cur) => (cur === buildingId ? null : buildingId));
     setSelectedPlacementId(null);
+    if (!forcePaletteOpen) setBuildOpen(false); // 모바일: 건물 고르면 시트 접어 맵 최대화(데스크톱은 무영향)
   };
   const startMaterialDrag = (e: React.PointerEvent, materialId: string) => {
     didDragRef.current = false;
@@ -427,14 +432,27 @@ export function IsoCityMap({
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.5)_100%)]" />
       </div>
 
-      {/* 건물 팔레트 */}
-      <BuildingPalette
-        state={state}
-        selectedBuilding={selectedBuilding}
-        onCardPointerDown={startBuildingDrag}
-        onCardClick={clickBuilding}
-        onStripPointerDown={stripPointerDown}
-      />
+      {/* 건물 팔레트 — 데스크톱 상시 노출, 모바일은 접이식 시트(맵에 공간 양보). */}
+      <div className="shrink-0">
+        {/* 모바일 전용 펼침/접힘 핸들 */}
+        <button
+          type="button"
+          onClick={() => setBuildOpen((v) => !v)}
+          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-stone-700/60 bg-stone-900/60 py-1.5 text-xs font-semibold text-amber-200 transition hover:border-amber-600/50 sm:hidden"
+        >
+          <GameIcon name="hammer" className="h-4 w-4 text-amber-400/80" /> 건설할 건물 {paletteVisible ? "▾" : "▴"}
+        </button>
+        {/* 본체 — 모바일은 열렸을 때만, 데스크톱(sm+)은 항상 */}
+        <div className={paletteVisible ? "mt-1.5 sm:mt-0" : "hidden sm:block"}>
+          <BuildingPalette
+            state={state}
+            selectedBuilding={selectedBuilding}
+            onCardPointerDown={startBuildingDrag}
+            onCardClick={clickBuilding}
+            onStripPointerDown={stripPointerDown}
+          />
+        </div>
+      </div>
 
       {/* 선택한 건물 모달 — 자재 투입 + 이동·회전·삭제 */}
       {selectedPlacement && (
