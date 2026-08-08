@@ -2,7 +2,7 @@
 // 선형 스텝이 아니라 상태 기계(resolve) — 왕복(마을↔고향)·부분 구매·다회차에도 되돌아가지 않는다.
 // 확장: MISSIONS 배열에 resolve를 가진 항목을 추가하면 새 미션이 붙는다.
 import type { GameState } from "./game-state";
-import { TOWNS } from "./game-data";
+import { BUILDINGS, TOWNS } from "./game-data";
 import type { MaterialId, TownId } from "@/types/game";
 
 // coach 대상을 정할 때 참고하는 실행 컨텍스트(어떤 모달이 열렸는지 등).
@@ -30,10 +30,12 @@ export function townForMaterial(id: MaterialId): TownId | undefined {
   return TOWNS.find((t) => t.specialMaterials.includes(id))?.id;
 }
 
-const HUT_WOOD = 5;
-const HUT_STONE = 3;
+// 오두막 요구 자재는 game-data(BUILDINGS)를 단일 출처로 삼는다 — 여기서 재하드코딩하면 온보딩만 어긋난다.
+const HUT_REQ = BUILDINGS.find((b) => b.id === "hut")?.requires ?? {};
+const HUT_WOOD = HUT_REQ.wood ?? 0;
+const HUT_STONE = HUT_REQ.stone ?? 0;
 
-// "첫 집 짓기" — 나무5·돌3으로 오두막 완공까지 상태 기계로 안내한다.
+// "첫 집 짓기" — 오두막 완공까지 상태 기계로 안내한다(요구 자재는 BUILDINGS 기준).
 function resolveFirstHut(
   s: GameState,
   acked: ReadonlySet<string>,
@@ -103,7 +105,7 @@ function resolveFirstHut(
       return {
         id: "go-buy",
         label: `부족한 ${shortQty}를 사러 떠나라`,
-        hint: "나무는 삼목골, 돌은 무쇠고개에 많다. 상인 자리는 매일 바뀐다.",
+        hint: `${[shortfall.wood > 0 ? "나무는 삼목골" : null, shortfall.stone > 0 ? "돌은 무쇠고개" : null].filter(Boolean).join(", ")}에 많다. 상인 자리는 매일 바뀐다.`,
         coach: ctx.worldMapOpen ? buyTown : "mission-worldmap",
       };
     // 방어: 오두막 있고 채울·살 것 없는데 미완공 → 채우기 유도.
