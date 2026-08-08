@@ -22,6 +22,7 @@ export function useIsoCamera() {
   const panMovedRef = useRef(false);
   const didPanRef = useRef(false); // 팬 뒤 따라오는 타일 click(배치/선택) 억제용
   const panInitRef = useRef(false);
+  const prevViewportRef = useRef({ w: 0, h: 0 }); // 직전 뷰포트 — 리사이즈 시 중심 유지 보정용
   // 활성 포인터 추적 — 손가락 2개면 핀치줌, 1개면 팬. 마우스는 항상 1개라 팬만.
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   // 핀치 시작 스냅샷(두 손가락 초기 거리·중점·그때의 카메라). 줌은 이 중점을 월드 고정점으로 유지.
@@ -38,12 +39,19 @@ export function useIsoCamera() {
     return () => ro.disconnect();
   }, []);
 
-  // 최초 측정 시 원점 타일(0,0)을 뷰포트 중앙에 오도록 카메라를 놓는다 (1회).
+  // 뷰포트가 정해지면 카메라를 맞춘다. 최초 1회는 원점(0,0)을 중앙에 두고, 이후 리사이즈(모바일
+  // 회전·창 크기 변경 등) 때는 "화면 중앙에 있던 월드점"을 계속 중앙에 유지한다 → 배치한 건물이
+  // 화면 밖으로 사라지지 않는다. 중심 고정 공식: newPan = pan + (Δ뷰포트)/2.
   useEffect(() => {
-    if (!panInitRef.current && viewport.w > 0 && viewport.h > 0) {
+    if (viewport.w <= 0 || viewport.h <= 0) return;
+    const prev = prevViewportRef.current;
+    if (!panInitRef.current) {
       panInitRef.current = true;
       setPan({ x: viewport.w / 2, y: viewport.h / 2 });
+    } else if (prev.w > 0 && (prev.w !== viewport.w || prev.h !== viewport.h)) {
+      setPan((p) => ({ x: p.x + (viewport.w - prev.w) / 2, y: p.y + (viewport.h - prev.h) / 2 }));
     }
+    prevViewportRef.current = { w: viewport.w, h: viewport.h };
   }, [viewport]);
 
   // 배경을 끌면 카메라(pan)를 그 방향으로 옮긴다 → 타일 평면이 드래그 방향으로 밀린다.
