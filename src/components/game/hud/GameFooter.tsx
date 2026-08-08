@@ -111,6 +111,25 @@ function MoreMenu({
   );
 }
 
+// 마법의 책(레벨·다음 임계) 버튼. 데스크톱은 자원 칩 옆, 모바일은 액션 줄 맨 앞에 재사용된다.
+function BookButton({ bookLevel, next, onOpen }: { bookLevel: number; next: { need: number } | null; onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      className="flex items-center gap-1.5 rounded-md border border-sky-900/50 bg-sky-950/30 px-2.5 py-1 shadow-sm transition hover:border-sky-600/60 hover:bg-sky-900/40"
+    >
+      <GameIcon name="spellBook" className="h-4 w-4 text-sky-300" />
+      <span className="hidden text-[10px] font-medium uppercase tracking-wide text-sky-500/80 sm:inline">마법의 책</span>
+      <span className="text-sm font-bold text-sky-300">Lv.{bookLevel}</span>
+      {bookLevel >= MAX_BOOK_LEVEL ? (
+        <span className="text-[10px] font-semibold text-amber-300">최대</span>
+      ) : (
+        next && <span className="hidden text-[10px] text-stone-500 sm:inline">· 다음 {next.need}</span>
+      )}
+    </button>
+  );
+}
+
 export function GameFooter({ engine }: { engine: GameEngine }) {
   const {
     state,
@@ -155,21 +174,16 @@ export function GameFooter({ engine }: { engine: GameEngine }) {
           <ResChip label="일차" value={`${state.day}일`} />
           <ResChip label="수입" value={`+${income}`} accent="text-emerald-300" icon="income" />
           <ResChip label="인구" value={`${population}`} accent="text-sky-300" icon="people" />
-          <button
-            onClick={() => setShowBook(true)}
-            className="flex items-center gap-1.5 rounded-md border border-sky-900/50 bg-sky-950/30 px-2.5 py-1 shadow-sm transition hover:border-sky-600/60 hover:bg-sky-900/40"
-          >
-            <GameIcon name="spellBook" className="h-4 w-4 text-sky-300" />
-            <span className="hidden text-[10px] font-medium uppercase tracking-wide text-sky-500/80 sm:inline">마법의 책</span>
-            <span className="text-sm font-bold text-sky-300">Lv.{bookLevel}</span>
-            {bookLevel >= MAX_BOOK_LEVEL ? (
-              <span className="text-[10px] font-semibold text-amber-300">최대</span>
-            ) : (
-              next && <span className="hidden text-[10px] text-stone-500 sm:inline">· 다음 {next.need}</span>
-            )}
-          </button>
+          {/* 데스크톱: 책은 자원 칩 옆. 모바일에선 아래 액션 줄 맨 앞으로 옮겨 한 줄로 묶는다. */}
+          <div className="hidden sm:flex">
+            <BookButton bookLevel={bookLevel} next={next} onOpen={() => setShowBook(true)} />
+          </div>
         </div>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:ml-auto">
+          {/* 모바일 전용: 책을 이동/하루넘기기/⋯ 앞에 둬 한 줄로 묶는다(마법의 책 오른쪽에 액션). */}
+          <div className="flex sm:hidden">
+            <BookButton bookLevel={bookLevel} next={next} onOpen={() => setShowBook(true)} />
+          </div>
           {/* 메인 액션 — 색으로 위계. 하루 넘기기(주)=금색, 이동=stone. 모바일은 아이콘만. */}
           <button
             data-coach="mission-worldmap"
