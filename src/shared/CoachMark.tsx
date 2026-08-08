@@ -18,6 +18,14 @@ function scrollableAncestor(el: HTMLElement | null): HTMLElement | null {
   return null;
 }
 
+// 선택자에 매칭되는 첫 "보이는" 요소를 고른다. 같은 data-coach가 반응형으로 데스크톱/모바일 두 곳에
+// 달릴 수 있어(예: 인라인 미션 버튼 vs 모바일 ⋯ 버튼), display:none인 쪽(getClientRects 빈 배열)을
+// 건너뛰어야 rect 0,0으로 링이 화면 좌상단에 박히는 것을 막는다.
+function firstVisible(selector: string): HTMLElement | null {
+  const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
+  return els.find((el) => el.getClientRects().length > 0) ?? els[0] ?? null;
+}
+
 export function CoachMark({
   targetSelector,
   missionTitle,
@@ -49,7 +57,7 @@ export function CoachMark({
     let lockedScroller: HTMLElement | null = null;
     let prevOverflow = "";
     const tick = () => {
-      const el = targetSelector ? (document.querySelector(targetSelector) as HTMLElement | null) : null;
+      const el = targetSelector ? firstVisible(targetSelector) : null;
       if (el) {
         if (!scrolledIntoView) {
           scrolledIntoView = true;
