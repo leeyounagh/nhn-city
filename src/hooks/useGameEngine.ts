@@ -40,6 +40,7 @@ import {
 import { loadSave, writeSave, clearSave, SAVE_VERSION, type SaveData } from "@/lib/persist";
 
 const INTRO_SEEN_KEY = "lc_intro_seen";
+const TUTORIAL_SEEN_KEY = "lc_tutorial_seen"; // 도움말(튜토리얼 책) 자동 표시는 최초 1회만 (매 새로고침 반복 방지)
 
 // 흥정 종료 시 그 상인과의 호감도·신표 수령을 기억에 저장한다(seed=정체성 키). 대화 없이 닫으면 유지.
 function rememberMerchant(s: GameState): Record<number, MerchantMemory> {
@@ -146,7 +147,7 @@ export function useGameEngine() {
   const [state, setState] = useState<GameState>(initialState);
   const [notice, setNotice] = useState<string>("퇴직기사와 함께 국보 「마법의 책」을 품고 폐허가 된 고향으로 돌아왔다. 소문을 읽어 상인을 찾고, 거래로 도시를 다시 세워라.");
   const [busy, setBusy] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(false); // 자동 표시는 아래 마운트 effect에서 "최초 1회"만 켠다
   const [showNotebook, setShowNotebook] = useState(false);
   const [showBook, setShowBook] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
@@ -184,6 +185,22 @@ export function useGameEngine() {
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 시스템(localStorage) 동기화용 정당한 마운트 1회 세팅
     setShowIntro(!seen);
+  }, []);
+
+  // 도움말(튜토리얼 책)은 최초 1회만 자동으로 연다. 이후엔 푸터 「도움말」 버튼으로 수동 열람.
+  // 매 새로고침마다 자동으로 뜨던 문제 수정(영속 플래그, 인트로와 동일 패턴).
+  useEffect(() => {
+    let show = false;
+    try {
+      if (!localStorage.getItem(TUTORIAL_SEEN_KEY)) {
+        show = true;
+        localStorage.setItem(TUTORIAL_SEEN_KEY, "1");
+      }
+    } catch {
+      show = true; // 프라이빗 모드 등 접근 불가 → 이번엔 한 번 보여준다(폴백).
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 시스템(localStorage) 동기화용 마운트 1회 세팅
+    setShowTutorial(show);
   }, []);
 
   const finishIntro = useCallback(() => {
