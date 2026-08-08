@@ -378,9 +378,9 @@ export function IsoCityMap({
 
   return (
     <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-stone-700 bg-stone-900/60 p-3">
-      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2">
-        <h2 className="font-display flex items-center gap-1.5 text-base font-bold text-stone-100">
-          <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-md border border-stone-600/50 bg-stone-950/50">
+      <div className="mb-2 flex shrink-0 flex-nowrap items-center gap-2">
+        <h2 className="font-display flex min-w-0 items-center gap-1.5 text-base font-bold text-stone-100">
+          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-md border border-stone-600/50 bg-stone-950/50">
             <img
               src={buildingSprite(homeIcon(state.placements))}
               alt=""
@@ -388,10 +388,11 @@ export function IsoCityMap({
               className="h-6 w-6 object-contain"
             />
           </span>
-          {homeStage(state.placements).name}
+          <span className="truncate">{homeStage(state.placements).name}</span>
         </h2>
-        <span className="text-xs text-stone-400">건물을 끌어다(또는 골라 탭) 빈 터에 놓고, 자재를 끌어다(또는 터를 눌러) 채운다</span>
-        <div className="ml-auto flex items-center gap-1">
+        {/* 조작 힌트는 팔레트 라벨과 중복 → 좁은 모바일에선 숨겨 헤더를 한 줄로 유지한다. */}
+        <span className="hidden text-xs text-stone-400 sm:inline">건물을 끌어다(또는 골라 탭) 빈 터에 놓고, 자재를 끌어다(또는 터를 눌러) 채운다</span>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <ZoomBtn label="－" onClick={() => zoomTo(Math.max(0.5, +(scale - 0.2).toFixed(2)))} />
           <span className="w-10 text-center text-xs text-stone-400">{Math.round(scale * 100)}%</span>
           <ZoomBtn label="＋" onClick={() => zoomTo(Math.min(3, +(scale + 0.2).toFixed(2)))} />

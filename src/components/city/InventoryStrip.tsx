@@ -12,9 +12,9 @@ export function InventoryStrip({
   onChipPointerDown: (e: React.PointerEvent, materialId: string) => void;
 }) {
   return (
-    <div className="mb-2 shrink-0 rounded-lg border border-stone-700/50 bg-stone-900/40 px-2.5 py-1.5">
+    <div className="mb-1.5 shrink-0 rounded-lg border border-stone-700/50 bg-stone-900/40 px-2.5 py-1">
       <p className="mb-1 text-xs font-semibold text-stone-300">
-        <GameIcon name="chest" className="mr-1 inline-block h-4 w-4 align-text-bottom text-amber-400/80" /> 창고 <span className="font-normal text-stone-500">— 자재를 건물로 끌어다 채운다</span>
+        <GameIcon name="chest" className="mr-1 inline-block h-4 w-4 align-text-bottom text-amber-400/80" /> 창고 <span className="hidden font-normal text-stone-500 sm:inline">— 자재를 건물로 끌어다 채운다</span>
       </p>
       <div className="flex flex-wrap gap-1.5">
         {inv.length > 0 ? (
