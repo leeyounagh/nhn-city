@@ -22,6 +22,10 @@ export function useIsoCamera() {
   const panMovedRef = useRef(false);
   const didPanRef = useRef(false); // 팬 뒤 따라오는 타일 click(배치/선택) 억제용
   const panInitRef = useRef(false);
+  // 활성 포인터 추적 — 손가락 2개면 핀치줌, 1개면 팬. 마우스는 항상 1개라 팬만.
+  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  // 핀치 시작 스냅샷(두 손가락 초기 거리·중점·그때의 카메라). 줌은 이 중점을 월드 고정점으로 유지.
+  const pinchRef = useRef<{ startDist: number; startScale: number; startPanX: number; startPanY: number; midX: number; midY: number } | null>(null);
 
   // 보드 뷰포트 실측. 가시 타일 계산·카메라 중앙정렬에 쓴다.
   useEffect(() => {
@@ -42,10 +46,29 @@ export function useIsoCamera() {
     }
   }, [viewport]);
 
-  // 마우스로 보드 배경을 끌면 카메라(pan)를 그 방향으로 옮긴다 → 타일 평면이 드래그 방향으로 밀린다.
-  // 터치/펜은 처리하지 않는다(이 데모는 데스크톱 기준).
+  // 배경을 끌면 카메라(pan)를 그 방향으로 옮긴다 → 타일 평면이 드래그 방향으로 밀린다.
+  // 마우스·터치 공통. 터치 손가락 2개면 팬 대신 핀치줌으로 전환한다.
   useEffect(() => {
     function onMove(e: PointerEvent) {
+      const pt = pointersRef.current.get(e.pointerId);
+      if (pt) {
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+      }
+      // 핀치줌: 두 손가락 거리비로 scale, 시작 중점을 월드 고정점으로 유지.
+      const pinch = pinchRef.current;
+      if (pinch && pointersRef.current.size >= 2) {
+        const [a, b] = [...pointersRef.current.values()];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinch.startDist > 0) {
+          const nz = Math.min(3, Math.max(0.5, +(pinch.startScale * (dist / pinch.startDist)).toFixed(3)));
+          const wx = (pinch.midX - pinch.startPanX) / pinch.startScale;
+          const wy = (pinch.midY - pinch.startPanY) / pinch.startScale;
+          setScale(nz);
+          setPan({ x: pinch.midX - wx * nz, y: pinch.midY - wy * nz });
+        }
+        return;
+      }
       const p = panRef.current;
       if (!p) return;
       const dx = e.clientX - p.startX;
@@ -55,15 +78,21 @@ export function useIsoCamera() {
       didPanRef.current = true;
       setPan({ x: p.panX + dx, y: p.panY + dy });
     }
-    function onUp() {
-      panRef.current = null;
-      panMovedRef.current = false;
+    function onUp(e: PointerEvent) {
+      pointersRef.current.delete(e.pointerId);
+      if (pointersRef.current.size < 2) pinchRef.current = null; // 한 손가락 떼면 핀치 종료
+      if (pointersRef.current.size === 0) {
+        panRef.current = null;
+        panMovedRef.current = false;
+      }
     }
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
   }, []);
 
@@ -77,9 +106,23 @@ export function useIsoCamera() {
     setScale(nz);
   };
 
-  // 보드 배경을 마우스로 누르면 팬 시작점을 기록한다. (터치/펜 무시)
+  // 보드 배경을 누르면 팬 시작점을 기록한다(마우스·터치 공통). 손가락 2개째가 닿으면 핀치줌으로 전환.
   const startPan = (e: React.PointerEvent) => {
-    if (e.pointerType !== "mouse") return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointersRef.current.size >= 2) {
+      const [a, b] = [...pointersRef.current.values()];
+      panRef.current = null; // 팬 취소
+      didPanRef.current = true; // 핀치 뒤 따라오는 타일 click 억제
+      pinchRef.current = {
+        startDist: Math.hypot(a.x - b.x, a.y - b.y),
+        startScale: scale,
+        startPanX: pan.x,
+        startPanY: pan.y,
+        midX: (a.x + b.x) / 2,
+        midY: (a.y + b.y) / 2,
+      };
+      return;
+    }
     didPanRef.current = false;
     panMovedRef.current = false;
     panRef.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
