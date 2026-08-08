@@ -205,7 +205,7 @@ export function travelDays(from: LocationId, to: LocationId): number {
 
 export const BUILDINGS: BuildingDef[] = [
   // T0 기초 (선행 없음)
-  { id: "hut", name: "오두막", requires: { wood: 5, stone: 3 }, income: 8, xp: 10, prereq: [] },
+  { id: "hut", name: "오두막", requires: { wood: 5 }, income: 8, xp: 10, prereq: [] }, // 첫 건물: 단일 자재(나무) = 최근접 1마을 1회 왕복으로 완공 → 초반 템포 개선
   { id: "well", name: "우물", requires: { stone: 6, scrap: 3, rope: 2 }, income: 3, xp: 8, prereq: [] },
   { id: "warehouse", name: "창고", requires: { wood: 4, clay: 4, scrap: 2 }, income: 5, xp: 10, prereq: [] },
   // T1 생활 (방앗간·대장간 = 첫 생산 건물 → tier2 자재 자급 시작)
