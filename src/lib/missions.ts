@@ -105,7 +105,7 @@ function resolveFirstHut(
       return {
         id: "go-buy",
         label: `부족한 ${shortQty}를 사러 떠나라`,
-        hint: `${[shortfall.wood > 0 ? "나무는 삼목골" : null, shortfall.stone > 0 ? "돌은 무쇠고개" : null].filter(Boolean).join(", ")}에 많다. 상인 자리는 매일 바뀐다.`,
+        hint: `${[shortfall.wood > 0 ? "나무는 삼목골" : null, shortfall.stone > 0 ? "돌은 무쇠고개" : null].filter(Boolean).join(", ")}에 많다. 흥정 땐 상인의 성향(책 분석)을 살펴 약점을 찌르면 값이 내려간다.`,
         coach: ctx.worldMapOpen ? buyTown : "mission-worldmap",
       };
     // 방어: 오두막 있고 채울·살 것 없는데 미완공 → 채우기 유도.

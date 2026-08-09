@@ -370,8 +370,10 @@ export const BUILDING_POP: Record<string, number> = {
   keep_royal: 34, keep_citadel: 40,
 };
 
-// 경험치 누적으로 마법의 책이 오르는 임계치
-export const BOOK_XP_THRESHOLDS = [0, 30, 60]; // Lv1=0, Lv2=30, Lv3=60
+// 경험치 누적으로 마법의 책이 오르는 임계치.
+// 데모 훅: 책 Lv2에서 "시작"해 상인 성향을 첫 흥정부터 보여준다(추리 루프가 킬러 콘텐츠).
+// 약점(Lv3)은 첫 건물(최소 xp 8) 완공 직후 드러난다 — 짧은 성장 비트는 유지.
+export const BOOK_XP_THRESHOLDS = [0, 0, 8]; // Lv2 시작(성향), 첫 건물 → Lv3(약점)
 
 export const BOOK_LEVEL_DESC: Record<number, string> = {
   1: "취급 자재만 보인다.",
