@@ -60,6 +60,12 @@ export function BuildingPalette({
       <p className="flex items-center gap-1.5 text-xs font-semibold text-stone-300">
         <GameIcon name="hammer" className="h-4 w-4 text-amber-400/80" /> 건설할 건물 — 끌어다 놓거나, 골라서 빈 터를 탭
       </p>
+      {/* 건축·장식은 자재가 아니라 「대건축가의 설계도」 보유로 해금 — 설계도 획득 경로를 명시(카드엔 "설계도 필요"만 떠 헷갈림). */}
+      {(tab === "arch" || tab === "deco") && (
+        <p className="text-[11px] leading-snug text-amber-300/80">
+          🔎 「대건축가의 설계도」 보유 시 해금 — 설계도는 상인과 <b>물물교환</b>으로만 얻는 희귀템(구매 불가, 1개면 전체 해금).
+        </p>
+      )}
       {/* 건물 스크롤 (선택된 카테고리) */}
       <div onPointerDown={onStripPointerDown} className="flex min-h-[84px] cursor-grab gap-2 overflow-x-auto pb-1 select-none active:cursor-grabbing sm:min-h-[96px]">
         {cards(listFor(tab))}
@@ -116,7 +122,7 @@ function PaletteCard({
       } disabled:cursor-not-allowed disabled:opacity-40`}
       title={
         b.deco && !c.canPlace
-          ? "「대건축가의 설계도」 보유 시 배치 가능"
+          ? "「대건축가의 설계도」 보유 시 배치 가능 — 설계도는 상인과 물물교환으로만 얻는 희귀템"
           : !c.prereqMet
             ? `선행 필요: ${c.missingPrereq.map((p) => BUILDINGS.find((x) => x.id === p)?.name).join(", ")}`
             : !c.bookMet
