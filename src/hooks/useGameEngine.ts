@@ -392,6 +392,21 @@ export function useGameEngine() {
           .finally(() => setNewsPending(false));
       }
       if (dest === "home") {
+        // 고향 귀환 시에도 떠돌이 상인 이벤트 판정 — 하루 넘기기와 동일 확률·결정론(도착일 기준).
+        if (allyHash(newDay, 11) < EVENT_MERCHANT_CHANCE) {
+          fetch("/api/event-merchant", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ day: newDay, bookLevel, recentBuys: decayedBuys }),
+          })
+            .then((r) => r.json())
+            .then((res: { merchant: PublicMerchant | null; rareId?: MaterialId; payId?: MaterialId }) => {
+              if (res.merchant && res.rareId && res.payId) {
+                setEventMerchant({ merchant: res.merchant, rareId: res.rareId, payId: res.payId });
+              }
+            })
+            .catch(() => {});
+        }
         setNotice(
           (gain > 0
             ? `고향으로 돌아왔다. ${days}일간 완성 건물이 ${gain}골드를 벌었다.`

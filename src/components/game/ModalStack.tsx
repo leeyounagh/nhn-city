@@ -190,7 +190,8 @@ export function ModalStack({ engine }: { engine: GameEngine }) {
       {(showIntro === null || !hydrated) && <div className="fixed inset-0 z-[60] bg-black" />}
       {showIntro === true && <IntroCutscene onFinish={finishIntro} />}
 
-      {news && (
+      {/* 시황 뉴스는 흥정창·떠돌이 상인 모달이 떠 있는 동안엔 미뤄 렌더(같은 passDay에 겹쳐 도착해도 흥정 위로 난입하지 않게). 닫히면 그때 표시된다. */}
+      {news && !state.haggle && !eventMerchant && (
         <NewsModal
           news={news}
           onClose={() => {
