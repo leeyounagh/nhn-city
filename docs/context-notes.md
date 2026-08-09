@@ -698,3 +698,10 @@
 - **원인**: MerchantPanel 배지 = 라이브 `bookLevelFromXp(state.xp)`. 성향/약점/relic 잠금 = 상인 객체에 **fetch 시점 bookLevel로 구워진** `profileHint`/`weaknessHint`/`mat.locked`. `townMerchants`는 travelTo에서만 채워지고 persist에 저장됨. → `BOOK_XP_THRESHOLDS`(Lv2 시작) 변경으로 라이브 레벨이 오르니, 기존 세이브의 저레벨-구운 상인과 어긋남. **정상 플레이엔 발생 불가**(마을에선 책이 안 오름) — 밸런스 변경 × 기존 세이브의 stale 파생값 문제.
 - **해법**: `SAVE_VERSION 1→2`. 구버전 세이브 폐기→새 게임(Lv2 시작·상인 fresh fetch로 정합). resume-at-town은 신규 세이브에서 유지. 검증: v1 stale 세이브 주입→리로드→폐기→새 게임(골드400·Lv2·stale 상인 없음).
 - **교훈**: 파생 게이팅(bookLevel 등)이 구워진 저장 데이터(townMerchants)를 무효화하는 밸런스 변경 시 SAVE_VERSION↑가 정석.
+
+## 신표·희귀템 안내 보강 — 도감 범례·툴팁·배치패널 힌트 (2026-08-09)
+- **문제(사용자)**: 신표(token)가 도감/배치패널에 아이콘+개수로만 떠 "이게 뭐지/어디서 얻지?" 불명.
+- **`MATERIAL_TOOLTIP`**(game-data): token/relic/blueprint 획득 경로 문구 중앙 정의(도감·툴팁·패널 공유).
+- **도감(BuildingCodexModal)**: (1) 요구 자재 칩에 `title` 툴팁(이름+획득경로) + 특수자재는 앰버 강조, (2) 하단 **"특수 자재 — 어떻게 얻나" 범례**(신표·relic 아이콘+이름+설명) 항상 표시(호버 없이 보임 → 모바일/영상 대응).
+- **배치패널(PlacementPanel)**: 특수 자재 슬롯을 하나도 안 가졌을 때(`have===0`) 슬롯 아래 인라인 힌트 "🔎 …". 신표가 실제 필요한 순간에 안내.
+- 검증(playwright): 도감 범례("호감도 90…"·"물물교환으로만"), 영주관 배치패널 신표 슬롯 힌트 노출. tsc/eslint 그린.

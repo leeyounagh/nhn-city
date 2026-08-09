@@ -1,7 +1,7 @@
 "use client";
 // 선택한 건물 모달. 자재 투입 진행 + 이동·회전·삭제 액션을 노출한다.
 import type { MaterialId } from "@/types/game";
-import { BUILDINGS, MATERIAL_NAME } from "@/lib/game-data";
+import { BUILDINGS, MATERIAL_NAME, MATERIAL_TOOLTIP } from "@/lib/game-data";
 import { MaterialIcon } from "@/shared/icon/MaterialIcon";
 import { GameIcon } from "@/shared/icon/GameIcon";
 import { type GameState, type Placement, checkPlacement, canDeposit, buildingPop } from "@/lib/game-state";
@@ -126,31 +126,37 @@ export function PlacementPanel({
               return (
                 <li
                   key={s.id}
-                  className="flex items-center justify-between gap-2 rounded bg-stone-800/60 px-2 py-1.5"
+                  className="flex flex-col gap-1 rounded bg-stone-800/60 px-2 py-1.5"
                 >
-                  <span className={`flex items-center gap-1 text-xs ${done ? "text-emerald-300" : "text-stone-200"}`}>
-                    <MaterialIcon id={s.id} className="h-4 w-4" />{MATERIAL_NAME[s.id]} <span className="tabular-nums">{s.have}/{s.need}</span>
-                    <span className="ml-1.5 text-[10px] text-stone-500">보유 {have}</span>
-                  </span>
-                  {done ? (
-                    <span className="text-[11px] text-emerald-400">충족</span>
-                  ) : (
-                    <div className="flex shrink-0 gap-1">
-                      <button
-                        onClick={() => onDeposit(placement.id, s.id)}
-                        disabled={!depositable}
-                        className="rounded bg-amber-600 px-2 py-0.5 text-[11px] font-semibold text-stone-950 transition enabled:hover:bg-amber-500 disabled:opacity-40"
-                      >
-                        투입 +1
-                      </button>
-                      <button
-                        onClick={() => onDepositMax(placement.id, s.id)}
-                        disabled={!depositable}
-                        className="rounded border border-amber-600/70 px-2 py-0.5 text-[11px] font-semibold text-amber-300 transition enabled:hover:bg-amber-950/50 disabled:opacity-40"
-                      >
-                        한번에
-                      </button>
-                    </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`flex items-center gap-1 text-xs ${done ? "text-emerald-300" : "text-stone-200"}`}>
+                      <MaterialIcon id={s.id} className="h-4 w-4" />{MATERIAL_NAME[s.id]} <span className="tabular-nums">{s.have}/{s.need}</span>
+                      <span className="ml-1.5 text-[10px] text-stone-500">보유 {have}</span>
+                    </span>
+                    {done ? (
+                      <span className="text-[11px] text-emerald-400">충족</span>
+                    ) : (
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          onClick={() => onDeposit(placement.id, s.id)}
+                          disabled={!depositable}
+                          className="rounded bg-amber-600 px-2 py-0.5 text-[11px] font-semibold text-stone-950 transition enabled:hover:bg-amber-500 disabled:opacity-40"
+                        >
+                          투입 +1
+                        </button>
+                        <button
+                          onClick={() => onDepositMax(placement.id, s.id)}
+                          disabled={!depositable}
+                          className="rounded border border-amber-600/70 px-2 py-0.5 text-[11px] font-semibold text-amber-300 transition enabled:hover:bg-amber-950/50 disabled:opacity-40"
+                        >
+                          한번에
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {/* 특수 자재(신표·희귀템)를 하나도 안 가졌으면 획득 경로 안내 — "이거 어디서 구하지?" 방지. */}
+                  {MATERIAL_TOOLTIP[s.id] && !done && have === 0 && (
+                    <p className="text-[10px] leading-snug text-amber-300/80">🔎 {MATERIAL_TOOLTIP[s.id]}</p>
                   )}
                 </li>
               );

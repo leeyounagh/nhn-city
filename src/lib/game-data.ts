@@ -28,6 +28,13 @@ export const MATERIAL_NAME: Record<string, string> = Object.fromEntries(
   MATERIALS.map((m) => [m.id, m.name]),
 );
 
+// 특수 자재 안내 (도감 범례·툴팁용). 사고팔 수 없거나 흥정으로만 얻는 자재의 획득 경로를 설명한다.
+export const MATERIAL_TOOLTIP: Record<string, string> = {
+  token: "흥정에서 호감도 90에 이르면 상인이 감복해 선물한다(상인별 1회). 사고팔 수 없다.",
+  relic: "희귀템. 책 Lv.3부터 상인과 물물교환으로만 얻는다.",
+  blueprint: "최고급 희귀템. 물물교환 전용 — 건축·장식 해금.",
+};
+
 // 스프라이트 렌더 크기 배수 (기본 1). 과도하게 큰 스프라이트 축소용 (홈맵·마을 미리보기 공통).
 export const BUILDING_RENDER_SCALE: Record<string, number> = {
   warehouse: 0.6,

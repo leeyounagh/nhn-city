@@ -1,7 +1,7 @@
 "use client";
 // 건물 도감 모달 (마법의 책 Lv.1). 모든 건물의 완공 효과(골드·생산·경험치)와 필요 자재·선행 조건을 한눈에.
 import type { MaterialId } from "@/types/game";
-import { BUILDINGS, MATERIAL_NAME } from "@/lib/game-data";
+import { BUILDINGS, MATERIAL_NAME, MATERIAL_TOOLTIP } from "@/lib/game-data";
 import { MaterialIcon } from "@/shared/icon/MaterialIcon";
 import { GameIcon } from "@/shared/icon/GameIcon";
 import { buildingSprite } from "@/components/city/sprite";
@@ -23,6 +23,10 @@ const buildingName = (id: string) => BUILDINGS.find((b) => b.id === id)?.name ??
 
 export function BuildingCodexModal({ onClose }: { onClose: () => void }) {
   const dialogRef = useDialogA11y(onClose);
+  // 도감에 등장하는 특수 자재(신표·희귀템) — 획득 경로를 하단 범례로 안내한다.
+  const usedSpecials = Object.keys(MATERIAL_TOOLTIP).filter((id) =>
+    BUILDINGS.some((b) => id in b.requires),
+  );
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-16 backdrop-blur-sm"
@@ -93,7 +97,11 @@ export function BuildingCodexModal({ onClose }: { onClose: () => void }) {
                           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-stone-400">
                             <span className="flex flex-wrap items-center gap-x-1.5">
                               {req.map(([id, n]) => (
-                                <span key={id} className="inline-flex items-center gap-0.5 whitespace-nowrap">
+                                <span
+                                  key={id}
+                                  title={`${MATERIAL_NAME[id]}${MATERIAL_TOOLTIP[id] ? " — " + MATERIAL_TOOLTIP[id] : ""}`}
+                                  className={`inline-flex items-center gap-0.5 whitespace-nowrap ${MATERIAL_TOOLTIP[id] ? "text-amber-300" : ""}`}
+                                >
                                   <MaterialIcon id={id} className="h-3 w-3" />
                                   {n}
                                 </span>
@@ -158,6 +166,23 @@ export function BuildingCodexModal({ onClose }: { onClose: () => void }) {
               </section>
             );
           })()}
+
+          {/* 특수 자재 범례 — 신표·희귀템은 도감에서 처음 보면 "이게 뭐지?"가 되므로 획득 경로를 명시. */}
+          {usedSpecials.length > 0 && (
+            <section className="border-t border-stone-700/60 pt-2.5">
+              <h4 className="mb-1.5 text-xs font-semibold text-amber-300/80">특수 자재 — 어떻게 얻나</h4>
+              <ul className="flex flex-col gap-1">
+                {usedSpecials.map((id) => (
+                  <li key={id} className="flex items-start gap-1.5 text-[11px] leading-snug text-stone-400">
+                    <MaterialIcon id={id} className="mt-0.5 h-4 w-4" />
+                    <span>
+                      <b className="text-amber-200">{MATERIAL_NAME[id]}</b> — {MATERIAL_TOOLTIP[id]}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
       </div>
     </div>
