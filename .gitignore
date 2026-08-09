@@ -54,3 +54,6 @@ dev*.log
 
 .vercel
 .env*
+
+# 시연 raw 클립(로컬 산출물, 커밋 제외)
+demo-clips/
