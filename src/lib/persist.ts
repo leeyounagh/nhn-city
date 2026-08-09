@@ -7,7 +7,9 @@ const DB_NAME = "ashen-kingdom";
 const STORE = "save";
 const KEY = "game";
 // 저장 스키마 버전. GameState 형태가 바뀌어 하위 호환이 필요해지면 올리고 normalizeSave에서 마이그레이션한다.
-export const SAVE_VERSION = 1;
+// 2 (2026-08-09): BOOK_XP_THRESHOLDS 변경(책 Lv2 시작)으로 townMerchants에 구워진 레벨 게이팅
+//   (성향/약점/relic 잠금)이 라이브 레벨과 어긋남 → 구버전 세이브 폐기(새 게임)로 정합 복구.
+export const SAVE_VERSION = 2;
 
 // 저장하는 온보딩/세션 플래그(GameState 밖에 있어 따로 챙긴다). Set은 직렬화가 명확한 배열로 둔다.
 export interface PersistedFlags {

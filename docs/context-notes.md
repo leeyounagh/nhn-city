@@ -692,3 +692,9 @@
 - **타입/클라**: `HaggleLine`에 `weaknessHit`·`backfire` 추가, `sendUtterance`가 상인 대사에 저장.
 - **UI**(`HaggleDialog`): 적중 시 초록 링+글로우+"🎯 정곡을 찔렀다!", 역효과 시 붉은 링+"🚫 역효과!". 기존 호감도/값 델타 행 유지. Lv3 약점 미해금이어도 표시(경험적으로 약점을 가르침).
 - **검증(playwright)**: 실리형 상인에 협박→역효과, 논리/자재흠집→정곡(호감도 ▲16). 데스크톱 확인, 콘솔 0.
+
+## 버그: 책 레벨 배지(Lv3) vs 흥정 분석(Lv1) 불일치 — 세이브 버전 상향 (2026-08-09)
+- **증상(사용자)**: MerchantPanel 배지엔 "마법의 책 Lv.3"인데 같은 상인 HaggleDialog 분석은 "성향 ? Lv.2에서 열림 / 약점 ? Lv.3에서 열림"(=Lv1 취급), relic도 "책 Lv.3 필요"(잠김).
+- **원인**: MerchantPanel 배지 = 라이브 `bookLevelFromXp(state.xp)`. 성향/약점/relic 잠금 = 상인 객체에 **fetch 시점 bookLevel로 구워진** `profileHint`/`weaknessHint`/`mat.locked`. `townMerchants`는 travelTo에서만 채워지고 persist에 저장됨. → `BOOK_XP_THRESHOLDS`(Lv2 시작) 변경으로 라이브 레벨이 오르니, 기존 세이브의 저레벨-구운 상인과 어긋남. **정상 플레이엔 발생 불가**(마을에선 책이 안 오름) — 밸런스 변경 × 기존 세이브의 stale 파생값 문제.
+- **해법**: `SAVE_VERSION 1→2`. 구버전 세이브 폐기→새 게임(Lv2 시작·상인 fresh fetch로 정합). resume-at-town은 신규 세이브에서 유지. 검증: v1 stale 세이브 주입→리로드→폐기→새 게임(골드400·Lv2·stale 상인 없음).
+- **교훈**: 파생 게이팅(bookLevel 등)이 구워진 저장 데이터(townMerchants)를 무효화하는 밸런스 변경 시 SAVE_VERSION↑가 정석.
