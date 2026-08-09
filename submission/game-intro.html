@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>게임 소개 및 설명 — 망한 도시의 후계자</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Malgun Gothic","맑은 고딕",-apple-system,system-ui,sans-serif; color:#1c1917; line-height:1.65; font-size:10.5pt; margin:0; }
+  h1 { font-size:22pt; margin:0 0 2px; letter-spacing:-0.5px; }
+  .en { color:#b45309; font:700 12pt Georgia,serif; letter-spacing:2px; }
+  .tag { color:#92400e; font-weight:700; font-size:12pt; margin:10px 0 2px; }
+  .lead { color:#57534e; margin:0 0 14px; }
+  h2 { font-size:12.5pt; color:#b45309; border-bottom:2px solid #f5deb3; padding-bottom:4px; margin:20px 0 8px; }
+  .meta { color:#78716c; font-size:9pt; margin-top:2px; }
+  ul { margin:6px 0; padding-left:18px; }
+  li { margin:3px 0; }
+  b { color:#78350f; }
+  .box { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; margin:8px 0; }
+  .flow { background:#faf8f5; border:1px solid #e7e5e4; border-radius:8px; padding:12px 14px; font-size:9.5pt; color:#44403c; text-align:center; letter-spacing:0.3px; }
+  .flow b { color:#b45309; }
+  table { width:100%; border-collapse:collapse; margin:6px 0; font-size:9.5pt; }
+  td,th { border:1px solid #e7e5e4; padding:6px 9px; text-align:left; vertical-align:top; }
+  th { background:#f5f5f4; width:26%; color:#57534e; }
+  .link { color:#b45309; font-weight:700; }
+  .ph { background:#fef3c7; padding:1px 6px; border-radius:4px; color:#92400e; font-weight:700; }
+  .foot { margin-top:22px; color:#a8a29e; font-size:8.5pt; border-top:1px solid #e7e5e4; padding-top:6px; }
+</style>
+</head>
+<body>
+  <div class="en">ASHEN KINGDOM</div>
+  <h1>망한 도시의 후계자</h1>
+  <div class="meta">NHN NAN 2026 게임 × AI 해커톤 · 사전과제 · 1인 개발</div>
+
+  <div class="tag">상인의 마음을 읽어야, 마을을 되살릴 수 있습니다.</div>
+  <p class="lead">폐허가 된 고향으로 돌아온 후계자가 되어, 마을에 떠도는 <b>소문으로 상인을 추리</b>하고
+  <b>AI 상인과 대화·흥정</b>해 자재를 모아 <b>도시를 재건</b>하는 게임입니다.</p>
+
+  <h2>게임 개요</h2>
+  <p>매일 위치가 바뀌는 상인을 소문으로 찾아, 그의 <b>성향을 읽고 그에 맞는 말로 설득</b>해 값을 깎습니다.
+  거래로 모은 자재로 폐허를 건물로 채워 마을을 다시 일으킵니다. 상인의 성격·대사·소문은 <b>AI(Gemini)</b>가
+  매번 다르게 생성하고, 가격·성공/실패 같은 <b>판정은 코드</b>가 맡아 공정성을 지킵니다.</p>
+
+  <h2>게임 방법 — 목표 · 조작 · 종료</h2>
+  <table>
+    <tr><th>목표</th><td>잿더미가 된 고향을 재건한다. 거래로 자재를 모아 건물을 짓고 인구를 늘려, 마을을 다시 왕국으로 되살린다.</td></tr>
+    <tr><th>핵심 재미</th><td>소문으로 상인의 위치를 <b>추리</b>하고, 대화로 <b>성향을 파악</b>해, 성향의 약점을 찌르는 <b>흥정</b>으로 값을 깎는 것.</td></tr>
+    <tr><th>조작</th><td>데스크톱은 마우스, 모바일은 터치. 「이동」으로 월드맵에서 마을 선택 → 상인의 「흥정」 클릭 → <b>입력창에 자연어로 설득</b> 후 「제안」 → 건물 팔레트에서 골라 <b>빈 터를 탭</b>해 배치 → 자재 「투입」으로 완공. 아이소맵은 드래그 팬 · 핀치/휠 줌.</td></tr>
+    <tr><th>종료 조건</th><td>별도의 패배 없이 도시를 키우는 <b>오픈엔드</b>. 재건이 무르익으면 「재건된 왕국」 엔딩 연출에 도달한다.</td></tr>
+  </table>
+
+  <div class="box"><b>한 판의 흐름</b>
+  <div class="flow" style="margin-top:8px;background:none;border:none;padding:6px 0;">
+    소문 확인 <b>→</b> 상인 위치 추리 <b>→</b> 월드맵 이동 <b>→</b> 성향 파악 <b>→</b> 흥정(🎯정곡/🚫역효과) <b>→</b> 자재 획득 <b>→</b> 건설 <b>→</b> 인구·수입 성장 <b>→</b> 반복
+  </div></div>
+
+  <h2>실행 방법</h2>
+  <ul>
+    <li><b>플레이(권장)</b> — 웹 브라우저에서 아래 배포 링크 접속. <b>설치 불필요</b>, 링크 클릭만으로 바로 플레이.</li>
+    <li><b>로컬 실행</b> — Node.js 20+ / pnpm 필요. <code>pnpm install</code> → <code>pnpm dev</code> → <code>http://localhost:3000</code>.
+    AI 대사는 <code>GEMINI_API_KEY</code> 설정 시 라이브 생성, 없으면 정적 폴백으로 동작(플레이 가능).</li>
+    <li>데스크톱·모바일(반응형) 모두 지원.</li>
+  </ul>
+
+  <h2>플레이 링크 · 영상</h2>
+  <table>
+    <tr><th>🎮 웹 플레이</th><td class="link">https://nan2026-citybuilder.vercel.app</td></tr>
+    <tr><th>🎥 플레이 영상</th><td class="link">https://www.youtube.com/watch?v=7pdaK7aGnbw</td></tr>
+    <tr><th>📦 소스 코드</th><td class="link">https://github.com/leeyounagh/nhn-city</td></tr>
+  </table>
+
+  <div class="foot">NHN NAN 2026 Game × AI Hackathon · 사전과제 제출물 #3 (게임 소개 및 설명 문서)</div>
+</body>
+</html>
