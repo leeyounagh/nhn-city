@@ -57,3 +57,6 @@ dev*.log
 
 # 시연 raw 클립(로컬 산출물, 커밋 제외)
 demo-clips/
+
+# 개인정보(이력서) 포함 — 커밋 금지
+submission/이수연_이력서_포트폴리오.pdf
