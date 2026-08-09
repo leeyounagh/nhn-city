@@ -40,6 +40,8 @@ export interface HaggleLine {
   category?: HaggleCategory;
   dispositionDelta?: number; // 이 턴 호감도 변화 (첫 턴엔 undefined)
   priceDelta?: number; // 이 턴 현재가 변화 (음수 = 값 내림)
+  weaknessHit?: boolean; // 성향 약점을 정곡으로 찌름 (추리 성공 연출)
+  backfire?: boolean; // 역효과(협박 등) — 호감도 급락
 }
 
 // 맵에 배치된 건물 한 채. 같은 종류를 여러 채 지을 수 있어 인스턴스 id로 구분한다.

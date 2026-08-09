@@ -6,6 +6,7 @@ import {
   deriveMerchant,
   priceAt,
   applyCategory,
+  categoryEffect,
   initialDisposition,
   barterRatio,
   TOKEN_DISPOSITION,
@@ -99,6 +100,10 @@ export async function POST(request: Request) {
 
   // 코드가 호감도·가격(골드) 또는 교환비(개수)를 계산한다.
   const newDisposition = applyCategory(disposition, category, derived.profile);
+  // 약점 적중(정곡)·역효과 판정 — 클램프 전 원 효과 기준(성향별 최대 반응 카테고리 ≈ 16~24).
+  const rawEffect = categoryEffect(category, derived.profile);
+  const weaknessHit = rawEffect >= 16;
+  const backfire = rawEffect <= -6;
   const nextQualityApplied = qualityApplied || category === "quality";
   // 호감도가 임계를 넘고 아직 안 받았으면 상인이 '상인의 신표'를 선물 (흥정 1회당 1개).
   const gotToken = !tokenAwarded && newDisposition >= TOKEN_DISPOSITION;
@@ -115,7 +120,7 @@ export async function POST(request: Request) {
   if (newDisposition <= 0) status = "closed";
   else if (newTurnsLeft <= 0) status = "timeup";
 
-  const result: HaggleResult & { qualityApplied: boolean; gotToken: boolean } = {
+  const result: HaggleResult & { qualityApplied: boolean; gotToken: boolean; weaknessHit: boolean; backfire: boolean } = {
     category,
     line,
     disposition: newDisposition,
@@ -124,6 +129,8 @@ export async function POST(request: Request) {
     status,
     qualityApplied: nextQualityApplied,
     gotToken,
+    weaknessHit,
+    backfire,
   };
   return NextResponse.json(result);
 }

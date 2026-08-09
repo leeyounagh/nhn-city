@@ -437,6 +437,11 @@ export function initialDisposition(profile: ProfileId): number {
   return INITIAL_DISPOSITION[profile];
 }
 
+// 발언 카테고리가 그 성향에 준 "원" 호감도 효과(클램프 전). 약점 적중/역효과 판정용.
+export function categoryEffect(category: HaggleCategory, profile: ProfileId): number {
+  return EFFECT[category][profile];
+}
+
 // relic은 책 Lv3+에서만 거래 가능.
 function relicUnlocked(bookLevel: BookLevel): boolean {
   return bookLevel >= 3;

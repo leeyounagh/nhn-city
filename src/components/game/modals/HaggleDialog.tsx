@@ -251,10 +251,27 @@ export function HaggleDialog({
                 line.role === "player"
                   ? "ml-auto max-w-[80%] rounded-lg bg-amber-600/80 px-3 py-2 text-sm text-stone-950"
                   : line.role === "merchant"
-                    ? "max-w-[80%] rounded-lg bg-stone-800 px-3 py-2 text-sm text-stone-100"
+                    ? `max-w-[80%] rounded-lg bg-stone-800 px-3 py-2 text-sm text-stone-100 ${
+                        line.weaknessHit
+                          ? "ring-2 ring-emerald-400/70 shadow-[0_0_16px_rgba(52,211,153,0.35)]"
+                          : line.backfire
+                            ? "ring-2 ring-rose-500/60"
+                            : ""
+                      }`
                     : "text-center text-xs italic text-stone-500"
               }
             >
+              {/* 추리 성공/실패 연출 — 성향 약점을 찌르면 "정곡", 협박 등은 "역효과". */}
+              {line.role === "merchant" && line.weaknessHit && (
+                <div className="mb-1 flex items-center gap-1 text-[11px] font-bold tracking-wide text-emerald-300">
+                  🎯 정곡을 찔렀다!
+                </div>
+              )}
+              {line.role === "merchant" && !line.weaknessHit && line.backfire && (
+                <div className="mb-1 flex items-center gap-1 text-[11px] font-bold tracking-wide text-rose-300">
+                  🚫 역효과! 상인의 심기를 건드렸다.
+                </div>
+              )}
               {line.category && (
                 <span className="mr-1 rounded bg-stone-700 px-1 text-[10px] text-sky-300">
                   {CATEGORY_LABEL[line.category]}

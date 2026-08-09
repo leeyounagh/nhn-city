@@ -597,6 +597,8 @@ export function useGameEngine() {
         status: HaggleState["status"];
         qualityApplied: boolean;
         gotToken?: boolean;
+        weaknessHit?: boolean;
+        backfire?: boolean;
       } = await res.json();
       setState((s) => {
         if (!s.haggle) return s;
@@ -605,7 +607,7 @@ export function useGameEngine() {
         const priceDelta = d.currentPrice - s.haggle.currentPrice;
         const log: HaggleState["log"] = [
           ...s.haggle.log,
-          { role: "merchant", text: d.line, category: d.category, dispositionDelta, priceDelta },
+          { role: "merchant", text: d.line, category: d.category, dispositionDelta, priceDelta, weaknessHit: d.weaknessHit, backfire: d.backfire },
         ];
         // 고호감도 보상: 상인이 「상인의 신표」를 선물 → 인벤토리에 1개 추가 (흥정 1회 1개).
         const inventory = d.gotToken
