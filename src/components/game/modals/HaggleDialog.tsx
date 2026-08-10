@@ -286,7 +286,7 @@ export function HaggleDialog({
                     </span>
                   )}
                   <span className={deltaColor(line.priceDelta, false)}>
-                    값 {arrow(line.priceDelta, false)}
+                    {isBarter ? "교환비" : "값"} {arrow(line.priceDelta, false)}
                   </span>
                 </div>
               )}
@@ -296,12 +296,12 @@ export function HaggleDialog({
             <div className="mt-6 flex flex-col items-center gap-1 text-center">
               <GameIcon name="trade" className="h-7 w-7 text-stone-600" />
               <p className="text-xs text-stone-500">아부·논리·대량구매·딱한사정… 무슨 말이든 건네 흥정을 시작하라.</p>
-              <p className="text-[11px] text-stone-600">약점을 파고들면 호감도가 오르고 값이 내려간다.</p>
+              <p className="text-[11px] text-stone-600">약점을 파고들면 호감도가 오르고 {isBarter ? "교환비가" : "값이"} 내려간다.</p>
             </div>
           )}
           {haggle.pending && <p className="text-xs text-stone-500">…상인이 생각 중…</p>}
           {haggle.status === "timeup" && (
-            <p className="text-center text-xs text-rose-400">흥정 턴을 다 썼다. 지금 값으로 사거나 물러나라.</p>
+            <p className="text-center text-xs text-rose-400">흥정 턴을 다 썼다. {isBarter ? "지금 교환비로 교환하거나" : "지금 값으로 사거나"} 물러나라.</p>
           )}
           {haggle.status === "closed" && (
             <p className="text-center text-xs text-rose-400">상인이 등을 돌렸다. 거래 결렬.</p>
