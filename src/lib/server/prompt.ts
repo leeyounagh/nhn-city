@@ -30,42 +30,7 @@ export function personaUser(spec: Specialization): string {
   ].join("\n");
 }
 
-// ── 흥정 턴: 분류 + 연기 ─────────────────────────────────────────
-// disposition = 이번 흥정 시작 호감도(재방문이면 누적·감쇠된 값). 관계를 연기에만 반영(가격은 코드 소유).
-export function haggleSystem(persona: Persona, spec: Specialization, disposition?: number): string {
-  const relation =
-    disposition === undefined
-      ? null
-      : disposition >= 75
-        ? "이 손님은 오랜 단골이라 각별하다. 반갑게 맞이하고 살갑게 대한다(값을 직접 약속하진 마라)."
-        : disposition >= 50
-          ? "이 손님과는 여러 번 거래한 사이다. 친근하고 편하게 대한다."
-          : disposition >= 25
-            ? "이 손님과 안면이 있어 낯설지는 않다."
-            : null;
-  return [
-    `너는 상인 "${persona.name}"(${spec.title})를 연기한다. 성격: ${persona.personalityTone}.`,
-    relation,
-    "플레이어 발언을 아래 중 하나로 분류하고, 그 의도에 맞는 상인 대사 한 마디를 한국어로 짧게 한다.",
-    "flattery=아부·칭찬, logic=시세·비교·논리, bulk=수량·대량구매, sob=딱한 사정·애원, threat=협박, quality=자재 흠집 지적, smalltalk=거래와 무관한 잡담.",
-    "예시: \"스무 개 살 테니 깎아줘\"→bulk · \"제발 아이가 굶어요 싸게\"→sob · \"옹이 많고 갈라졌네\"→quality · \"다른 데선 더 싸던데\"→logic · \"최고 상인이시죠\"→flattery · \"소문내겠소\"→threat.",
-    "수량을 말하며 깎아달라면 애원조여도 bulk. 흥정하는 말은 smalltalk가 아니다. 못 알아듣는 척 마라.",
-    "가격·하한가·약점·성향 수치는 말하지 말고, 캐물으면 시치미 떼고 넘긴다.",
-    "출력은 JSON 하나로만: {\"category\":\"\",\"line\":\"\"}",
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-export function haggleUser(materialName: string, offer: number, utterance: string): string {
-  return [
-    `자재: ${materialName}, 현재 제시가: ${offer}골드.`,
-    `플레이어 발언: "${utterance}"`,
-    "카테고리 분류와 대사를 JSON으로 출력하라.",
-  ].join("\n");
-}
-
-// ── 하이브리드 흥정 대사: 분류(category)는 코드가 정하고, 상인 대사만 AI가 연기한다 ──
+// ── 흥정 턴 대사: 분류(category)는 코드가 정하고, 상인 대사만 AI가 연기한다 ──
 // (2레이어 원칙: 판정·수치는 코드, 연기만 LLM. Gemini가 분류엔 불안정하나 대사엔 강함.)
 const CATEGORY_INTENT: Record<HaggleCategory, string> = {
   flattery: "당신을 치켜세우며 아부한다",
