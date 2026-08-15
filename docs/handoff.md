@@ -24,8 +24,8 @@
 ## 1. 프로젝트 개요
 - **무엇** — NHN NAN 2026 게임×AI 해커톤 사전과제. LLM 밀실 추리형 도시 재건 게임.
 - **마감** — 2026-08-10.
-- **핵심** — 소문으로 상인을 추리하고 자연어 흥정으로 자재를 싸게 사서 폐허 고향에 도시를 재건. **판정·수치는 코드, 소문·연기·발언분류만 LLM** (2레이어 격리).
-- **스택** — Next.js 16 App Router(특수 버전, ⚠️ 아래 참조), React 19, Tailwind v4, TypeScript, pnpm, Anthropic API(서버 라우트 전용, 키 없으면 키워드/정적 폴백), zod, **recharts 3.10.1**(시세 그래프).
+- **핵심** — 소문으로 상인을 추리하고 자연어 흥정으로 자재를 싸게 사서 폐허 고향에 도시를 재건. **판정·수치·발언분류는 코드, 소문·연기(대사)만 LLM** (2레이어 격리). 카테고리 분류는 코드 키워드(`fallbackCategory`), LLM은 대사만 연기.
+- **스택** — Next.js 16 App Router(특수 버전, ⚠️ 아래 참조), React 19, Tailwind v4, TypeScript, pnpm, Google Gemini API(`gemini-flash-lite-latest`, 서버 라우트 전용, 키 없으면 키워드/정적 폴백), zod, **recharts 3.10.1**(시세 그래프).
 
 ## 2. ⚠️ 반드시 지킬 것
 - **Next.js 16은 학습데이터와 다른 특수 버전.** 코드 작성 전 `node_modules/next/dist/docs/` 관련 가이드를 읽어라 (루트 `AGENTS.md` 지침).

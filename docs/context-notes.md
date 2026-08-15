@@ -19,7 +19,7 @@
   - 근거 = "왜 AI"와 "재미"가 둘 다 흥정에 있다. 타이쿤 시뮬을 키우면 AI가 묻히고 마감 못 맞춤. 지난 게임 노잼 원인=얄팍한 루프 → 흥정 깊이로 해결.
 - **2레이어 분리** = 코드가 경제·판정 소유, LLM은 생성·연기만.
   - 근거 = LLM 판정은 헛거래·가격붕괴 유발. 공정성·클리어 보장은 코드가.
-- **LLM은 분류만, 판정은 코드** = 플레이어 발언을 카테고리(아부/논리/대량/딱한사정/협박 등)로 분류 → 코드가 상인 성향에 대입해 호감도·가격 계산.
+- **분류·판정은 코드, 연기만 LLM** = 플레이어 발언을 코드가 키워드로 카테고리(아부/논리/대량/딱한사정/협박 등) 분류 → 코드가 상인 성향에 대입해 호감도·가격 계산. LLM은 대사 연기만. (초기엔 LLM 분류로 계획했으나 Gemini 분류 불안정으로 코드 키워드로 전환.)
 - **절차생성 상인** = 매 등장마다 성격·외모·말투 다름. AI 필연성의 핵심.
 - **마법의 책 = 정보 게이트 + AI 서사 래핑.** 레벨업으로 상인 약점 노출 → 정보=힘. 책이 상인을 "읽는다"=LLM이 프로필 생성.
 - **정보 격리** = 상인 프롬프트엔 자기 스펙만. 인젝션 방어로 하한가·정답 유출 차단.
@@ -37,7 +37,7 @@
 - **건물 = Kenney.nl 무료 아이소 시티 에셋.** AI 타일 생성은 일관성 문제로 비채택.
 
 ## 기술 스택
-- Next.js App Router + React + Tailwind + TS, pnpm. Anthropic Claude API(.env.local, 서버 라우트에서만).
+- Next.js App Router + React + Tailwind + TS, pnpm. Google Gemini API(.env.local, 서버 라우트에서만). ※ 초기엔 Anthropic Claude로 계획했으나 결제 이슈로 Gemini(`gemini-flash-lite-latest`)로 전환.
 - Vercel 배포(서버리스). 데스크톱 우선(타이쿤 타일 특성) — mobile-first 유지 여부는 열린 항목.
 
 ## 추가 확정 (2026-07-19)
@@ -50,10 +50,10 @@
   - 근거 = Vercel 서버리스에 crypto/세션스토어 없이 비밀 격리. 책 레벨 힌트는 의도적 노출.
 - **파일 구성**
   - `src/lib/server/economy.ts` (server-only) = PRICES(base/floor), SPECIALIZATIONS 6종, PROFILES 4종, EFFECT Δ표, mulberry32, deriveMerchant/priceAt/applyCategory/initialDisposition/buildPublicMerchant. 이 파일 밖으로 성향·하한가 안 나감.
-  - `src/lib/server/llm.ts` = Anthropic 래퍼. 키 없으면 null 반환 → 호출부 폴백.
+  - `src/lib/server/llm.ts` = Google Gemini 래퍼(REST fetch). 키 없으면 null 반환 → 호출부 폴백.
   - `src/lib/server/prompt.ts` = 페르소나/흥정 시스템 프롬프트 + 전문화별 폴백 페르소나 + 키워드 폴백 분류.
   - `src/app/api/merchant/route.ts` = POST {bookLevel, seed?} → seed 롤 + 페르소나(LLM/폴백) → 책레벨 게이팅된 PublicMerchant.
-  - `src/app/api/haggle/route.ts` = POST {seed, materialId, utterance, disposition, turnsLeft, qualityApplied} → LLM 분류+연기(폴백) → 코드가 호감도·현재가·status 계산.
+  - `src/app/api/haggle/route.ts` = POST {seed, materialId, utterance, disposition, turnsLeft, qualityApplied} → 코드 키워드 분류(`fallbackCategory`) + LLM 대사 연기(폴백) → 코드가 호감도·현재가·status 계산.
 - **흥정 수식** = currentPrice = floor + (offer0 - floor) × (1 - disposition/100). quality 성공 시 offer0 일회성 ×0.92.
 - **검증 완료** = tsc/eslint/next build 그린 + seed 12345(greedy 만물상) bulk 발언 → 호감도 20→38, 현재가 13→11 정상.
 - ⚠️ **curl Korean 인코딩** = Windows 콘솔에서 curl -d에 한글 넣으면 깨짐(요청 body만). 테스트는 UTF-8 파일 --data-binary @file 사용. 서버 응답 한글은 정상.
@@ -85,7 +85,7 @@
 
 ## 주의점 (지난 프로젝트에서 이월)
 - ⚠️ **API 키** = .env.local(.gitignore). 소스 공개 심사라 커밋 시 즉시 노출. 커밋용은 .env.local.example.
-- ⚠️ **Anthropic 크레딧** = 한국카드 해외결제 이슈로 결제 실패 이력. 흥정(LLM)엔 크레딧 필요. 데모 안정성 위해 초상화는 사전생성으로.
+- ⚠️ **유료 API 크레딧** = Anthropic이 한국카드 해외결제 이슈로 결제 실패 이력 → 그래서 LLM을 **Gemini로 전환**. 흥정(LLM)엔 키/크레딧 필요. 데모 안정성 위해 초상화는 사전생성으로.
 - ⚠️ **Next 최신 버전 breaking change** = 코드 작성 전 node_modules/next/dist/docs/ 확인. next lint 제거됨 → eslint 직접 실행.
 - 작업 폴더 = `C:\Users\whdud\Desktop\nan2026-citybuilder`.
 

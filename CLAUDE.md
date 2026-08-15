@@ -1,7 +1,7 @@
 # CLAUDE.md — 마지막 도시 (Ashen Kingdom)
 
 > NHN NAN 2026 게임×AI 해커톤 사전과제. LLM 밀실 추리형 도시 재건 게임.
-> Next.js 16 App Router · React 19 · Tailwind v4 · TypeScript · Anthropic API.
+> Next.js 16 App Router · React 19 · Tailwind v4 · TypeScript · Google Gemini API.
 >
 > 본 파일은 **글로벌 `~/.claude/CLAUDE.md` 10개 룰을 그대로 따른다.** 그 위에 이 프로젝트만의 결정을 응축한 빠른 참조다.
 
@@ -36,14 +36,16 @@
 ## 2. 기술 스택
 
 - **Next.js 16 App Router** (Turbopack), **React 19**, **Tailwind v4** (`@tailwindcss/postcss`, Lightning CSS 내장 → vendor prefix 자동), **TypeScript**, **pnpm**.
-- **Anthropic SDK** (`@anthropic-ai/sdk`) — 서버 라우트 전용. 키 없으면 키워드/정적 폴백.
+- **Google Gemini API** (`llm.ts`에서 REST fetch, 모델 `gemini-flash-lite-latest`) — 서버 라우트 전용. 키 없으면 키워드/정적 폴백.
 - **recharts** — 시세 그래프. **zod** — 입력 검증. **server-only** — 서버 모듈 경계.
 
 ---
 
 ## 3. 2레이어 아키텍처 (핵심)
 
-**판정·수치는 코드, 소문·연기·발언분류만 LLM** (2레이어 격리). LLM이 가격·하한가·정답을 판정하지 않는다.
+**판정·수치·발언분류는 코드, 소문·연기(대사)만 LLM** (2레이어 격리). LLM이 가격·하한가·정답을 판정하지 않는다.
+
+> ⚠️ 발언 카테고리 분류도 **코드(키워드, `fallbackCategory`)가 한다.** LLM은 대사만 연기(`haggleLineSystem`). Gemini가 분류엔 불안정해 판정 신뢰성을 위해 코드로 뺀 하이브리드다. (LLM이 분류+대사를 둘 다 하는 `haggleSystem`은 정의만 남은 legacy 미사용 코드.)
 
 - **서버 전용 진실** — `src/lib/server/`
   - `economy.ts` (가격·상인 스펙·성향·호감도Δ·흥정식·`MERCHANTS` 영구 24명 정체성)

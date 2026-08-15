@@ -1,4 +1,4 @@
-// 흥정 판정 라우트. LLM은 발언을 카테고리로 분류만 하고, 호감도·가격은 코드가 계산한다.
+// 흥정 판정 라우트. 발언 분류(카테고리)는 코드가 키워드로 하고, LLM은 대사(연기)만 만든다. 호감도·가격은 코드가 계산한다.
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { HaggleCategory, HaggleResult, MaterialId } from "@/types/game";
