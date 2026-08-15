@@ -138,7 +138,16 @@ export function IsoCityMap({
       }
       didDragRef.current = true; // 뒤따르는 click(선택 토글) 억제용
       if (d.kind === "building") {
-        const t = screenToTile(e.clientX, e.clientY);
+        // 보드 영역 밖(팔레트·HUD·공중)에서 놓으면 무시한다. 안 그러면 screenToTile이 화면 밖 타일을 돌려줘
+        // "유령 건물"이 보이지 않는 곳에 배치된다(온보딩 코치가 못 찾아 화면이 막히는 원인).
+        const rect = boardAreaRef.current?.getBoundingClientRect();
+        const inBoard =
+          !!rect &&
+          e.clientX >= rect.left &&
+          e.clientX <= rect.right &&
+          e.clientY >= rect.top &&
+          e.clientY <= rect.bottom;
+        const t = inBoard ? screenToTile(e.clientX, e.clientY) : null;
         if (t) onPlace(d.id, t.x, t.y);
       } else {
         // 자재: 커서 아래 건물 스프라이트를 먼저 히트테스트한다. 건물 그림이 베이스 타일 위로
@@ -159,7 +168,7 @@ export function IsoCityMap({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [onPlace, onDeposit, state.placements, screenToTile]);
+  }, [onPlace, onDeposit, state.placements, screenToTile, boardAreaRef]);
 
   const selectedPlacement = state.placements.find((p) => p.id === selectedPlacementId) ?? null;
   const inv = Object.entries(state.inventory).filter(([, n]) => n > 0);

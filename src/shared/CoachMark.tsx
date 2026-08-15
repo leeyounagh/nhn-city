@@ -116,10 +116,12 @@ export function CoachMark({
     </div>
   );
 
-  // 대상을 못 찾으면 전체 딤 + 중앙 말풍선 (대상이 다른 화면에 있을 때).
+  // 대상을 못 찾으면 중앙 말풍선만 띄운다 (대상이 다른 화면·화면 밖일 때).
+  // 부모는 pointer-events-none로 보드 클릭을 투과시켜, 안내가 진행(자재 투입 등)을 막지 않게 한다.
+  // (말풍선 자체는 pointer-events-auto라 건너뛰기/다음 버튼은 정상 클릭된다.)
   if (!box) {
     return (
-      <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-4">{bubble}</div>
+      <div className="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center p-4">{bubble}</div>
     );
   }
 

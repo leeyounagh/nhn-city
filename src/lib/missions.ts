@@ -41,8 +41,9 @@ function resolveFirstHut(
   acked: ReadonlySet<string>,
   ctx: CoachCtx,
 ): MissionObjective | null {
-  const hut = s.placements.find((p) => p.buildingId === "hut");
-  if (hut?.built) return null; // 완공 → 미션 종료
+  // 아무 오두막이나 완공되면 미션 종료. (find(첫 채)만 보면 화면 밖 유령 배치가 첫 채로 남아 진짜 오두막을 지어도 안 끝난다.)
+  if (s.placements.some((p) => p.buildingId === "hut" && p.built)) return null;
+  const hut = s.placements.find((p) => p.buildingId === "hut" && !p.built); // 진행 대상 = 미완공 오두막
 
   const prog = hut?.progress ?? {};
   const remaining = {
